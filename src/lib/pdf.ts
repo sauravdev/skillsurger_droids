@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import * as pdfjsLib from 'pdfjs-dist';
+import { openai, isOpenAIConfigured } from './openaiConfig';
 
 // Configure PDF.js worker - use the correct worker path for Vite
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
@@ -497,6 +498,79 @@ function extractCurrentRole(experiences: Array<{ title: string; duration: string
   return experiences.length > 0 ? experiences[0].title : '';
 }
 
+// Helper: Render first page of PDF as image (PNG data URL)
+async function extractFirstPageImageFromPdf(file: File): Promise<string> {
+  const arrayBuffer = await file.arrayBuffer();
+  const typedArray = new Uint8Array(arrayBuffer);
+  const pdf = await pdfjsLib.getDocument({ data: typedArray }).promise;
+  const page = await pdf.getPage(1);
+  const viewport = page.getViewport({ scale: 2 });
+  // Create an offscreen canvas
+  const canvas = document.createElement('canvas');
+  canvas.width = viewport.width;
+  canvas.height = viewport.height;
+  const context = canvas.getContext('2d');
+  if (!context) throw new Error('Failed to get canvas context for PDF rendering');
+  await page.render({ canvasContext: context, viewport }).promise;
+  // Get PNG data URL
+  return canvas.toDataURL('image/png');
+}
+
+// Helper: Call OpenAI Vision API to extract CV fields from image
+async function analyzeCVImageWithOpenAI(imageDataUrl: string): Promise<ParsedCV> {
+  if (!isOpenAIConfigured()) {
+    throw new Error('OpenAI Vision is not configured.');
+  }
+  // Remove data URL prefix and convert to base64
+  const base64Image = imageDataUrl.replace(/^data:image\/png;base64,/, '');
+  const prompt = `Extract the following fields from this resume/CV image and return a JSON object with these keys: full_name, email, phone, city, state, country, current_role, years_of_experience, summary, experience (array of {title, company, duration, description}), projects (array of {name, description, technologies}), skills (array), education (array of {degree, institution, year}), languages (array). If a field is missing, use an empty string or empty array.`;
+  // OpenAI Vision API call (using gpt-4o)
+  const response = await openai.chat.completions.create({
+    model: 'gpt-4o',
+    messages: [
+      {
+        role: 'system',
+        content: 'You are an expert at extracting structured data from resumes and CVs.'
+      },
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: prompt },
+          { type: 'image_url', image_url: { url: imageDataUrl } }
+        ]
+      }
+    ],
+    max_tokens: 1200,
+    response_format: { type: 'json_object' }
+  });
+  // Parse the JSON response
+  const content = response.choices[0]?.message?.content;
+  if (!content) throw new Error('No response from OpenAI Vision.');
+  let parsed: ParsedCV;
+  try {
+    parsed = JSON.parse(content);
+  } catch (e) {
+    throw new Error('Failed to parse OpenAI Vision response as JSON.');
+  }
+  // Ensure all required keys exist
+  return {
+    full_name: parsed.full_name || '',
+    email: parsed.email || '',
+    phone: parsed.phone || '',
+    city: parsed.city || '',
+    state: parsed.state || '',
+    country: parsed.country || '',
+    current_role: parsed.current_role || '',
+    years_of_experience: parsed.years_of_experience || 0,
+    summary: parsed.summary || '',
+    experience: Array.isArray(parsed.experience) ? parsed.experience : [],
+    projects: Array.isArray(parsed.projects) ? parsed.projects : [],
+    skills: Array.isArray(parsed.skills) ? parsed.skills : [],
+    education: Array.isArray(parsed.education) ? parsed.education : [],
+    languages: Array.isArray(parsed.languages) ? parsed.languages : []
+  };
+}
+
 export async function parseCV(file: File): Promise<ParsedCV> {
   try {
     if (!file) {
@@ -504,56 +578,63 @@ export async function parseCV(file: File): Promise<ParsedCV> {
     }
 
     console.log('Starting CV parsing process...');
-    
     // Extract text using PDF.js
-    const pdfText = await extractTextFromPdf(file);
-
-    if (!pdfText.trim()) {
-      throw new Error('No text could be extracted from the PDF. Please ensure the file contains searchable text.');
+    let pdfText = '';
+    try {
+      pdfText = await extractTextFromPdf(file);
+    } catch (err) {
+      console.warn('Text extraction failed, will try OpenAI Vision fallback:', err);
     }
 
-    console.log('PDF text extracted successfully, length:', pdfText.length);
+    if (pdfText && pdfText.trim()) {
+      // Parse the text using our enhanced parsing functions
+      const full_name = extractName(pdfText);
+      const email = extractEmail(pdfText);
+      const phone = extractPhone(pdfText);
+      const location = extractLocation(pdfText);
+      const skills = extractSkills(pdfText);
+      const experience = extractExperience(pdfText);
+      const education = extractEducation(pdfText);
+      const years_of_experience = calculateYearsOfExperience(experience);
+      const summary = extractSummary(pdfText);
+      const current_role = extractCurrentRole(experience);
 
-    // Parse the text using our enhanced parsing functions
-    const full_name = extractName(pdfText);
-    const email = extractEmail(pdfText);
-    const phone = extractPhone(pdfText);
-    const location = extractLocation(pdfText);
-    const skills = extractSkills(pdfText);
-    const experience = extractExperience(pdfText);
-    const education = extractEducation(pdfText);
-    const years_of_experience = calculateYearsOfExperience(experience);
-    const summary = extractSummary(pdfText);
-    const current_role = extractCurrentRole(experience);
+      const parsedData: ParsedCV = {
+        full_name,
+        email,
+        phone,
+        city: location.city,
+        state: location.state,
+        country: location.country,
+        current_role,
+        years_of_experience,
+        summary,
+        experience,
+        projects: [], // Projects parsing can be added later if needed
+        skills,
+        education,
+        languages: [] // Languages parsing can be added later if needed
+      };
 
-    const parsedData: ParsedCV = {
-      full_name,
-      email,
-      phone,
-      city: location.city,
-      state: location.state,
-      country: location.country,
-      current_role,
-      years_of_experience,
-      summary,
-      experience,
-      projects: [], // Projects parsing can be added later if needed
-      skills,
-      education,
-      languages: [] // Languages parsing can be added later if needed
-    };
+      console.log('CV parsing completed successfully:', {
+        name: parsedData.full_name,
+        email: parsedData.email,
+        phone: parsedData.phone,
+        skills_count: parsedData.skills.length,
+        experience_count: parsedData.experience.length,
+        education_count: parsedData.education.length,
+        years_experience: parsedData.years_of_experience
+      });
 
-    console.log('CV parsing completed successfully:', {
-      name: parsedData.full_name,
-      email: parsedData.email,
-      phone: parsedData.phone,
-      skills_count: parsedData.skills.length,
-      experience_count: parsedData.experience.length,
-      education_count: parsedData.education.length,
-      years_experience: parsedData.years_of_experience
-    });
+      return parsedData;
+    }
 
-    return parsedData;
+    // Fallback: Try OpenAI Vision on first page image
+    console.log('Falling back to OpenAI Vision for image-based PDF...');
+    const imageDataUrl = await extractFirstPageImageFromPdf(file);
+    const visionResult = await analyzeCVImageWithOpenAI(imageDataUrl);
+    console.log('OpenAI Vision CV extraction result:', visionResult);
+    return visionResult;
   } catch (error: any) {
     console.error('Error parsing CV:', error);
     throw error;
