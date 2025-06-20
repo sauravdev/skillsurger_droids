@@ -1,0 +1,895 @@
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { MessageSquare, Send, Bot, Video, Users, Book, Trash2, Archive, AlertTriangle, X } from 'lucide-react';
+import Button from './Button';
+import {
+  type MockInterview,
+  type MentorProfile,
+  type MentorshipSession,
+  type AIMentorshipSession,
+  scheduleMockInterview,
+  getMentors,
+  scheduleMentorshipSession,
+  startAIMentorshipSession,
+  sendMessageToAIMentor,
+  generateInterviewResponse,
+  endInterview
+} from '../lib/mentorship';
+import { analyzeFeedbackAndGenerateRecommendations } from '../lib/feedbackLoop';
+import { supabase } from '../lib/supabase';
+import AIMentorChat from './AIMentorChat';
+
+interface SavedJob {
+  id: string;
+  title: string;
+  company: string;
+  description: string;
+}
+
+interface InterviewMessage {
+  role: 'user' | 'interviewer';
+  content: string;
+}
+
+export default function MentorshipHub() {
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<'mock-interviews' | 'ai-mentor' | 'human-mentors'>('mock-interviews');
+  const [mockInterviews, setMockInterviews] = useState<MockInterview[]>([]);
+  const [mentors, setMentors] = useState<MentorProfile[]>([]);
+  const [aiSessions, setAiSessions] = useState<AIMentorshipSession[]>([]);
+  const [savedJobs, setSavedJobs] = useState<SavedJob[]>([]);
+  const [selectedJob, setSelectedJob] = useState<string>('');
+  const [interviewDate, setInterviewDate] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
+  
+  const [activeInterview, setActiveInterview] = useState<MockInterview | null>(null);
+  const [interviewMessages, setInterviewMessages] = useState<InterviewMessage[]>([]);
+  const [currentMessage, setCurrentMessage] = useState('');
+  const [isInterviewing, setIsInterviewing] = useState(false);
+
+  const [mentorshipTopic, setMentorshipTopic] = useState('');
+  const [aiMessage, setAiMessage] = useState('');
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadMentors();
+    loadSavedJobs();
+    loadMockInterviews();
+    loadAISessions();
+  }, []);
+
+  async function loadSavedJobs() {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: jobs, error: jobsError } = await supabase
+        .from('saved_jobs')
+        .select('id, title, company, description')
+        .eq('user_id', user.id);
+
+      if (jobsError) throw jobsError;
+      setSavedJobs(jobs || []);
+    } catch (error) {
+      console.error('Error loading saved jobs:', error);
+    }
+  }
+
+  async function loadMockInterviews() {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: interviews, error: interviewsError } = await supabase
+        .from('mock_interviews')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('scheduled_at', { ascending: false });
+
+      if (interviewsError) throw interviewsError;
+      setMockInterviews(interviews || []);
+    } catch (error) {
+      console.error('Error loading mock interviews:', error);
+    }
+  }
+
+  async function loadAISessions() {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: sessions, error: sessionsError } = await supabase
+        .from('ai_mentorship_sessions')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (sessionsError) throw sessionsError;
+      setAiSessions(sessions || []);
+    } catch (error) {
+      console.error('Error loading AI sessions:', error);
+    }
+  }
+
+  async function loadMentors() {
+    const mentorsList = await getMentors();
+    setMentors(mentorsList);
+    setLoading(false);
+  }
+
+  const handleDeleteInterview = async (interviewId: string) => {
+    const deleteKey = `interview-${interviewId}`;
+    
+    if (showDeleteConfirm !== deleteKey) {
+      setShowDeleteConfirm(deleteKey);
+      return;
+    }
+
+    try {
+      setDeleting(deleteKey);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Delete interview and related feedback metrics
+      const { error } = await supabase
+        .from('mock_interviews')
+        .delete()
+        .eq('id', interviewId)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      // Update local state
+      setMockInterviews(prev => prev.filter(interview => interview.id !== interviewId));
+      setShowDeleteConfirm(null);
+
+      // Show success message
+      const successDiv = document.createElement('div');
+      successDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+      successDiv.textContent = 'Interview deleted successfully!';
+      document.body.appendChild(successDiv);
+      
+      setTimeout(() => {
+        if (document.body.contains(successDiv)) {
+          document.body.removeChild(successDiv);
+        }
+      }, 3000);
+
+    } catch (error: any) {
+      console.error('Error deleting interview:', error);
+      setError(error.message || 'Failed to delete interview');
+    } finally {
+      setDeleting(null);
+    }
+  };
+
+  const handleDeleteAISession = async (sessionId: string) => {
+    const deleteKey = `ai-session-${sessionId}`;
+    
+    if (showDeleteConfirm !== deleteKey) {
+      setShowDeleteConfirm(deleteKey);
+      return;
+    }
+
+    try {
+      setDeleting(deleteKey);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Delete AI session
+      const { error } = await supabase
+        .from('ai_mentorship_sessions')
+        .delete()
+        .eq('id', sessionId)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      // Update local state
+      setAiSessions(prev => prev.filter(session => session.id !== sessionId));
+      setShowDeleteConfirm(null);
+
+      // If this was the active session, clear it
+      if (activeSessionId === sessionId) {
+        setActiveSessionId(null);
+      }
+
+      // Show success message
+      const successDiv = document.createElement('div');
+      successDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+      successDiv.textContent = 'AI mentorship session deleted successfully!';
+      document.body.appendChild(successDiv);
+      
+      setTimeout(() => {
+        if (document.body.contains(successDiv)) {
+          document.body.removeChild(successDiv);
+        }
+      }, 3000);
+
+    } catch (error: any) {
+      console.error('Error deleting AI session:', error);
+      setError(error.message || 'Failed to delete AI session');
+    } finally {
+      setDeleting(null);
+    }
+  };
+
+  const handleDeleteAllInterviews = async () => {
+    const deleteKey = 'all-interviews';
+    
+    if (showDeleteConfirm !== deleteKey) {
+      setShowDeleteConfirm(deleteKey);
+      return;
+    }
+
+    try {
+      setDeleting(deleteKey);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Delete all interviews
+      const { error } = await supabase
+        .from('mock_interviews')
+        .delete()
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      // Update local state
+      setMockInterviews([]);
+      setShowDeleteConfirm(null);
+
+      // Show success message
+      const successDiv = document.createElement('div');
+      successDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+      successDiv.textContent = 'All interviews deleted successfully!';
+      document.body.appendChild(successDiv);
+      
+      setTimeout(() => {
+        if (document.body.contains(successDiv)) {
+          document.body.removeChild(successDiv);
+        }
+      }, 3000);
+
+    } catch (error: any) {
+      console.error('Error deleting all interviews:', error);
+      setError(error.message || 'Failed to delete all interviews');
+    } finally {
+      setDeleting(null);
+    }
+  };
+
+  const handleDeleteAllAISessions = async () => {
+    const deleteKey = 'all-ai-sessions';
+    
+    if (showDeleteConfirm !== deleteKey) {
+      setShowDeleteConfirm(deleteKey);
+      return;
+    }
+
+    try {
+      setDeleting(deleteKey);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Delete all AI sessions
+      const { error } = await supabase
+        .from('ai_mentorship_sessions')
+        .delete()
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      // Update local state
+      setAiSessions([]);
+      setActiveSessionId(null);
+      setShowDeleteConfirm(null);
+
+      // Show success message
+      const successDiv = document.createElement('div');
+      successDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+      successDiv.textContent = 'All AI mentorship sessions deleted successfully!';
+      document.body.appendChild(successDiv);
+      
+      setTimeout(() => {
+        if (document.body.contains(successDiv)) {
+          document.body.removeChild(successDiv);
+        }
+      }, 3000);
+
+    } catch (error: any) {
+      console.error('Error deleting all AI sessions:', error);
+      setError(error.message || 'Failed to delete all AI sessions');
+    } finally {
+      setDeleting(null);
+    }
+  };
+
+  const renderDeleteButton = (deleteKey: string, onDelete: () => void, label: string) => {
+    const isConfirming = showDeleteConfirm === deleteKey;
+    const isDeleting = deleting === deleteKey;
+
+    if (!isConfirming) {
+      return (
+        <Button
+          onClick={onDelete}
+          variant="outline"
+          size="sm"
+          className="text-red-600 border-red-300 hover:bg-red-50"
+        >
+          <Trash2 className="w-4 h-4 mr-1" />
+          Delete
+        </Button>
+      );
+    }
+
+    return (
+      <div className="flex items-center space-x-2">
+        <span className="text-sm text-red-600">Delete {label}?</span>
+        <Button
+          onClick={onDelete}
+          disabled={isDeleting}
+          size="sm"
+          className="bg-red-600 hover:bg-red-700 text-white"
+        >
+          {isDeleting ? 'Deleting...' : 'Yes'}
+        </Button>
+        <Button
+          onClick={() => setShowDeleteConfirm(null)}
+          disabled={isDeleting}
+          variant="outline"
+          size="sm"
+        >
+          Cancel
+        </Button>
+      </div>
+    );
+  };
+
+  async function handleScheduleInterview(e: React.FormEvent) {
+    e.preventDefault();
+    setError('');
+    
+    if (!selectedJob || !interviewDate) {
+      setError('Please select a job and interview date');
+      return;
+    }
+
+    try {
+      const selectedJobData = savedJobs.find(job => job.id === selectedJob);
+      if (!selectedJobData) {
+        setError('Selected job not found');
+        return;
+      }
+
+      const jobRole = `${selectedJobData.title} at ${selectedJobData.company}`;
+      const interview = await scheduleMockInterview(jobRole, interviewDate);
+      
+      if (interview) {
+        setMockInterviews([interview, ...mockInterviews]);
+        setSelectedJob('');
+        setInterviewDate('');
+      }
+    } catch (error) {
+      setError('Failed to schedule interview. Please try again.');
+    }
+  }
+
+  const startInterview = async (interview: MockInterview) => {
+    setActiveInterview(interview);
+    setIsInterviewing(true);
+    
+    const initialMessages: InterviewMessage[] = [
+      {
+        role: 'interviewer',
+        content: `Hello! I'll be conducting your interview today for the ${interview.job_role} position. Let's begin with a brief introduction about yourself and your interest in this role.`
+      }
+    ];
+    setInterviewMessages(initialMessages);
+  };
+
+  const handleSendInterviewMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentMessage.trim() || !activeInterview) return;
+
+    try {
+      const updatedMessages = [
+        ...interviewMessages,
+        { role: 'user', content: currentMessage }
+      ];
+      setInterviewMessages(updatedMessages);
+      setCurrentMessage('');
+
+      const response = await generateInterviewResponse(
+        activeInterview.job_role,
+        currentMessage,
+        updatedMessages.map(msg => ({
+          role: msg.role === 'user' ? 'user' : 'assistant',
+          content: msg.content
+        }))
+      );
+
+      setInterviewMessages([
+        ...updatedMessages,
+        { role: 'interviewer', content: response }
+      ]);
+    } catch (error) {
+      console.error('Interview response error:', error);
+      setError('Failed to process interview response. Please try again.');
+    }
+  };
+
+  const handleEndInterview = async () => {
+    if (!activeInterview) return;
+
+    try {
+      setError('');
+      
+      const { error: updateError } = await supabase
+        .from('mock_interviews')
+        .update({
+          conversation: interviewMessages,
+          status: 'completed'
+        })
+        .eq('id', activeInterview.id);
+
+      if (updateError) throw updateError;
+
+      const result = await endInterview(activeInterview.id);
+
+      setMockInterviews(prevInterviews =>
+        prevInterviews.map(interview =>
+          interview.id === activeInterview.id
+            ? {
+                ...interview,
+                status: 'completed',
+                feedback: result.feedback,
+                technical_score: result.technicalScore,
+                communication_score: result.communicationScore,
+                overall_score: result.overallScore,
+                detailed_feedback: result.detailedFeedback
+              }
+            : interview
+        )
+      );
+
+      await analyzeFeedbackAndGenerateRecommendations(
+        activeInterview.id,
+        result.feedback
+      );
+
+      setActiveInterview(null);
+      setIsInterviewing(false);
+      setInterviewMessages([]);
+      setCurrentMessage('');
+
+    } catch (error: any) {
+      console.error('Error ending interview:', error);
+      setError(error.message || 'Failed to end interview. Please try again.');
+    }
+  };
+
+  async function handleStartAIMentorship(e: React.FormEvent) {
+    e.preventDefault();
+    setError('');
+    
+    try {
+      const session = await startAIMentorshipSession(mentorshipTopic);
+      if (session) {
+        setAiSessions([session, ...aiSessions]);
+        setActiveSessionId(session.id);
+        setMentorshipTopic('');
+      }
+    } catch (error) {
+      setError('Failed to start mentorship session. Please try again.');
+    }
+  }
+
+  async function handleSendMessage(e: React.FormEvent) {
+    e.preventDefault();
+    if (!activeSessionId || !aiMessage.trim()) return;
+
+    try {
+      const response = await sendMessageToAIMentor(activeSessionId, aiMessage);
+      setAiSessions(sessions => 
+        sessions.map(session => 
+          session.id === activeSessionId
+            ? {
+                ...session,
+                conversation: [
+                  ...session.conversation,
+                  { role: 'user', content: aiMessage },
+                  { role: 'assistant', content: response }
+                ]
+              }
+            : session
+        )
+      );
+      setAiMessage('');
+    } catch (error) {
+      setError('Failed to send message. Please try again.');
+    }
+  }
+
+  return (
+    <div className="bg-white rounded-lg shadow-lg p-8">
+      <div className="flex items-center justify-between mb-8">
+        <h2 className="text-2xl font-bold">Mentorship Hub</h2>
+        <div className="flex space-x-4">
+          <Button
+            variant={activeTab === 'mock-interviews' ? 'primary' : 'outline'}
+            onClick={() => setActiveTab('mock-interviews')}
+          >
+            <Video className="w-4 h-4 mr-2" />
+            Mock Interviews
+          </Button>
+          <Button
+            variant={activeTab === 'ai-mentor' ? 'primary' : 'outline'}
+            onClick={() => setActiveTab('ai-mentor')}
+          >
+            <MessageSquare className="w-4 h-4 mr-2" />
+            AI Mentor
+          </Button>
+          <Button
+            variant={activeTab === 'human-mentors' ? 'primary' : 'outline'}
+            onClick={() => setActiveTab('human-mentors')}
+          >
+            <Users className="w-4 h-4 mr-2" />
+            Human Mentors
+          </Button>
+        </div>
+      </div>
+
+      {error && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-md">
+          <p className="text-red-600">{error}</p>
+        </div>
+      )}
+
+      {activeTab === 'mock-interviews' && (
+        <div className="space-y-8">
+          {isInterviewing ? (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold">{activeInterview?.job_role}</h3>
+                  <p className="text-sm text-gray-500">Mock Interview Session</p>
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={handleEndInterview}
+                  className="text-red-600 hover:bg-red-50"
+                >
+                  End Interview
+                </Button>
+              </div>
+
+              <div className="h-[500px] flex flex-col border rounded-lg">
+                <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                  {interviewMessages.map((message, index) => (
+                    <div
+                      key={index}
+                      className={`flex ${
+                        message.role === 'user' ? 'justify-end' : 'justify-start'
+                      }`}
+                    >
+                      <div
+                        className={`max-w-[80%] rounded-lg p-3 ${
+                          message.role === 'user'
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-gray-100 text-gray-900'
+                        }`}
+                      >
+                        {message.role === 'interviewer' && (
+                          <div className="flex items-center mb-1">
+                            <Bot className="w-4 h-4 mr-1" />
+                            <span className="text-sm font-medium">Interviewer</span>
+                          </div>
+                        )}
+                        <p className="whitespace-pre-wrap">{message.content}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <form onSubmit={handleSendInterviewMessage} className="border-t p-4">
+                  <div className="flex space-x-2">
+                    <input
+                      type="text"
+                      value={currentMessage}
+                      onChange={(e) => setCurrentMessage(e.target.value)}
+                      placeholder="Type your response..."
+                      className="flex-1 rounded-lg border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <Button type="submit" disabled={!currentMessage.trim()}>
+                      Send
+                    </Button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div>
+                <h3 className="text-lg font-semibold mb-4">Schedule Mock Interview</h3>
+                <form onSubmit={handleScheduleInterview} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Select Job</label>
+                    <select
+                      value={selectedJob}
+                      onChange={(e) => setSelectedJob(e.target.value)}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                      required
+                    >
+                      <option value="">Select a job position</option>
+                      {savedJobs.map(job => (
+                        <option key={job.id} value={job.id}>
+                          {job.title} at {job.company}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Interview Date & Time</label>
+                    <input
+                      type="datetime-local"
+                      value={interviewDate}
+                      onChange={(e) => setInterviewDate(e.target.value)}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                      required
+                    />
+                  </div>
+                  <Button type="submit">
+                    Schedule Interview
+                  </Button>
+                </form>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold">Your Interviews</h3>
+                  {mockInterviews.length > 0 && (
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm text-gray-500">{mockInterviews.length} interviews</span>
+                      {renderDeleteButton('all-interviews', handleDeleteAllInterviews, 'all interviews')}
+                    </div>
+                  )}
+                </div>
+                {mockInterviews.length > 0 ? (
+                  <div className="space-y-4">
+                    {mockInterviews.map(interview => (
+                      <div
+                        key={interview.id}
+                        className="border rounded-lg p-4"
+                      >
+                        <div className="flex items-center justify-between mb-4">
+                          <div>
+                            <p className="font-medium">{interview.job_role}</p>
+                            <p className="text-sm text-gray-500">
+                              {new Date(interview.scheduled_at).toLocaleString()}
+                            </p>
+                          </div>
+                          <div className="flex space-x-2">
+                            {interview.status === 'scheduled' ? (
+                              <Button
+                                variant="outline"
+                                onClick={() => startInterview(interview)}
+                              >
+                                Start Interview
+                              </Button>
+                            ) : (
+                              <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-sm">
+                                Completed
+                              </span>
+                            )}
+                            {renderDeleteButton(`interview-${interview.id}`, () => handleDeleteInterview(interview.id), 'interview')}
+                          </div>
+                        </div>
+                        {interview.feedback && (
+                          <div className="mt-4 space-y-4">
+                            <div className="p-4 bg-gray-50 rounded-lg">
+                              <h4 className="font-medium mb-2">Feedback</h4>
+                              <p className="text-gray-700">{interview.feedback}</p>
+                            </div>
+                            {interview.detailed_feedback && (
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="p-4 bg-green-50 rounded-lg">
+                                  <h5 className="font-medium mb-2 text-green-800">Strengths</h5>
+                                  <ul className="list-disc list-inside text-green-700">
+                                    {interview.detailed_feedback.strengths.map((strength, i) => (
+                                      <li key={i}>{strength}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                                <div className="p-4 bg-yellow-50 rounded-lg">
+                                  <h5 className="font-medium mb-2 text-yellow-800">Areas for Improvement</h5>
+                                  <ul className="list-disc list-inside text-yellow-700">
+                                    {interview.detailed_feedback.improvements.map((improvement, i) => (
+                                      <li key={i}>{improvement}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                                <div className="p-4 bg-blue-50 rounded-lg">
+                                  <h5 className="font-medium mb-2 text-blue-800">Recommendations</h5>
+                                  <ul className="list-disc list-inside text-blue-700">
+                                    {interview.detailed_feedback.recommendations.map((rec, i) => (
+                                      <li key={i}>{rec}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              </div>
+                            )}
+                            <div className="grid grid-cols-3 gap-4">
+                              <div className="text-center">
+                                <p className="text-sm text-gray-500">Technical Score</p>
+                                <p className="text-2xl font-bold text-blue-600">
+                                  {interview.technical_score}/5
+                                </p>
+                              </div>
+                              <div className="text-center">
+                                <p className="text-sm text-gray-500">Communication Score</p>
+                                <p className="text-2xl font-bold text-blue-600">
+                                  {interview.communication_score}/5
+                                </p>
+                              </div>
+                              <div className="text-center">
+                                <p className="text-sm text-gray-500">Overall Score</p>
+                                <p className="text-2xl font-bold text-blue-600">
+                                  {interview.overall_score}/5
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-500">No interviews scheduled yet.</p>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'ai-mentor' && (
+        <div>
+          {!activeSessionId ? (
+            <div className="space-y-8">
+              <div className="mb-8">
+                <h3 className="text-lg font-semibold mb-4">Start AI Mentorship Session</h3>
+                <form onSubmit={handleStartAIMentorship} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Topic</label>
+                    <input
+                      type="text"
+                      value={mentorshipTopic}
+                      onChange={(e) => setMentorshipTopic(e.target.value)}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                      placeholder="e.g., Career Transition to Tech"
+                      required
+                    />
+                  </div>
+                  <Button type="submit">
+                    Start Session
+                  </Button>
+                </form>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold">Previous AI Mentorship Sessions</h3>
+                  {aiSessions.length > 0 && (
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm text-gray-500">{aiSessions.length} sessions</span>
+                      {renderDeleteButton('all-ai-sessions', handleDeleteAllAISessions, 'all sessions')}
+                    </div>
+                  )}
+                </div>
+                {aiSessions.length > 0 ? (
+                  <div className="space-y-4">
+                    {aiSessions.map(session => (
+                      <div key={session.id} className="border rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <div>
+                            <h4 className="font-medium">{session.topic}</h4>
+                            <p className="text-sm text-gray-500">
+                              {new Date(session.created_at).toLocaleString()} • {session.conversation.length} messages
+                            </p>
+                          </div>
+                          <div className="flex space-x-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setActiveSessionId(session.id)}
+                            >
+                              Continue Chat
+                            </Button>
+                            {renderDeleteButton(`ai-session-${session.id}`, () => handleDeleteAISession(session.id), 'session')}
+                          </div>
+                        </div>
+                        {session.conversation.length > 0 && (
+                          <div className="mt-3 p-3 bg-gray-50 rounded">
+                            <p className="text-sm text-gray-600">
+                              Last message: {session.conversation[session.conversation.length - 1]?.content?.substring(0, 100)}...
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-500">No previous AI mentorship sessions.</p>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold">AI Mentorship Session</h3>
+                <Button
+                  variant="outline"
+                  onClick={() => setActiveSessionId(null)}
+                >
+                  Back to Sessions
+                </Button>
+              </div>
+              <AIMentorChat
+                session={aiSessions.find(s => s.id === activeSessionId)!}
+                onMessageSent={(updatedSession) => {
+                  setAiSessions(sessions =>
+                    sessions.map(s =>
+                      s.id === updatedSession.id ? updatedSession : s
+                    )
+                  );
+                }}
+              />
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'human-mentors' && (
+        <div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {loading ? (
+              <p>Loading mentors...</p>
+            ) : mentors.length > 0 ? (
+              mentors.map(mentor => (
+                <div
+                  key={mentor.id}
+                  className="border rounded-lg p-6 space-y-4"
+                >
+                  <div>
+                    <h4 className="font-semibold">{mentor.specialization}</h4>
+                    <p className="text-sm text-gray-500">
+                      {mentor.experience_years} years of experience
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Rate</p>
+                    <p className="text-lg font-bold">${mentor.hourly_rate}/hour</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Button className="w-full">
+                      View Profile
+                    </Button>
+                    <Button variant="outline" className="w-full">
+                      Book Session
+                    </Button>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-gray-500">No mentors available at the moment.</p>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

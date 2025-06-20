@@ -1,0 +1,547 @@
+// Enhanced learning resource generation with verified links
+import { verifyLink, generateFallbackUrl, getPlatformInfo, type VerifiedResource } from './linkVerification';
+
+// Curated 2024-2025 learning resources with verified links
+const VERIFIED_LEARNING_RESOURCES = {
+  // Software Development
+  'software_development': {
+    'javascript': [
+      {
+        type: 'Course',
+        title: 'JavaScript Algorithms and Data Structures',
+        description: 'Learn JavaScript fundamentals and computer science concepts through interactive coding challenges.',
+        url: 'https://www.freecodecamp.org/learn/javascript-algorithms-and-data-structures/',
+        provider: 'freeCodeCamp',
+        price: 'free',
+        rating: 4.8,
+        difficulty: 'beginner',
+        duration: '300 hours'
+      },
+      {
+        type: 'Course',
+        title: 'The Complete JavaScript Course 2024',
+        description: 'Master modern JavaScript from fundamentals to advanced concepts including ES6+, async/await, and DOM manipulation.',
+        url: 'https://www.udemy.com/course/the-complete-javascript-course/',
+        provider: 'Udemy',
+        price: 'paid',
+        rating: 4.7,
+        difficulty: 'beginner',
+        duration: '69 hours'
+      },
+      {
+        type: 'Tutorial',
+        title: 'JavaScript Tutorial for Beginners',
+        description: 'Complete JavaScript tutorial covering all fundamentals with practical examples.',
+        url: 'https://www.youtube.com/watch?v=PkZNo7MFNFg',
+        provider: 'YouTube',
+        price: 'free',
+        rating: 4.6,
+        difficulty: 'beginner',
+        duration: '3 hours'
+      },
+      {
+        type: 'Documentation',
+        title: 'MDN JavaScript Guide',
+        description: 'Comprehensive JavaScript documentation and tutorials from Mozilla.',
+        url: 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide',
+        provider: 'MDN',
+        price: 'free',
+        rating: 4.9,
+        difficulty: 'intermediate',
+        duration: 'Self-paced'
+      }
+    ],
+    'react': [
+      {
+        type: 'Course',
+        title: 'React - The Complete Guide 2024',
+        description: 'Deep dive into React 18+ with hooks, context, Redux, and Next.js. Build modern, scalable applications.',
+        url: 'https://www.udemy.com/course/react-the-complete-guide-incl-redux/',
+        provider: 'Udemy',
+        price: 'paid',
+        rating: 4.6,
+        difficulty: 'intermediate',
+        duration: '48 hours'
+      },
+      {
+        type: 'Tutorial',
+        title: 'React Tutorial for Beginners',
+        description: 'Learn React fundamentals including components, props, state, and hooks.',
+        url: 'https://www.youtube.com/watch?v=SqcY0GlETPk',
+        provider: 'YouTube',
+        price: 'free',
+        rating: 4.7,
+        difficulty: 'beginner',
+        duration: '2 hours'
+      },
+      {
+        type: 'Course',
+        title: 'Front End Development Libraries',
+        description: 'Learn React, Redux, and other front-end libraries through hands-on projects.',
+        url: 'https://www.freecodecamp.org/learn/front-end-development-libraries/',
+        provider: 'freeCodeCamp',
+        price: 'free',
+        rating: 4.8,
+        difficulty: 'intermediate',
+        duration: '300 hours'
+      },
+      {
+        type: 'Documentation',
+        title: 'React Official Documentation',
+        description: 'Official React documentation with tutorials and API reference.',
+        url: 'https://react.dev/learn',
+        provider: 'React Team',
+        price: 'free',
+        rating: 4.9,
+        difficulty: 'intermediate',
+        duration: 'Self-paced'
+      }
+    ],
+    'python': [
+      {
+        type: 'Course',
+        title: 'Scientific Computing with Python',
+        description: 'Learn Python programming fundamentals and scientific computing libraries.',
+        url: 'https://www.freecodecamp.org/learn/scientific-computing-with-python/',
+        provider: 'freeCodeCamp',
+        price: 'free',
+        rating: 4.8,
+        difficulty: 'beginner',
+        duration: '300 hours'
+      },
+      {
+        type: 'Course',
+        title: 'Complete Python Bootcamp 2024',
+        description: 'Learn Python from scratch with hands-on projects and real-world applications.',
+        url: 'https://www.udemy.com/course/complete-python-bootcamp/',
+        provider: 'Udemy',
+        price: 'paid',
+        rating: 4.6,
+        difficulty: 'beginner',
+        duration: '22 hours'
+      },
+      {
+        type: 'Tutorial',
+        title: 'Python Tutorial for Beginners',
+        description: 'Complete Python programming tutorial covering all fundamentals.',
+        url: 'https://www.youtube.com/watch?v=_uQrJ0TkZlc',
+        provider: 'YouTube',
+        price: 'free',
+        rating: 4.7,
+        difficulty: 'beginner',
+        duration: '6 hours'
+      },
+      {
+        type: 'Practice',
+        title: 'Python Exercises on HackerRank',
+        description: 'Practice Python programming with coding challenges and exercises.',
+        url: 'https://www.hackerrank.com/domains/python',
+        provider: 'HackerRank',
+        price: 'free',
+        rating: 4.5,
+        difficulty: 'intermediate',
+        duration: 'Self-paced'
+      }
+    ]
+  },
+
+  // Data Science
+  'data_science': {
+    'python_data': [
+      {
+        type: 'Course',
+        title: 'Data Analysis with Python',
+        description: 'Learn data analysis using Python, pandas, NumPy, and matplotlib.',
+        url: 'https://www.freecodecamp.org/learn/data-analysis-with-python/',
+        provider: 'freeCodeCamp',
+        price: 'free',
+        rating: 4.8,
+        difficulty: 'intermediate',
+        duration: '300 hours'
+      },
+      {
+        type: 'Course',
+        title: 'Python for Data Science and Machine Learning',
+        description: 'Complete data science bootcamp with Python, pandas, NumPy, matplotlib, and scikit-learn.',
+        url: 'https://www.udemy.com/course/python-for-data-science-and-machine-learning-bootcamp/',
+        provider: 'Udemy',
+        price: 'paid',
+        rating: 4.6,
+        difficulty: 'intermediate',
+        duration: '25 hours'
+      },
+      {
+        type: 'Course',
+        title: 'Introduction to Data Science in Python',
+        description: 'Learn data manipulation, analysis, and visualization with Python.',
+        url: 'https://www.coursera.org/learn/python-data-analysis',
+        provider: 'Coursera',
+        price: 'freemium',
+        rating: 4.5,
+        difficulty: 'intermediate',
+        duration: '4 weeks'
+      }
+    ],
+    'machine_learning': [
+      {
+        type: 'Course',
+        title: 'Machine Learning with Python',
+        description: 'Learn machine learning algorithms and implementation using Python and scikit-learn.',
+        url: 'https://www.freecodecamp.org/learn/machine-learning-with-python/',
+        provider: 'freeCodeCamp',
+        price: 'free',
+        rating: 4.7,
+        difficulty: 'advanced',
+        duration: '300 hours'
+      },
+      {
+        type: 'Course',
+        title: 'Machine Learning A-Z',
+        description: 'Comprehensive machine learning course covering supervised and unsupervised learning.',
+        url: 'https://www.udemy.com/course/machinelearning/',
+        provider: 'Udemy',
+        price: 'paid',
+        rating: 4.5,
+        difficulty: 'intermediate',
+        duration: '44 hours'
+      },
+      {
+        type: 'Course',
+        title: 'Machine Learning Course by Andrew Ng',
+        description: 'Stanford\'s famous machine learning course taught by Andrew Ng.',
+        url: 'https://www.coursera.org/learn/machine-learning',
+        provider: 'Coursera',
+        price: 'freemium',
+        rating: 4.9,
+        difficulty: 'intermediate',
+        duration: '11 weeks'
+      }
+    ],
+    'sql': [
+      {
+        type: 'Course',
+        title: 'Relational Database Course',
+        description: 'Learn SQL and relational database concepts through hands-on projects.',
+        url: 'https://www.freecodecamp.org/learn/relational-database/',
+        provider: 'freeCodeCamp',
+        price: 'free',
+        rating: 4.8,
+        difficulty: 'beginner',
+        duration: '300 hours'
+      },
+      {
+        type: 'Course',
+        title: 'The Complete SQL Bootcamp 2024',
+        description: 'Master SQL from beginner to advanced with PostgreSQL.',
+        url: 'https://www.udemy.com/course/the-complete-sql-bootcamp/',
+        provider: 'Udemy',
+        price: 'paid',
+        rating: 4.6,
+        difficulty: 'beginner',
+        duration: '9 hours'
+      },
+      {
+        type: 'Practice',
+        title: 'SQL Exercises on W3Schools',
+        description: 'Practice SQL with interactive exercises and examples.',
+        url: 'https://www.w3schools.com/sql/sql_exercises.asp',
+        provider: 'W3Schools',
+        price: 'free',
+        rating: 4.3,
+        difficulty: 'beginner',
+        duration: 'Self-paced'
+      }
+    ]
+  },
+
+  // Design
+  'design': {
+    'ui_ux': [
+      {
+        type: 'Course',
+        title: 'Google UX Design Professional Certificate',
+        description: 'Industry-recognized UX design certification covering the complete design process.',
+        url: 'https://www.coursera.org/professional-certificates/google-ux-design',
+        provider: 'Coursera',
+        price: 'paid',
+        rating: 4.8,
+        difficulty: 'beginner',
+        duration: '6 months'
+      },
+      {
+        type: 'Course',
+        title: 'UI/UX Design Specialization',
+        description: 'Complete UX design process from user research to prototyping.',
+        url: 'https://www.coursera.org/specializations/ui-ux-design',
+        provider: 'Coursera',
+        price: 'freemium',
+        rating: 4.6,
+        difficulty: 'intermediate',
+        duration: '4 months'
+      },
+      {
+        type: 'Tutorial',
+        title: 'Figma UI Design Tutorial',
+        description: 'Complete Figma tutorial covering design basics to advanced features.',
+        url: 'https://www.youtube.com/watch?v=FTFaQWZBqQ8',
+        provider: 'YouTube',
+        price: 'free',
+        rating: 4.7,
+        difficulty: 'beginner',
+        duration: '4 hours'
+      }
+    ],
+    'figma': [
+      {
+        type: 'Course',
+        title: 'Figma Masterclass',
+        description: 'Master Figma from basics to advanced features including prototyping and design systems.',
+        url: 'https://www.udemy.com/course/figma-ux-ui-design-user-experience-tutorial-course/',
+        provider: 'Udemy',
+        price: 'paid',
+        rating: 4.5,
+        difficulty: 'beginner',
+        duration: '12 hours'
+      },
+      {
+        type: 'Tutorial',
+        title: 'Figma Tutorial for Beginners',
+        description: 'Learn Figma basics including components, auto-layout, and prototyping.',
+        url: 'https://www.youtube.com/watch?v=3q3FV65ZrUs',
+        provider: 'YouTube',
+        price: 'free',
+        rating: 4.6,
+        difficulty: 'beginner',
+        duration: '2 hours'
+      }
+    ]
+  },
+
+  // Marketing
+  'marketing': {
+    'digital_marketing': [
+      {
+        type: 'Certification',
+        title: 'Google Digital Marketing & E-commerce Certificate',
+        description: 'Comprehensive digital marketing certification covering SEO, SEM, social media, and analytics.',
+        url: 'https://www.coursera.org/professional-certificates/google-digital-marketing-ecommerce',
+        provider: 'Coursera',
+        price: 'paid',
+        rating: 4.7,
+        difficulty: 'beginner',
+        duration: '6 months'
+      },
+      {
+        type: 'Course',
+        title: 'Digital Marketing Specialization',
+        description: 'Learn digital marketing strategy, social media, SEO, and analytics.',
+        url: 'https://www.coursera.org/specializations/digital-marketing',
+        provider: 'Coursera',
+        price: 'freemium',
+        rating: 4.5,
+        difficulty: 'intermediate',
+        duration: '8 months'
+      },
+      {
+        type: 'Course',
+        title: 'HubSpot Content Marketing Course',
+        description: 'Free comprehensive course on content marketing strategy and execution.',
+        url: 'https://academy.hubspot.com/courses/content-marketing',
+        provider: 'HubSpot',
+        price: 'free',
+        rating: 4.6,
+        difficulty: 'beginner',
+        duration: '4 hours'
+      }
+    ]
+  }
+};
+
+export async function generateVerifiedLearningResources(
+  jobTitle: string,
+  jobDescription: string = '',
+  requirements: string[] = []
+): Promise<VerifiedResource[]> {
+  try {
+    console.log('Generating verified learning resources for:', jobTitle);
+
+    const jobTitleLower = jobTitle.toLowerCase();
+    const skillsLower = requirements.map(req => req.toLowerCase()).join(' ');
+    const descriptionLower = jobDescription.toLowerCase();
+    
+    let selectedResources: any[] = [];
+
+    // Determine the most relevant resource category
+    if (jobTitleLower.includes('software') || jobTitleLower.includes('developer') || 
+        jobTitleLower.includes('engineer') || skillsLower.includes('javascript') || 
+        skillsLower.includes('react') || skillsLower.includes('python')) {
+      
+      // Software Development Resources
+      if (skillsLower.includes('javascript') || skillsLower.includes('react') || 
+          skillsLower.includes('frontend') || skillsLower.includes('web')) {
+        selectedResources.push(
+          ...VERIFIED_LEARNING_RESOURCES.software_development.javascript.slice(0, 2),
+          ...VERIFIED_LEARNING_RESOURCES.software_development.react.slice(0, 2)
+        );
+      }
+      
+      if (skillsLower.includes('python') || skillsLower.includes('backend') || 
+          skillsLower.includes('django') || skillsLower.includes('flask')) {
+        selectedResources.push(
+          ...VERIFIED_LEARNING_RESOURCES.software_development.python.slice(0, 2)
+        );
+      }
+
+      // Add general programming resources if not enough specific ones
+      if (selectedResources.length < 4) {
+        selectedResources.push(
+          ...VERIFIED_LEARNING_RESOURCES.software_development.javascript.slice(0, 2)
+        );
+      }
+    }
+    
+    else if (jobTitleLower.includes('data') || jobTitleLower.includes('analyst') || 
+             jobTitleLower.includes('scientist') || skillsLower.includes('sql') ||
+             skillsLower.includes('machine learning') || skillsLower.includes('analytics')) {
+      
+      // Data Science Resources
+      selectedResources.push(
+        ...VERIFIED_LEARNING_RESOURCES.data_science.python_data.slice(0, 2),
+        ...VERIFIED_LEARNING_RESOURCES.data_science.sql.slice(0, 2)
+      );
+      
+      if (skillsLower.includes('machine learning') || skillsLower.includes('ai')) {
+        selectedResources.push(
+          ...VERIFIED_LEARNING_RESOURCES.data_science.machine_learning.slice(0, 2)
+        );
+      }
+    }
+    
+    else if (jobTitleLower.includes('design') || jobTitleLower.includes('ui') || 
+             jobTitleLower.includes('ux') || skillsLower.includes('figma') ||
+             skillsLower.includes('design')) {
+      
+      // Design Resources
+      selectedResources.push(
+        ...VERIFIED_LEARNING_RESOURCES.design.ui_ux.slice(0, 2),
+        ...VERIFIED_LEARNING_RESOURCES.design.figma.slice(0, 2)
+      );
+    }
+    
+    else if (jobTitleLower.includes('marketing') || jobTitleLower.includes('growth') ||
+             skillsLower.includes('marketing') || skillsLower.includes('seo')) {
+      
+      // Marketing Resources
+      selectedResources.push(
+        ...VERIFIED_LEARNING_RESOURCES.marketing.digital_marketing.slice(0, 3)
+      );
+    }
+    
+    // Default to general programming if no specific match
+    if (selectedResources.length === 0) {
+      selectedResources.push(
+        ...VERIFIED_LEARNING_RESOURCES.software_development.javascript.slice(0, 2),
+        ...VERIFIED_LEARNING_RESOURCES.software_development.python.slice(0, 2)
+      );
+    }
+
+    // Ensure we have 6-8 resources
+    while (selectedResources.length < 6) {
+      selectedResources.push(
+        ...VERIFIED_LEARNING_RESOURCES.software_development.javascript.slice(0, 1)
+      );
+    }
+
+    // Limit to 8 resources
+    selectedResources = selectedResources.slice(0, 8);
+
+    // Verify all URLs and create VerifiedResource objects
+    const verifiedResources: VerifiedResource[] = [];
+    
+    for (const resource of selectedResources) {
+      const verification = await verifyLink(resource.url);
+      const platformInfo = getPlatformInfo(resource.url);
+      
+      const verifiedResource: VerifiedResource = {
+        type: resource.type,
+        title: resource.title,
+        description: resource.description,
+        url: verification.isValid ? resource.url : generateFallbackUrl(resource.url, resource.type, resource.title),
+        verified: verification.isValid,
+        lastVerified: new Date().toISOString(),
+        fallbackUrl: !verification.isValid ? generateFallbackUrl(resource.url, resource.type, resource.title) : undefined,
+        price: resource.price,
+        rating: resource.rating,
+        provider: resource.provider,
+        difficulty: resource.difficulty,
+        duration: resource.duration
+      };
+
+      verifiedResources.push(verifiedResource);
+    }
+
+    console.log('Generated verified resources:', verifiedResources.length);
+    return verifiedResources;
+
+  } catch (error) {
+    console.error('Error generating verified learning resources:', error);
+    
+    // Return fallback resources
+    return [
+      {
+        type: 'Course',
+        title: 'freeCodeCamp Full Stack Development',
+        description: 'Comprehensive free curriculum covering web development fundamentals.',
+        url: 'https://www.freecodecamp.org/learn/',
+        verified: true,
+        lastVerified: new Date().toISOString(),
+        price: 'free',
+        rating: 4.8,
+        provider: 'freeCodeCamp',
+        difficulty: 'beginner',
+        duration: '300 hours'
+      },
+      {
+        type: 'Tutorial',
+        title: 'Programming Tutorial for Beginners',
+        description: 'Learn programming fundamentals with practical examples.',
+        url: 'https://www.youtube.com/results?search_query=programming+tutorial+2024',
+        verified: true,
+        lastVerified: new Date().toISOString(),
+        price: 'free',
+        rating: 4.5,
+        provider: 'YouTube',
+        difficulty: 'beginner',
+        duration: 'Varies'
+      }
+    ];
+  }
+}
+
+export function getResourcesByCategory(category: string): any[] {
+  switch (category.toLowerCase()) {
+    case 'software_development':
+    case 'programming':
+      return [
+        ...VERIFIED_LEARNING_RESOURCES.software_development.javascript,
+        ...VERIFIED_LEARNING_RESOURCES.software_development.react,
+        ...VERIFIED_LEARNING_RESOURCES.software_development.python
+      ];
+    case 'data_science':
+    case 'analytics':
+      return [
+        ...VERIFIED_LEARNING_RESOURCES.data_science.python_data,
+        ...VERIFIED_LEARNING_RESOURCES.data_science.machine_learning,
+        ...VERIFIED_LEARNING_RESOURCES.data_science.sql
+      ];
+    case 'design':
+      return [
+        ...VERIFIED_LEARNING_RESOURCES.design.ui_ux,
+        ...VERIFIED_LEARNING_RESOURCES.design.figma
+      ];
+    case 'marketing':
+      return VERIFIED_LEARNING_RESOURCES.marketing.digital_marketing;
+    default:
+      return VERIFIED_LEARNING_RESOURCES.software_development.javascript;
+  }
+}
