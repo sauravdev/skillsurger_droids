@@ -86,8 +86,9 @@ export default function OnboardingForm() {
           if (skillsError) throw skillsError;
         }
       }
-
+      window.location.reload()
       navigate('/dashboard');
+
     } catch (error: any) {
       console.error('Error completing onboarding:', error);
       setError(error.message || 'Failed to complete onboarding');
