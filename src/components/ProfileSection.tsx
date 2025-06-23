@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FileText, Download, Award, Briefcase, GraduationCap, Brain, Upload, MapPin, Building, Edit2, Save, X, Trash2, AlertTriangle } from 'lucide-react';
+import { FileText, Download, Award, Briefcase, GraduationCap, Brain, Upload, MapPin, Building, Edit2, Save, X, Trash2, AlertTriangle, Sparkles } from 'lucide-react';
 import Button from './Button';
 import { supabase } from '../lib/supabase';
 import CVEditor from './CVEditor';
@@ -68,9 +68,59 @@ export default function ProfileSection() {
     skills: '',
     cv: null as File | null
   });
+  const [isUploadingPendingResume, setIsUploadingPendingResume] = useState(false);
+  const [reanalyzing, setReanalyzing] = useState(false);
+  const [reanalyzingAndSaving, setReanalyzingAndSaving] = useState(false);
 
   useEffect(() => {
     loadProfile();
+    const handlePendingResume = async () => {
+      const pendingResumeData = localStorage.getItem('pendingResume');
+      const pendingResumeName = localStorage.getItem('pendingResumeName');
+      if (pendingResumeData && pendingResumeName) {
+        try {
+          setIsUploadingPendingResume(true);
+          // Convert base64 back to File
+          const base64Response = await fetch(pendingResumeData);
+          const blob = await base64Response.blob();
+          const file = new File([blob], pendingResumeName, { type: 'application/pdf' });
+          // Get user id
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) throw new Error('No user found');
+          // Process and upload the resume
+          const parsedCV = await parseCV(file);
+          await uploadCV(file, user.id);
+          // Optionally update profile with parsedCV data here if needed
+          // Clear from localStorage after successful upload
+          localStorage.removeItem('pendingResume');
+          localStorage.removeItem('pendingResumeName');
+          // Show success message or update UI as needed
+          const successDiv = document.createElement('div');
+          successDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+          successDiv.textContent = 'Resume uploaded successfully!';
+          document.body.appendChild(successDiv);
+          setTimeout(() => {
+            if (document.body.contains(successDiv)) {
+              document.body.removeChild(successDiv);
+            }
+          }, 3000);
+        } catch (error) {
+          console.error('Error processing pending resume:', error);
+          const errorDiv = document.createElement('div');
+          errorDiv.className = 'fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+          errorDiv.textContent = 'Failed to process resume. Please try uploading again.';
+          document.body.appendChild(errorDiv);
+          setTimeout(() => {
+            if (document.body.contains(errorDiv)) {
+              document.body.removeChild(errorDiv);
+            }
+          }, 3000);
+        } finally {
+          setIsUploadingPendingResume(false);
+        }
+      }
+    };
+    handlePendingResume();
   }, []);
 
   async function loadProfile() {
@@ -379,6 +429,142 @@ export default function ProfileSection() {
       await downloadCV(profile.cv_url, filename);
     } catch (error: any) {
       setError(error.message || 'Failed to download CV');
+    }
+  };
+
+  const handleReanalyzeCV = async () => {
+    if (!profile?.cv_url) return;
+    try {
+      setReanalyzing(true);
+      setError('');
+      // Download the PDF file from the URL
+      const response = await fetch(profile.cv_url);
+      const blob = await response.blob();
+      const file = new File([blob], 'resume.pdf', { type: 'application/pdf' });
+      // Parse the CV using AI
+      const parsedData = await parseCV(file);
+      // Update the profile with the new parsed data
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No user found');
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({
+          summary: parsedData.summary,
+          experience: parsedData.experience,
+          projects: parsedData.projects,
+          education: parsedData.education,
+          cv_parsed_data: parsedData,
+          ...(parsedData.email && { email: parsedData.email }),
+          ...(parsedData.city && { 
+            city: parsedData.city,
+            state: parsedData.state,
+            country: parsedData.country
+          })
+        })
+        .eq('id', user.id);
+      if (updateError) throw updateError;
+      // Merge CV skills with existing skills
+      if (parsedData.skills && parsedData.skills.length > 0) {
+        const { data: existingSkills } = await supabase
+          .from('user_skills')
+          .select('skill')
+          .eq('user_id', user.id);
+        const currentSkills = existingSkills?.map(s => s.skill) || [];
+        const allSkills = [...new Set([...currentSkills, ...parsedData.skills])];
+        await supabase.from('user_skills').delete().eq('user_id', user.id);
+        if (allSkills.length > 0) {
+          const { error: skillsError } = await supabase
+            .from('user_skills')
+            .insert(allSkills.map(skill => ({ user_id: user.id, skill })));
+          if (skillsError) throw skillsError;
+        }
+      }
+      await loadProfile();
+      // Show success message
+      const successDiv = document.createElement('div');
+      successDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+      successDiv.textContent = 'Resume re-analyzed and profile updated!';
+      document.body.appendChild(successDiv);
+      setTimeout(() => {
+        if (document.body.contains(successDiv)) {
+          document.body.removeChild(successDiv);
+        }
+      }, 3000);
+    } catch (error) {
+      console.error('Error re-analyzing CV:', error);
+      setError('Failed to re-analyze resume. Please try again.');
+    } finally {
+      setReanalyzing(false);
+    }
+  };
+
+  const handleReanalyzeAndSaveCV = async () => {
+    if (!profile?.cv_url) return;
+    try {
+      setReanalyzingAndSaving(true);
+      setError('');
+      // Download the PDF file from the URL
+      const response = await fetch(profile.cv_url);
+      const blob = await response.blob();
+      const file = new File([blob], 'resume.pdf', { type: 'application/pdf' });
+      // Parse the CV using AI
+      const parsedData = await parseCV(file);
+      // Get user id
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No user found');
+      // Upload the file again (to update timestamp or replace)
+      const cvUrl = await uploadCV(file, user.id);
+      // Update the profile with the new parsed data and file URL
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({
+          cv_url: cvUrl,
+          summary: parsedData.summary,
+          experience: parsedData.experience,
+          projects: parsedData.projects,
+          education: parsedData.education,
+          cv_parsed_data: parsedData,
+          ...(parsedData.email && { email: parsedData.email }),
+          ...(parsedData.city && { 
+            city: parsedData.city,
+            state: parsedData.state,
+            country: parsedData.country
+          })
+        })
+        .eq('id', user.id);
+      if (updateError) throw updateError;
+      // Merge CV skills with existing skills
+      if (parsedData.skills && parsedData.skills.length > 0) {
+        const { data: existingSkills } = await supabase
+          .from('user_skills')
+          .select('skill')
+          .eq('user_id', user.id);
+        const currentSkills = existingSkills?.map(s => s.skill) || [];
+        const allSkills = [...new Set([...currentSkills, ...parsedData.skills])];
+        await supabase.from('user_skills').delete().eq('user_id', user.id);
+        if (allSkills.length > 0) {
+          const { error: skillsError } = await supabase
+            .from('user_skills')
+            .insert(allSkills.map(skill => ({ user_id: user.id, skill })));
+          if (skillsError) throw skillsError;
+        }
+      }
+      await loadProfile();
+      // Show success message
+      const successDiv = document.createElement('div');
+      successDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+      successDiv.textContent = 'Resume re-analyzed, saved, and profile updated!';
+      document.body.appendChild(successDiv);
+      setTimeout(() => {
+        if (document.body.contains(successDiv)) {
+          document.body.removeChild(successDiv);
+        }
+      }, 3000);
+    } catch (error) {
+      console.error('Error re-analyzing and saving CV:', error);
+      setError('Failed to re-analyze and save resume. Please try again.');
+    } finally {
+      setReanalyzingAndSaving(false);
     }
   };
 
@@ -735,6 +921,16 @@ export default function ProfileSection() {
                       >
                         <Download className="w-4 h-4 mr-2" />
                         Download
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleReanalyzeAndSaveCV}
+                        disabled={reanalyzingAndSaving || uploading}
+                        className="flex items-center"
+                      >
+                        <Sparkles className="w-4 h-4 mr-2 text-green-600" />
+                        {reanalyzingAndSaving ? 'Analyzing & Saving...' : 'Re-analyze and Save Resume with AI'}
                       </Button>
                     </div>
                   )}

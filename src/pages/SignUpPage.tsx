@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import Button from '../components/Button';
 import GoogleSignInButton from '../components/GoogleSignInButton';
 import { AlertCircle } from 'lucide-react';
+import { uploadCV, parseCV } from '../lib/pdf';
 
 export default function SignUpPage() {
   const [email, setEmail] = useState('');
@@ -12,7 +13,16 @@ export default function SignUpPage() {
   const [fullName, setFullName] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [resumeFile, setResumeFile] = useState<File | null>(null);
+  const [resumeUploading, setResumeUploading] = useState(false);
   const navigate = useNavigate();
+
+  const handleResumeUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setResumeFile(file);
+    }
+  };
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,23 +42,49 @@ export default function SignUpPage() {
     }
 
     try {
-      const { data, error } = await supabase.auth.signUp({
+      // Store resume in localStorage if it exists
+      if (resumeFile) {
+        // Convert File to base64 for localStorage
+        const reader = new FileReader();
+        reader.readAsDataURL(resumeFile);
+        reader.onload = () => {
+          const base64String = reader.result as string;
+          localStorage.setItem('pendingResume', base64String);
+          localStorage.setItem('pendingResumeName', resumeFile.name);
+        };
+      }
+
+      const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
             full_name: fullName,
-          }
-        }
+          },
+        },
       });
 
-      if (error) {
-        if (error.message.includes('already registered')) {
+      if (signUpError) {
+        if (signUpError.message.includes('already registered')) {
           setError('An account with this email already exists. Please log in instead.');
         } else {
-          setError(error.message);
+          setError(signUpError.message);
         }
         return;
+      }
+
+      let cvUrl = '';
+      let parsedCV = {};
+      if (data.user && resumeFile) {
+        setResumeUploading(true);
+        try {
+          cvUrl = await uploadCV(resumeFile, data.user.id);
+          parsedCV = await parseCV(resumeFile);
+        } catch (cvError: any) {
+          setError('Resume upload/parse failed: ' + (cvError.message || cvError));
+        } finally {
+          setResumeUploading(false);
+        }
       }
 
       if (data.user) {
@@ -65,7 +101,8 @@ export default function SignUpPage() {
             projects: [],
             skills: [],
             education: [],
-            cv_parsed_data: {}
+            cv_parsed_data: parsedCV,
+            cv_url: cvUrl
           }]);
 
         if (profileError) {
@@ -194,6 +231,28 @@ export default function SignUpPage() {
                   className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 />
               </div>
+            </div>
+
+            <div>
+              <label htmlFor="resume" className="block text-sm font-medium text-gray-700">
+                Resume/CV (Optional)
+              </label>
+              <div className="mt-1">
+                <input
+                  id="resume"
+                  name="resume"
+                  type="file"
+                  accept="application/pdf"
+                  onChange={handleResumeUpload}
+                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                  disabled={loading || resumeUploading}
+                />
+              </div>
+              <p className="mt-1 text-xs text-gray-500">
+                You can upload your resume now or add it later in your profile.
+              </p>
+              {resumeFile && <p className="text-xs text-green-600 mt-1">Selected: {resumeFile.name}</p>}
+              {resumeUploading && <p className="text-xs text-blue-600 mt-1">Uploading and analyzing resume...</p>}
             </div>
 
             <div className="flex items-center">
