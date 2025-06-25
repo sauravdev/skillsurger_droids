@@ -24,19 +24,15 @@ export default function OnboardingCheck({ children }: OnboardingCheckProps) {
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('full_name, phone, current_role')
+        .select('onboarding_completed')
         .eq('id', user.id)
         .single();
 
-      // Check if essential onboarding fields are missing
-      const isOnboardingComplete = profile?.full_name && 
-                                  profile?.phone && 
-                                  profile?.current_role;
+      setNeedsOnboarding(!profile?.onboarding_completed);
 
-      setNeedsOnboarding(!isOnboardingComplete);
     } catch (error) {
       console.error('Error checking onboarding status:', error);
-      setNeedsOnboarding(true); // Default to showing onboarding on error
+      setNeedsOnboarding(true);
     } finally {
       setLoading(false);
     }

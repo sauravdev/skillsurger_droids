@@ -4,6 +4,7 @@ import LandingPage from './pages/LandingPage';
 import SignUpPage from './pages/SignUpPage';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
+import JobSearchPage from './pages/JobSearchPage';
 import GoogleAuthCallback from './pages/GoogleAuthCallback';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsAndConditions from './pages/TermsAndConditions';
@@ -11,6 +12,7 @@ import ContactUs from './pages/ContactUs';
 import AboutUs from './pages/AboutUs';
 import Blog from './pages/Blog';
 import ProtectedRoute from './components/ProtectedRoute';
+import OnboardingCheck from './components/OnboardingCheck';
 
 function App() {
   return (
@@ -36,6 +38,15 @@ function App() {
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/job-search"
+              element={
+                <ProtectedRoute>
+                  <JobSearchPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="/auth/callback/google" element={<GoogleAuthCallback />} />
           </Routes>
         </main>
       </div>

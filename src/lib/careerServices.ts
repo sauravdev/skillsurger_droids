@@ -126,22 +126,25 @@ const LOCATION_MULTIPLIERS = {
   'Remote': 1.1
 };
 
+type SalaryRanges = typeof SALARY_RANGES;
+type RoleKey = keyof SalaryRanges;
+
 function getRealisticSalary(role: string, experience: number, location: string): string {
   // Determine experience level
-  let level = 'junior';
+  let level: 'junior' | 'mid' | 'senior' | 'staff' = 'junior';
   if (experience >= 8) level = 'staff';
   else if (experience >= 5) level = 'senior';
   else if (experience >= 2) level = 'mid';
 
   // Get base salary range
-  const roleKey = role.toLowerCase().replace(/\s+/g, '_');
+  const roleKey = role.toLowerCase().replace(/\s+/g, '_') as RoleKey;
   const salaryData = SALARY_RANGES[roleKey] || SALARY_RANGES['software_engineer'];
   const [baseMin, baseMax] = salaryData[level];
 
   // Apply location multiplier
   const locationKey = Object.keys(LOCATION_MULTIPLIERS).find(loc => 
     location.toLowerCase().includes(loc.toLowerCase())
-  ) || 'Chicago';
+  ) as keyof typeof LOCATION_MULTIPLIERS || 'Chicago';
   const multiplier = LOCATION_MULTIPLIERS[locationKey];
 
   const adjustedMin = Math.round(baseMin * multiplier);
@@ -747,187 +750,42 @@ export async function generateCareerOptions(
 export async function findJobOpportunities(
   jobSearchContext: any
 ): Promise<JobOpportunity[]> {
-  console.log('Finding jobs with comprehensive context:', jobSearchContext);
-  
-  const { careerTitle, profile, location, workPreferences, salaryExpectations, interests = [] } = jobSearchContext;
-  
-  // First, try Google Jobs API if configured
+  console.log('Finding job opportunities with context:', jobSearchContext);
+
   if (isGoogleJobsConfigured()) {
-    console.log('Using Google Jobs API for real job search...');
-    
     try {
       const searchParams: GoogleJobsSearchParams = {
-        query: careerTitle,
-        location: location.preferences?.[0] || location.current?.city,
-        datePosted: 'week',
-        jobType: workPreferences.type as any,
-        remoteOnly: workPreferences.remotePreference === 'remote_only',
-        salaryMin: salaryExpectations.min,
-        salaryMax: salaryExpectations.max,
-        experienceLevel: profile.yearsOfExperience < 3 ? 'entry' : 
-                        profile.yearsOfExperience < 7 ? 'mid' : 'senior'
+        query: jobSearchContext.jobTitle,
+        location: jobSearchContext.location?.city || '',
+        remoteOnly: jobSearchContext.workPreferences?.remotePreference === 'remote_only',
       };
-      
+
       const googleJobs = await searchGoogleJobs(searchParams);
-      
+
       if (googleJobs.length > 0) {
-        console.log(`Found ${googleJobs.length} real jobs from Google Jobs API`);
-        
-        // Convert GoogleJobResult to JobOpportunity format
-        const convertedJobs: JobOpportunity[] = googleJobs.map(job => ({
+        console.log(`Found ${googleJobs.length} jobs from Google Jobs API`);
+        return googleJobs.map(job => ({
           title: job.title,
           company: job.company,
           location: job.location,
           description: job.description,
           requirements: job.requirements,
-          type: 'Full-time', // Default, could be enhanced
-          salary: job.salary || 'Salary not specified',
+          type: 'Full-time', // Defaulting type
+          salary: job.salary || 'Not specified',
           applicationUrl: job.applicationUrl,
           postedDate: job.postedDate,
           isRemote: job.isRemote,
-          source: job.source
+          source: job.source,
         }));
-        
-        return convertedJobs;
       }
     } catch (error) {
-      console.error('Error with Google Jobs API:', error);
-      console.log('Falling back to AI-generated jobs...');
+      console.error('Error fetching from Google Jobs API, using fallback:', error);
     }
   }
-  
-  // Generate enhanced realistic job opportunities using current market data
-  const realisticJobs = generateRealisticJobs(jobSearchContext);
 
-  if (!isOpenAIConfigured()) {
-    console.log('OpenAI not configured, returning realistic job database results');
-    return realisticJobs;
-  }
-
-  try {
-    // Determine preferred location
-    const preferredLocation = location.preferences?.length > 0 
-      ? location.preferences.join(', ') 
-      : location.current?.city && location.current?.state 
-        ? `${location.current.city}, ${location.current.state}`
-        : 'San Francisco, CA';
-
-    const response = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
-      messages: [
-        {
-          role: "system",
-          content: `Generate realistic job opportunities from actual companies hiring in 2024-2025. 
-          
-          CRITICAL: Use ONLY real companies that are actively hiring for these roles:
-          - Tech: Google, Microsoft, Amazon, Meta, Apple, Netflix, Spotify, Stripe, Airbnb, Uber, Slack, Zoom, Dropbox
-          - Data: Netflix, Uber, Airbnb, LinkedIn, Spotify, Tesla, Palantir, Snowflake, Databricks
-          - Design: Figma, Adobe, Canva, Sketch, InVision, Dribbble, Behance, Framer, Webflow
-          - Marketing: HubSpot, Salesforce, Adobe, Shopify, Mailchimp, Buffer, Hootsuite, Marketo
-          - Product: Google, Microsoft, Amazon, Meta, Apple, Slack, Notion, Zoom, Dropbox
-          
-          Respond with ONLY a JSON array of job objects. Each job must have:
-          - title (string) - realistic job title from actual companies
-          - company (string) - ONLY use companies from the list above
-          - location (string) - location matching preferences or company headquarters
-          - description (string, 2-3 sentences) - realistic job description
-          - requirements (array of 4-6 strings) - realistic requirements based on role
-          - type (string: Full-time, Part-time, Contract, etc.) - matching work preferences
-          - salary (string with realistic 2024-2025 market rates) - based on location, experience, and market data
-          - applicationUrl (string) - real career page URL for the company
-          - postedDate (string) - recent date in YYYY-MM-DD format
-          - isRemote (boolean) - whether the job is remote
-          
-          Use current 2024-2025 salary ranges:
-          - Junior (0-2 years): $60k-120k
-          - Mid-level (3-6 years): $90k-160k  
-          - Senior (7+ years): $130k-220k
-          
-          Consider:
-          - Current market conditions and salary inflation
-          - Location-based salary adjustments
-          - Company-specific compensation levels
-          - Remote work impact on salaries
-          - Industry demand and competition`
-        },
-        {
-          role: "user",
-          content: `Find realistic job opportunities for:
-          
-          Career: ${careerTitle}
-          Experience: ${profile.yearsOfExperience || 0} years
-          Current Role: ${profile.currentRole || 'Not specified'}
-          Desired Role: ${profile.desiredRole || 'Open to opportunities'}
-          
-          Skills: ${profile.skills?.join(', ') || 'General skills'}
-          Interests: ${interests.join(', ') || 'Various interests'}
-          Education: ${profile.education?.map((edu: any) => `${edu.degree} from ${edu.institution}`).join(', ') || 'Not specified'}
-          Languages: ${profile.languages?.join(', ') || 'English'}
-          
-          Location Preferences: ${preferredLocation}
-          Willing to Relocate: ${location.willingToRelocate ? 'Yes' : 'No'}
-          Work Type Preference: ${workPreferences.type || 'Full-time'}
-          Remote Preference: ${workPreferences.remotePreference || 'No preference'}
-          
-          Salary Expectations: ${salaryExpectations.min && salaryExpectations.max 
-            ? `$${salaryExpectations.min.toLocaleString()} - $${salaryExpectations.max.toLocaleString()}`
-            : 'Market rate'}
-          
-          Generate 5-8 realistic job opportunities from actual companies that are hiring for these roles in 2024-2025.`
-        }
-      ],
-      temperature: 0.3, // Lower temperature for more consistent, realistic results
-      max_tokens: 3000
-    });
-
-    if (!response.choices[0]?.message?.content) {
-      console.log('No response from OpenAI, using realistic job database');
-      return realisticJobs;
-    }
-
-    try {
-      const content = response.choices[0].message.content.trim();
-      
-      // Extract JSON from markdown if needed
-      const cleanedContent = extractJsonFromMarkdown(content);
-      
-      let parsed = JSON.parse(cleanedContent);
-      
-      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-        if (parsed.jobs) parsed = parsed.jobs;
-        else if (parsed.opportunities) parsed = parsed.opportunities;
-        else if (parsed.positions) parsed = parsed.positions;
-      }
-      
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        const validJobs = parsed.filter(job => 
-          job.title && job.company && job.location && 
-          job.description && Array.isArray(job.requirements) &&
-          job.type && job.salary
-        ).map(job => ({
-          ...job,
-          applicationUrl: job.applicationUrl || getJobApplicationUrl(job.company),
-          postedDate: job.postedDate || getRandomPostedDate(),
-          isRemote: job.isRemote !== undefined ? job.isRemote : job.location.toLowerCase().includes('remote')
-        }));
-        
-        if (validJobs.length > 0) {
-          console.log('Successfully generated realistic AI jobs:', validJobs.length);
-          return validJobs;
-        }
-      }
-      
-      console.log('Invalid AI job response, using realistic job database');
-      return realisticJobs;
-      
-    } catch (parseError) {
-      console.error('Error parsing job opportunities:', parseError);
-      return realisticJobs;
-    }
-  } catch (error: any) {
-    console.error('Error finding job opportunities:', error);
-    return realisticJobs;
-  }
+  // Fallback to existing job generation if Google Jobs API fails or is not configured
+  console.log('Using AI-powered job generation as fallback');
+  return generateRealisticJobs(jobSearchContext);
 }
 
 export async function generateCVSuggestions(

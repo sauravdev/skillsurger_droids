@@ -523,7 +523,47 @@ async function analyzeCVImageWithOpenAI(imageDataUrl: string): Promise<ParsedCV>
   }
   // Remove data URL prefix and convert to base64
   const base64Image = imageDataUrl.replace(/^data:image\/png;base64,/, '');
-  const prompt = `Extract the following fields from this resume/CV image and return a JSON object with these keys: full_name, email, phone, city, state, country, current_role, years_of_experience, summary, experience (array of {title, company, duration, description}), projects (array of {name, description, technologies}), skills (array), education (array of {degree, institution, year}), languages (array). If a field is missing, use an empty string or empty array.`;
+  const prompt = `You are an expert CV/Resume parser. Your task is to meticulously analyze the provided resume image and extract the information into a structured JSON object. Be as thorough as possible and do not miss any details.
+
+The required JSON structure is as follows. If a field is not found, use an empty string "" for string fields, an empty array [] for array fields, or 0 for numeric fields.
+
+{
+  "full_name": "string", // The full name of the candidate.
+  "email": "string", // The primary email address.
+  "phone": "string", // The primary phone number.
+  "city": "string", // The city from the location.
+  "state": "string", // The state or province from the location.
+  "country": "string", // The country from the location.
+  "current_role": "string", // The most recent job title. Look for 'present' or 'current' in dates.
+  "years_of_experience": "number", // Calculate total years of professional experience from the work history. If specific years are mentioned, use that.
+  "summary": "string", // A 2-4 sentence professional summary or objective.
+  "experience": [ // An array of work experiences. Capture all of them.
+    {
+      "title": "string", // Job title.
+      "company": "string", // Company name.
+      "duration": "string", // e.g., 'Jan 2020 - Present' or '2 years'.
+      "description": "string" // A detailed description of responsibilities and achievements. Capture all bullet points.
+    }
+  ],
+  "projects": [ // An array of personal or professional projects.
+    {
+      "name": "string", // Project name.
+      "description": "string", // A detailed description of the project.
+      "technologies": ["string"] // List of technologies used.
+    }
+  ],
+  "skills": ["string"], // A comprehensive list of all skills mentioned (technical, soft skills, tools, etc.).
+  "education": [ // An array of educational qualifications.
+    {
+      "degree": "string", // e.g., 'Bachelor of Science in Computer Science'.
+      "institution": "string", // e.g., 'University of California, Berkeley'.
+      "year": "string" // The year of graduation or completion, e.g., '2020'.
+    }
+  ],
+  "languages": ["string"] // List of languages spoken.
+}
+
+Please analyze the entire document carefully and provide a complete JSON object.`;
   // OpenAI Vision API call (using gpt-4o)
   const response = await openai.chat.completions.create({
     model: 'gpt-4o',
@@ -540,7 +580,7 @@ async function analyzeCVImageWithOpenAI(imageDataUrl: string): Promise<ParsedCV>
         ]
       }
     ],
-    max_tokens: 1200,
+    max_tokens: 2000,
     response_format: { type: 'json_object' }
   });
   // Parse the JSON response

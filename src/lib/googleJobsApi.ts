@@ -36,7 +36,7 @@ export function isGoogleJobsConfigured(): boolean {
 export async function searchGoogleJobs(params: GoogleJobsSearchParams): Promise<GoogleJobResult[]> {
   if (!isGoogleJobsConfigured()) {
     console.warn('Google Jobs API not configured. Using fallback job generation.');
-    return [];
+    return generateFallbackGoogleJobs(params);
   }
 
   try {
@@ -336,9 +336,34 @@ function removeDuplicateJobs(jobs: GoogleJobResult[]): GoogleJobResult[] {
 
 // Fallback function for when Google Jobs API is not available
 export function generateFallbackGoogleJobs(params: GoogleJobsSearchParams): GoogleJobResult[] {
-  console.log('Using fallback job generation for Google Jobs API');
+  console.log('Using fallback job generation for Google Jobs API', params);
   
   // This would use the existing realistic job generation logic
   // but formatted to match GoogleJobResult interface
-  return [];
+  return [
+    {
+      title: `Software Engineer, ${params.query}`,
+      company: 'Tech Solutions Inc.',
+      location: params.location || 'Remote',
+      description: 'Seeking a skilled software engineer to build and maintain scalable software solutions. Experience with React and Node.js preferred.',
+      requirements: ['3+ years of experience in software development', 'Proficiency in JavaScript', 'Experience with cloud platforms (AWS, GCP, Azure)'],
+      salary: '$120,000 - $160,000',
+      applicationUrl: 'https://www.linkedin.com/jobs/',
+      postedDate: new Date().toISOString().split('T')[0],
+      isRemote: params.remoteOnly || (params.location || '').toLowerCase() === 'remote',
+      source: 'LinkedIn (Fallback)'
+    },
+    {
+      title: `Product Manager, ${params.query}`,
+      company: 'Innovate Co.',
+      location: params.location || 'New York, NY',
+      description: 'Join our team to lead the development of innovative products. Strong technical background and communication skills required.',
+      requirements: ['5+ years of product management experience', 'Experience with Agile methodologies', 'Strong analytical skills'],
+      salary: '$140,000 - $180,000',
+      applicationUrl: 'https://www.indeed.com/jobs',
+      postedDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 3 days ago
+      isRemote: params.remoteOnly || false,
+      source: 'Indeed (Fallback)'
+    }
+  ];
 }

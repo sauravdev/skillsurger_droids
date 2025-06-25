@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Briefcase, Search, FileText, Brain, Download, ExternalLink, Bookmark, BookmarkCheck, Trash2, AlertTriangle, Plus, X, Sparkles, Target, MapPin } from 'lucide-react';
 import Button from './Button';
 import { supabase } from '../lib/supabase';
@@ -13,7 +14,24 @@ import {
   generateCVSuggestions
 } from '../lib/careerServices';
 
+interface AcceptedSuggestions {
+  summary?: string;
+  skills?: string[];
+  experienceImprovements?: Array<{ original: string; improved: string }>;
+  [key: string]: any;
+}
+
+interface ExperienceItem {
+  id?: string;
+  title?: string;
+  company?: string;
+  start_date?: string;
+  end_date?: string;
+  description: string;
+}
+
 export default function CareerExplorer() {
+  const navigate = useNavigate();
   const [careerOptions, setCareerOptions] = useState<CareerOption[]>([]);
   const [selectedCareer, setSelectedCareer] = useState<string>('');
   const [jobs, setJobs] = useState<JobOpportunity[]>([]);
@@ -30,7 +48,7 @@ export default function CareerExplorer() {
   const [profile, setProfile] = useState<any>(null);
   const [showCVEditor, setShowCVEditor] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [acceptedSuggestions, setAcceptedSuggestions] = useState<any>({});
+  const [acceptedSuggestions, setAcceptedSuggestions] = useState<AcceptedSuggestions>({});
 
   // New state for custom form
   const [showCustomForm, setShowCustomForm] = useState(false);
@@ -679,107 +697,16 @@ export default function CareerExplorer() {
   };
 
   const handleFindJobs = async (careerTitle: string) => {
-    try {
-      setLoading(true);
-      setError('');
-      setSelectedCareer(careerTitle);
-      
-      // Clear old jobs to show only latest relevant results
-      setJobs([]);
-      
-      let jobSearchContext;
-
-      if (lastGenerationMethod === 'interests' && lastCustomFormData) {
-        // Use only custom form data for interests-based generation
-        jobSearchContext = {
-          careerTitle,
-          profile: {
-            currentRole: '',
-            desiredRole: '',
-            yearsOfExperience: lastCustomFormData.experienceLevel || 0,
-            skills: [], // No skills from form
-            interests: lastCustomFormData.interests,
-            education: [],
-            experience: [],
-            languages: [],
-            summary: lastCustomFormData.referenceJobDescription || ''
-          },
-          location: {
-            current: {
-              city: lastCustomFormData.location.split(',')[0]?.trim() || '',
-              state: lastCustomFormData.location.split(',')[1]?.trim() || '',
-              country: lastCustomFormData.location.split(',')[2]?.trim() || lastCustomFormData.location || ''
-            },
-            preferences: lastCustomFormData.location ? [lastCustomFormData.location] : [],
-            willingToRelocate: false
-          },
-          workPreferences: {
-            type: '',
-            remotePreference: 'no_preference'
-          },
-          salaryExpectations: {
-            min: null,
-            max: null
-          }
-        };
+    let location = customLocation || '';
+    if (!location) {
+      const preferredLocations = profile?.preferred_locations;
+      if (preferredLocations && preferredLocations.length > 0) {
+        location = preferredLocations[0];
       } else {
-        // Use comprehensive profile data for profile-based generation
-        jobSearchContext = {
-          careerTitle,
-          profile: {
-            currentRole: profile?.current_role || '',
-            desiredRole: profile?.desired_role || '',
-            yearsOfExperience: profile?.years_of_experience || 0,
-            skills: [...userSkills, ...(profile?.skills || [])],
-            interests: userInterests,
-            education: profile?.education || [],
-            experience: profile?.experience || [],
-            languages: profile?.languages || [],
-            summary: profile?.summary || ''
-          },
-          location: {
-            current: {
-              city: profile?.city || '',
-              state: profile?.state || '',
-              country: profile?.country || ''
-            },
-            preferences: profile?.preferred_locations || [],
-            willingToRelocate: profile?.willing_to_relocate || false
-          },
-          workPreferences: {
-            type: profile?.preferred_work_type || '',
-            remotePreference: profile?.remote_preference || 'no_preference'
-          },
-          salaryExpectations: {
-            min: profile?.min_salary_expectation || null,
-            max: profile?.max_salary_expectation || null
-          }
-        };
+        location = profile?.city || '';
       }
-
-      console.log('Finding latest jobs with context:', jobSearchContext);
-
-      const opportunities = await findJobOpportunities(jobSearchContext);
-      setJobs(opportunities);
-      
-      // Show success message
-      const successDiv = document.createElement('div');
-      successDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
-      successDiv.textContent = `Found ${opportunities.length} relevant job opportunities!`;
-      document.body.appendChild(successDiv);
-      
-      setTimeout(() => {
-        if (document.body.contains(successDiv)) {
-          document.body.removeChild(successDiv);
-        }
-      }, 3000);
-      
-    } catch (error) {
-      console.error('Error finding jobs:', error);
-      setError('Failed to find job opportunities');
-    } finally {
-      setLoading(false);
     }
+    navigate(`/job-search?title=${encodeURIComponent(careerTitle)}&location=${encodeURIComponent(location)}`);
   };
 
   const handleGenerateCVSuggestions = async (job: JobOpportunity) => {
@@ -843,14 +770,14 @@ export default function CareerExplorer() {
   };
 
   const handleAcceptSuggestion = (type: string, data: any) => {
-    setAcceptedSuggestions(prev => ({
+    setAcceptedSuggestions((prev: AcceptedSuggestions) => ({
       ...prev,
       [type]: data
     }));
   };
 
   const handleRejectSuggestion = (type: string) => {
-    setAcceptedSuggestions(prev => {
+    setAcceptedSuggestions((prev: AcceptedSuggestions) => {
       const newSuggestions = { ...prev };
       delete newSuggestions[type];
       return newSuggestions;
@@ -887,16 +814,17 @@ export default function CareerExplorer() {
         }
       }
 
-      if (acceptedSuggestions.experience) {
-        // Update experience descriptions with improved versions
-        const currentExperience = profile?.experience || [];
-        const improvedExperience = currentExperience.map((exp, index) => {
-          const improvement = acceptedSuggestions.experience.find(
-            (imp: any) => imp.original === exp.description
-          );
-          return improvement ? { ...exp, description: improvement.improved } : exp;
+      if (acceptedSuggestions.experienceImprovements) {
+        // This is more complex. We need to find and replace the improved descriptions.
+        // This assumes a simple 1-to-1 mapping based on the original description.
+        const improvedExp = acceptedSuggestions.experienceImprovements;
+        updates.experience = profile?.experience.map((exp: ExperienceItem) => {
+          const improvement = improvedExp.find(imp => imp.original === exp.description);
+          if (improvement) {
+            return { ...exp, description: improvement.improved };
+          }
+          return exp;
         });
-        updates.experience = improvedExperience;
       }
 
       // Apply updates to profile
