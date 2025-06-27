@@ -61,11 +61,12 @@ export default function CareerExplorer() {
   // Track which generation method was used for job finding
   const [lastGenerationMethod, setLastGenerationMethod] = useState<'profile' | 'interests'>('profile');
   const [lastCustomFormData, setLastCustomFormData] = useState<any>(null);
+  const [jobSearchLoading, setJobSearchLoading] = useState(false);
 
   useEffect(() => {
     loadUserData();
     loadSavedCareers();
-    loadSavedJobs();
+    // Don't load saved jobs by default - we'll show actual job postings instead
   }, []);
 
   async function loadUserData() {
@@ -697,16 +698,49 @@ export default function CareerExplorer() {
   };
 
   const handleFindJobs = async (careerTitle: string) => {
-    let location = customLocation || '';
-    if (!location) {
-      const preferredLocations = profile?.preferred_locations;
-      if (preferredLocations && preferredLocations.length > 0) {
-        location = preferredLocations[0];
-      } else {
-        location = profile?.city || '';
+    try {
+      setJobSearchLoading(true);
+      setError('');
+      setSelectedCareer(careerTitle);
+      
+      let location = customLocation || '';
+      if (!location) {
+        const preferredLocations = profile?.preferred_locations;
+        if (preferredLocations && preferredLocations.length > 0) {
+          location = preferredLocations[0];
+        } else {
+          location = profile?.city || '';
+        }
       }
+
+      // Create job search context
+      const jobSearchContext = {
+        jobTitle: careerTitle,
+        location: { city: location },
+        workPreferences: { 
+          remotePreference: profile?.remote_preference || 'no_preference' 
+        },
+        profile: { 
+          yearsOfExperience: profile?.years_of_experience || 0,
+          skills: userSkills,
+          interests: userInterests
+        }
+      };
+
+      console.log('Searching for jobs with context:', jobSearchContext);
+      
+      const opportunities = await findJobOpportunities(jobSearchContext);
+      setJobs(opportunities);
+      
+      if (opportunities.length === 0) {
+        setError('No job opportunities found for this career path. Try adjusting your search criteria.');
+      }
+    } catch (error) {
+      console.error('Error finding jobs:', error);
+      setError('Failed to fetch job opportunities. Please try again.');
+    } finally {
+      setJobSearchLoading(false);
     }
-    navigate(`/job-search?title=${encodeURIComponent(careerTitle)}&location=${encodeURIComponent(location)}`);
   };
 
   const handleGenerateCVSuggestions = async (job: JobOpportunity) => {
@@ -1001,9 +1035,9 @@ export default function CareerExplorer() {
 
   return (
     <div className="bg-white rounded-lg shadow-lg p-8">
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col space-y-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0 mb-8">
         <h2 className="text-2xl font-bold">Career Explorer</h2>
-        <div className="flex items-center space-x-4">
+        <div className="flex flex-col space-y-3 sm:flex-row sm:space-y-0 sm:space-x-4">
           <Button 
             onClick={() => setShowCustomForm(true)} 
             variant="outline"
@@ -1247,10 +1281,19 @@ export default function CareerExplorer() {
                   <Button
                     onClick={() => handleFindJobs(option.title)}
                     className="w-full"
-                    disabled={loading}
+                    disabled={jobSearchLoading}
                   >
-                    <Search className="w-4 h-4 mr-2" />
-                    Find Latest Jobs
+                    {jobSearchLoading && selectedCareer === option.title ? (
+                      <>
+                        <div className="w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        Searching...
+                      </>
+                    ) : (
+                      <>
+                        <Search className="w-4 h-4 mr-2" />
+                        Find Latest Jobs
+                      </>
+                    )}
                   </Button>
                 </div>
               </div>
@@ -1266,8 +1309,14 @@ export default function CareerExplorer() {
               Latest Job Opportunities {selectedCareer && `for ${selectedCareer}`}
             </h3>
             <div className="flex items-center space-x-2">
-              <span className="text-sm text-gray-500">{jobs.length} jobs</span>
-              {renderDeleteButton('all-jobs', handleDeleteAllJobs, 'all jobs')}
+              <span className="text-sm text-gray-500">{jobs.length} jobs found</span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setJobs([])}
+              >
+                Clear Results
+              </Button>
             </div>
           </div>
           <div className="space-y-4">
@@ -1283,18 +1332,19 @@ export default function CareerExplorer() {
                       <p className="text-gray-600">{job.location}</p>
                       <p className="text-gray-600">{job.type}</p>
                     </div>
-                    {renderDeleteButton(`job-${index}`, () => handleDeleteJob(index), 'job')}
                   </div>
                 </div>
                 <p className="text-gray-700 mb-4">{job.description}</p>
-                <div className="mb-4">
-                  <p className="text-sm font-medium text-gray-500 mb-2">Requirements</p>
-                  <ul className="list-disc list-inside text-gray-700">
-                    {job.requirements.map((req, i) => (
-                      <li key={i}>{req}</li>
-                    ))}
-                  </ul>
-                </div>
+                {job.requirements && job.requirements.length > 0 && (
+                  <div className="mb-4">
+                    <p className="text-sm font-medium text-gray-500 mb-2">Requirements</p>
+                    <ul className="list-disc list-inside text-gray-700">
+                      {job.requirements.map((req, i) => (
+                        <li key={i}>{req}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
                 <div className="flex items-center justify-between">
                   <p className="text-lg font-semibold">{job.salary}</p>
                   <div className="flex items-center space-x-2">
@@ -1348,6 +1398,17 @@ export default function CareerExplorer() {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Show message when no jobs are loaded */}
+      {!jobSearchLoading && jobs.length === 0 && careerOptions.length > 0 && (
+        <div className="text-center py-8 bg-gray-50 rounded-lg">
+          <Search className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold mb-2">Ready to Find Jobs?</h3>
+          <p className="text-gray-600 mb-4">
+            Click "Find Latest Jobs" on any career path above to discover current job opportunities.
+          </p>
         </div>
       )}
     </div>

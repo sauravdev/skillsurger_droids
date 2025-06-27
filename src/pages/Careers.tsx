@@ -241,8 +241,17 @@ export default function Careers() {
                   </div>
                   <Button
                     onClick={() => setSelectedJob(selectedJob === job.id ? null : job.id)}
+                    size="sm"
+                    className="whitespace-nowrap"
                   >
-                    {selectedJob === job.id ? 'Hide Details' : 'View Details'}
+                    {selectedJob === job.id ? (
+                      <span className="hidden sm:inline">Hide Details</span>
+                    ) : (
+                      <span className="hidden sm:inline">View Details</span>
+                    )}
+                    <span className="sm:hidden">
+                      {selectedJob === job.id ? 'Hide' : 'View'}
+                    </span>
                   </Button>
                 </div>
 
@@ -317,14 +326,18 @@ export default function Careers() {
                           ></textarea>
                         </div>
 
-                        <Button type="submit" disabled={submitting}>
+                        <Button type="submit" disabled={submitting} size="md" className="w-full sm:w-auto">
                           {submitting ? (
-                            'Submitting...'
+                            <span className="flex items-center justify-center">
+                              <span className="hidden sm:inline">Submitting...</span>
+                              <span className="sm:hidden">Submitting</span>
+                            </span>
                           ) : (
-                            <>
-                              Submit Application
-                              <Send className="w-4 h-4 ml-2" />
-                            </>
+                            <span className="flex items-center justify-center">
+                              <span className="hidden sm:inline">Submit Application</span>
+                              <span className="sm:hidden">Apply</span>
+                              <Send className="w-4 h-4 ml-1 sm:ml-2" />
+                            </span>
                           )}
                         </Button>
                       </form>
