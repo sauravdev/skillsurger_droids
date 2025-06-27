@@ -38,6 +38,7 @@ interface ProfileData {
   city?: string;
   state?: string;
   country?: string;
+  cv_parsed_data?: any;
 }
 
 interface UserSkill {
@@ -454,7 +455,6 @@ export default function ProfileSection() {
           projects: parsedData.projects,
           education: parsedData.education,
           cv_parsed_data: parsedData,
-          ...(parsedData.email && { email: parsedData.email }),
           ...(parsedData.city && { 
             city: parsedData.city,
             state: parsedData.state,
@@ -524,7 +524,6 @@ export default function ProfileSection() {
           projects: parsedData.projects,
           education: parsedData.education,
           cv_parsed_data: parsedData,
-          ...(parsedData.email && { email: parsedData.email }),
           ...(parsedData.city && { 
             city: parsedData.city,
             state: parsedData.state,
@@ -938,23 +937,28 @@ export default function ProfileSection() {
               </div>
               
               {/* Parsed CV Information */}
-              {profile.email && (
+              {profile.cv_parsed_data?.email && (
                 <div className="mb-4">
                   <p className="text-sm text-gray-500">Email (from CV)</p>
-                  <p className="text-gray-700">{profile.email}</p>
+                  <p className="text-gray-700">{profile.cv_parsed_data.email}</p>
                 </div>
               )}
 
-              {(profile.city || profile.state || profile.country) && (
+              {(profile.cv_parsed_data?.city || profile.cv_parsed_data?.state || profile.cv_parsed_data?.country) && (
                 <div className="mb-4">
                   <p className="text-sm text-gray-500">Location (from CV)</p>
                   <p className="text-gray-700">
-                    {[profile.city, profile.state, profile.country].filter(Boolean).join(', ')}
+                    {[profile.cv_parsed_data.city, profile.cv_parsed_data.state, profile.cv_parsed_data.country].filter(Boolean).join(', ')}
                   </p>
                 </div>
               )}
               
-              {profile.summary && (
+              {profile.cv_parsed_data?.summary ? (
+                <div className="mb-6">
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">Professional Summary</h4>
+                  <p className="text-gray-700 bg-gray-50 p-3 rounded-lg">{profile.cv_parsed_data.summary}</p>
+                </div>
+              ) : profile.summary && (
                 <div className="mb-6">
                   <h4 className="text-sm font-medium text-gray-700 mb-2">Professional Summary</h4>
                   <p className="text-gray-700 bg-gray-50 p-3 rounded-lg">{profile.summary}</p>
@@ -964,16 +968,16 @@ export default function ProfileSection() {
               {profile && (
                 <CVEditor
                   initialData={{
-                    fullName: profile.full_name || '',
-                    title: profile.current_role || '',
-                    email: profile.email || '',
-                    phone: profile.phone || '',
-                    location: [profile.city, profile.state, profile.country].filter(Boolean).join(', '),
-                    summary: profile.summary || '',
-                    experience: profile.experience || [],
-                    education: profile.education || [],
-                    skills: profile.skills || [],
-                    languages: profile.languages || []
+                    fullName: profile.cv_parsed_data?.full_name || profile.full_name || '',
+                    title: profile.cv_parsed_data?.current_role || profile.current_role || '',
+                    email: profile.cv_parsed_data?.email || profile.email || '',
+                    phone: profile.cv_parsed_data?.phone || profile.phone || '',
+                    location: [profile.cv_parsed_data?.city || profile.city, profile.cv_parsed_data?.state || profile.state, profile.cv_parsed_data?.country || profile.country].filter(Boolean).join(', '),
+                    summary: profile.cv_parsed_data?.summary || profile.summary || '',
+                    experience: profile.cv_parsed_data?.experience || profile.experience || [],
+                    education: profile.cv_parsed_data?.education || profile.education || [],
+                    skills: profile.cv_parsed_data?.skills || profile.skills || [],
+                    languages: profile.cv_parsed_data?.languages || profile.languages || []
                   }}
                   onSave={async (data) => {
                     try {
