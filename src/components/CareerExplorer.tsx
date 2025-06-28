@@ -507,7 +507,12 @@ export default function CareerExplorer() {
   };
 
   const generateJobApplicationUrl = (job: JobOpportunity) => {
-    // Generate a realistic job application URL
+    // If the job has an applicationUrl (from Adzuna API), use it directly
+    if (job.applicationUrl) {
+      return job.applicationUrl;
+    }
+    
+    // Fallback to generating URLs for jobs without direct application links
     const companyName = job.company.toLowerCase().replace(/\s+/g, '');
     const jobTitle = job.title.toLowerCase().replace(/\s+/g, '-');
     
@@ -713,6 +718,32 @@ export default function CareerExplorer() {
         }
       }
 
+      // Determine country code from profile
+      let countryCode = 'us'; // default
+      if (profile?.country) {
+        const countryMap: { [key: string]: string } = {
+          'United States': 'us',
+          'USA': 'us',
+          'US': 'us',
+          'United Kingdom': 'uk',
+          'UK': 'uk',
+          'India': 'in',
+          'Australia': 'au',
+          'Canada': 'ca',
+          'Germany': 'de',
+          'France': 'fr',
+          'Spain': 'es',
+          'Italy': 'it',
+          'Netherlands': 'nl',
+          'Brazil': 'br',
+          'Mexico': 'mx',
+          'Japan': 'jp',
+          'South Korea': 'kr',
+          'Singapore': 'sg'
+        };
+        countryCode = countryMap[profile.country] || 'us';
+      }
+
       // Create job search context
       const jobSearchContext = {
         jobTitle: careerTitle,
@@ -724,7 +755,8 @@ export default function CareerExplorer() {
           yearsOfExperience: profile?.years_of_experience || 0,
           skills: userSkills,
           interests: userInterests
-        }
+        },
+        countryCode: countryCode // Add country code for Adzuna API
       };
 
       console.log('Searching for jobs with context:', jobSearchContext);

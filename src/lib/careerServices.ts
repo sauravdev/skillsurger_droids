@@ -758,19 +758,20 @@ export async function findJobOpportunities(
         query: jobSearchContext.jobTitle,
         location: jobSearchContext.location?.city || '',
         remoteOnly: jobSearchContext.workPreferences?.remotePreference === 'remote_only',
+        countryCode: jobSearchContext.countryCode || 'us',
       };
 
       const googleJobs = await searchGoogleJobs(searchParams);
 
       if (googleJobs.length > 0) {
-        console.log(`Found ${googleJobs.length} jobs from Google Jobs API`);
+        console.log(`Found ${googleJobs.length} jobs from Google Jobs API/Adzuna API`);
         return googleJobs.map(job => ({
           title: job.title,
           company: job.company,
           location: job.location,
           description: job.description,
           requirements: job.requirements,
-          type: 'Full-time', // Defaulting type
+          type: job.jobType || 'Full-time', // Use jobType from API response
           salary: job.salary || 'Not specified',
           applicationUrl: job.applicationUrl,
           postedDate: job.postedDate,
@@ -779,7 +780,7 @@ export async function findJobOpportunities(
         }));
       }
     } catch (error) {
-      console.error('Error fetching from Google Jobs API, using fallback:', error);
+      console.error('Error fetching from Google Jobs API/Adzuna API, using fallback:', error);
     }
   }
 

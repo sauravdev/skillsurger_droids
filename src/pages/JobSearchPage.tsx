@@ -34,7 +34,8 @@ const JobSearchPage = () => {
         location: { city: loc || '' },
         workPreferences: { remotePreference: 'no_preference' },
         // Add other properties with default values if needed by the function
-        profile: { yearsOfExperience: 0 }
+        profile: { yearsOfExperience: 0 },
+        countryCode: 'us' // Default to US, could be enhanced to detect from user profile
       };
       const opportunities = await findJobOpportunities(jobSearchContext);
       setJobs(opportunities);

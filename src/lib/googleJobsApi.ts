@@ -10,6 +10,7 @@ export interface GoogleJobResult {
   postedDate: string;
   isRemote: boolean;
   source: string;
+  jobType: string;
 }
 
 export interface GoogleJobsSearchParams {
@@ -21,7 +22,31 @@ export interface GoogleJobsSearchParams {
   salaryMin?: number;
   salaryMax?: number;
   experienceLevel?: 'entry' | 'mid' | 'senior';
+  countryCode?: string; // Add country code for Adzuna API
 }
+
+// Adzuna API configuration
+const ADZUNA_APP_ID = 'bc6ab312';
+const ADZUNA_APP_KEY = '07b1159c2bab8b3afd604c99e011e558';
+
+// Country code mapping for Adzuna API
+const ADZUNA_COUNTRY_CODES = {
+  'us': 'us',
+  'uk': 'gb',
+  'in': 'in',
+  'au': 'au',
+  'ca': 'ca',
+  'de': 'de',
+  'fr': 'fr',
+  'es': 'es',
+  'it': 'it',
+  'nl': 'nl',
+  'br': 'br',
+  'mx': 'mx',
+  'jp': 'jp',
+  'kr': 'kr',
+  'sg': 'sg'
+};
 
 // Google Custom Search API configuration
 const GOOGLE_API_KEY = import.meta.env.VITE_GOOGLE_API_KEY;
@@ -34,12 +59,30 @@ export function isGoogleJobsConfigured(): boolean {
 }
 
 export async function searchGoogleJobs(params: GoogleJobsSearchParams): Promise<GoogleJobResult[]> {
+  // If country code is provided, try Adzuna API first
+  if (params.countryCode && ADZUNA_COUNTRY_CODES[params.countryCode as keyof typeof ADZUNA_COUNTRY_CODES]) {
+    try {
+      console.log(`Searching Adzuna API for country: ${params.countryCode}`);
+      const adzunaResults = await searchAdzunaJobs(params);
+      if (adzunaResults.length > 0) {
+        console.log(`Found ${adzunaResults.length} jobs from Adzuna API`);
+        return adzunaResults;
+      } else {
+        console.log('No results from Adzuna API, falling back to Google Jobs');
+      }
+    } catch (error) {
+      console.warn('Adzuna API failed, falling back to Google Jobs:', error);
+    }
+  }
+
+  // Only try Google Jobs API if Adzuna failed or no country code provided
   if (!isGoogleJobsConfigured()) {
     console.warn('Google Jobs API not configured. Using fallback job generation.');
     return generateFallbackGoogleJobs(params);
   }
 
   try {
+    console.log('Searching Google Jobs API as fallback');
     // Build search query
     let searchQuery = `${params.query} jobs`;
     
@@ -92,7 +135,7 @@ export async function searchGoogleJobs(params: GoogleJobsSearchParams): Promise<
 
   } catch (error) {
     console.error('Error searching Google Jobs:', error);
-    return [];
+    return generateFallbackGoogleJobs(params);
   }
 }
 
@@ -148,7 +191,8 @@ function parseGoogleSearchResult(item: any, params: GoogleJobsSearchParams): Goo
     applicationUrl: item.link,
     postedDate,
     isRemote,
-    source: extractSource(item.link)
+    source: extractSource(item.link),
+    jobType: 'Full-time'
   };
 }
 
@@ -351,7 +395,8 @@ export function generateFallbackGoogleJobs(params: GoogleJobsSearchParams): Goog
       applicationUrl: 'https://www.linkedin.com/jobs/',
       postedDate: new Date().toISOString().split('T')[0],
       isRemote: params.remoteOnly || (params.location || '').toLowerCase() === 'remote',
-      source: 'LinkedIn (Fallback)'
+      source: 'LinkedIn (Fallback)',
+      jobType: 'Full-time'
     },
     {
       title: `Product Manager, ${params.query}`,
@@ -363,7 +408,214 @@ export function generateFallbackGoogleJobs(params: GoogleJobsSearchParams): Goog
       applicationUrl: 'https://www.indeed.com/jobs',
       postedDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 3 days ago
       isRemote: params.remoteOnly || false,
-      source: 'Indeed (Fallback)'
+      source: 'Indeed (Fallback)',
+      jobType: 'Full-time'
     }
   ];
+}
+
+// Adzuna API integration
+async function searchAdzunaJobs(params: GoogleJobsSearchParams): Promise<GoogleJobResult[]> {
+  const countryCode = ADZUNA_COUNTRY_CODES[params.countryCode as keyof typeof ADZUNA_COUNTRY_CODES];
+  if (!countryCode) {
+    throw new Error(`Unsupported country code: ${params.countryCode}`);
+  }
+
+  const searchUrl = new URL(`https://api.adzuna.com/v1/api/jobs/${countryCode}/search/1`);
+  searchUrl.searchParams.set('app_id', ADZUNA_APP_ID);
+  searchUrl.searchParams.set('app_key', ADZUNA_APP_KEY);
+  searchUrl.searchParams.set('what', params.query);
+  
+  // Add location if provided
+  // if (params.location) {
+  //   searchUrl.searchParams.set('where', params.location);
+  // }
+  
+  // Add job type filter
+  if (params.jobType) {
+    const jobTypeMap = {
+      'full-time': 'full_time',
+      'part-time': 'part_time',
+      'contract': 'contract',
+      'internship': 'internship'
+    };
+    const adzunaJobType = jobTypeMap[params.jobType as keyof typeof jobTypeMap];
+    if (adzunaJobType) {
+      searchUrl.searchParams.set('contract_type', adzunaJobType);
+    }
+  }
+
+  try {
+    const response = await fetch(searchUrl.toString());
+    
+    if (!response.ok) {
+      throw new Error(`Adzuna API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    
+    if (!data.results || !Array.isArray(data.results)) {
+      return [];
+    }
+
+    return data.results.map((job: any) => parseAdzunaJobResult(job, countryCode));
+
+  } catch (error) {
+    console.error('Error searching Adzuna Jobs:', error);
+    throw error;
+  }
+}
+
+function parseAdzunaJobResult(job: any, countryCode: string): GoogleJobResult {
+  const title = job.title || 'Job Opportunity';
+  const company = job.company?.display_name || 'Company not specified';
+  const location = job.location?.display_name || 'Location not specified';
+  const description = cleanAdzunaDescription(job.description || '');
+  const requirements = extractAdzunaRequirements(job.description || '');
+  const salary = extractAdzunaSalary(job);
+  const postedDate = job.created ? new Date(job.created).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+  const isRemote = checkIfAdzunaRemote(job);
+  const jobType = extractAdzunaJobType(job);
+  
+  return {
+    title,
+    company,
+    location,
+    description,
+    requirements,
+    salary,
+    applicationUrl: job.redirect_url || `https://www.adzuna.${countryCode}/jobs`,
+    postedDate,
+    isRemote,
+    source: 'Adzuna',
+    jobType: jobType
+  };
+}
+
+function cleanAdzunaDescription(description: string): string {
+  // Clean up the description and remove HTML entities and unicode escapes
+  return description
+    .replace(/\\u[0-9a-fA-F]{4}/g, '') // Remove unicode escapes
+    .replace(/\\n/g, ' ') // Replace newlines with spaces
+    .replace(/\\r/g, ' ') // Replace carriage returns with spaces
+    .replace(/\\"/g, '"') // Replace escaped quotes
+    .replace(/\\'/g, "'") // Replace escaped apostrophes
+    .replace(/\s+/g, ' ') // Normalize whitespace
+    .replace(/[^\w\s.,!?()-]/g, '') // Remove special characters but keep basic punctuation
+    .trim()
+    .substring(0, 300) + (description.length > 300 ? '...' : '');
+}
+
+function extractAdzunaRequirements(description: string): string[] {
+  const requirements: string[] = [];
+  
+  // Look for common requirement patterns in Adzuna job descriptions
+  const requirementPatterns = [
+    /(?:Requirements?|Qualifications?|Skills?):\s*([^.]+)/i,
+    /(?:Must have|Required|Need):\s*([^.]+)/i,
+    /(\d+\+?\s*years?\s+(?:of\s+)?experience)/i,
+    /(Bachelor'?s?\s+degree)/i,
+    /(Master'?s?\s+degree)/i,
+    /(?:Experience with|Knowledge of|Proficiency in)\s+([^.]+)/i,
+    /(?:Looking for|Seeking)\s+([^.]+)/i,
+    /(?:Experience|Exp):\s*(\d+\+?\s*years?)/i,
+    /(?:Location|Based in|Located in):\s*([^.]+)/i,
+    /(?:About|Company|Organization):\s*([^.]+)/i
+  ];
+  
+  for (const pattern of requirementPatterns) {
+    const match = description.match(pattern);
+    if (match) {
+      const requirement = match[1].trim();
+      // Only add if it's not already in the list and is meaningful
+      if (requirement.length > 3 && !requirements.includes(requirement)) {
+        requirements.push(requirement);
+      }
+    }
+  }
+  
+  // Extract specific technologies/skills mentioned
+  const techPatterns = [
+    /(?:JavaScript|JS|React|Vue|Angular|Node\.js|Python|Java|C\+\+|C#|PHP|Ruby|Go|Rust|Swift|Kotlin|TypeScript|HTML|CSS|SQL|MongoDB|PostgreSQL|MySQL|AWS|Azure|GCP|Docker|Kubernetes|Git|Agile|Scrum)/gi
+  ];
+  
+  for (const pattern of techPatterns) {
+    const matches = description.match(pattern);
+    if (matches) {
+      matches.forEach(match => {
+        const tech = match.trim();
+        if (tech.length > 2 && !requirements.includes(tech)) {
+          requirements.push(tech);
+        }
+      });
+    }
+  }
+  
+  // Add some default requirements if none found
+  if (requirements.length === 0) {
+    requirements.push(
+      'Relevant experience in the field',
+      'Strong communication skills',
+      'Team collaboration abilities'
+    );
+  }
+  
+  return requirements.slice(0, 5); // Limit to 5 requirements
+}
+
+function extractAdzunaSalary(job: any): string | undefined {
+  // Adzuna might have salary information in different fields
+  if (job.salary_min && job.salary_max) {
+    return `${job.salary_min} - ${job.salary_max}`;
+  } else if (job.salary_min) {
+    return `${job.salary_min}+`;
+  } else if (job.salary_max) {
+    return `Up to ${job.salary_max}`;
+  }
+  
+  // Check if salary is predicted
+  if (job.salary_is_predicted === "1") {
+    return "Salary information available";
+  }
+  
+  return undefined;
+}
+
+function checkIfAdzunaRemote(job: any): boolean {
+  const remoteKeywords = /remote|work from home|telecommute|distributed|anywhere/i;
+  const title = job.title || '';
+  const description = job.description || '';
+  const location = job.location?.display_name || '';
+  
+  return remoteKeywords.test(title) || 
+         remoteKeywords.test(description) || 
+         remoteKeywords.test(location);
+}
+
+function extractAdzunaJobType(job: any): string {
+  // Check for contract_type in the job data
+  if (job.contract_type) {
+    const typeMap: { [key: string]: string } = {
+      'full_time': 'Full-time',
+      'part_time': 'Part-time',
+      'contract': 'Contract',
+      'internship': 'Internship',
+      'temporary': 'Temporary'
+    };
+    return typeMap[job.contract_type] || 'Full-time';
+  }
+  
+  // Try to extract from description
+  const description = (job.description || '').toLowerCase();
+  if (description.includes('part-time') || description.includes('part time')) {
+    return 'Part-time';
+  } else if (description.includes('contract') || description.includes('freelance')) {
+    return 'Contract';
+  } else if (description.includes('internship') || description.includes('intern')) {
+    return 'Internship';
+  } else if (description.includes('temporary') || description.includes('temp')) {
+    return 'Temporary';
+  }
+  
+  return 'Full-time'; // Default
 }
