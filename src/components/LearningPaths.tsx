@@ -42,7 +42,17 @@ interface Career {
   jobs: SavedJob[];
 }
 
-export default function LearningPaths() {
+interface JobOpportunity {
+  title: string;
+  description: string;
+  requirements: string[];
+}
+
+interface LearningPathsProps {
+  job: JobOpportunity | null;
+}
+
+export default function LearningPaths({ job }: LearningPathsProps) {
   const [learningPaths, setLearningPaths] = useState<LearningPath[]>([]);
   const [historicalPaths, setHistoricalPaths] = useState<LearningPath[]>([]);
   const [loading, setLoading] = useState(true);
@@ -59,6 +69,12 @@ export default function LearningPaths() {
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    if (job) {
+      handleGenerateLearningPath(job);
+    }
+  }, [job]);
 
   async function loadData() {
     try {
@@ -331,72 +347,46 @@ export default function LearningPaths() {
     );
   };
 
-  async function handleGenerateLearningPath() {
-    if (!selectedCareer || !selectedJob) {
-      setError('Please select both a career path and job title');
+  async function handleGenerateLearningPath(selectedJob: JobOpportunity) {
+    if (!selectedJob) {
+      setError('Please select a job first to generate a learning path.');
       return;
     }
 
     try {
       setGeneratingPlan(true);
       setError('');
-
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Find the selected job details
-      const selectedJobData = allJobs.find(job => 
-        `${job.title} at ${job.company}` === selectedJob || job.title === selectedJob
-      );
-
-      if (!selectedJobData) {
-        throw new Error('Selected job details not found');
-      }
-
-      // Generate learning plan with enhanced verification
       const plan = await generateLearningPlan(
-        selectedJobData.title,
-        selectedJobData.description,
-        selectedJobData.requirements
+        selectedJob.title, 
+        selectedJob.description, 
+        selectedJob.requirements
       );
 
-      // Create learning path
-      const learningPath = {
-        user_id: user.id,
-        career_path: selectedCareer,
-        job_title: selectedJob,
-        skills_to_learn: selectedJobData.requirements || [],
-        resources: plan,
-        progress: 0
-      };
-
-      const { data: newPath, error: insertError } = await supabase
+      // Save the new path to the database
+      const { data: savedPath, error: saveError } = await supabase
         .from('learning_paths')
-        .insert([learningPath])
+        .insert({
+          user_id: user.id,
+          career_path: selectedJob.title, // Use job title as career path for now
+          job_title: selectedJob.title,
+          skills_to_learn: selectedJob.requirements, // Use job requirements for skills to learn
+          resources: plan,
+          progress: 0,
+        })
         .select()
         .single();
+        
+      if (saveError) throw saveError;
 
-      if (insertError) throw insertError;
-
-      setLearningPaths(prev => [newPath, ...prev]);
-      setSelectedCareer('');
-      setSelectedJob('');
-
-      // Show success message
-      const successDiv = document.createElement('div');
-      successDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
-      successDiv.textContent = 'Verified learning path generated successfully!';
-      document.body.appendChild(successDiv);
+      // Add new path to the top of the list
+      setLearningPaths(prev => [savedPath, ...prev]);
       
-      setTimeout(() => {
-        if (document.body.contains(successDiv)) {
-          document.body.removeChild(successDiv);
-        }
-      }, 3000);
-
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error generating learning path:', error);
-      setError('Failed to generate learning path');
+      setError(error.message || 'Failed to generate learning path');
     } finally {
       setGeneratingPlan(false);
     }
@@ -442,8 +432,22 @@ export default function LearningPaths() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <div className="bg-white rounded-lg shadow-lg p-8">
+        <div className="flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!job && learningPaths.length === 0) {
+    return (
+      <div className="bg-white rounded-lg shadow-lg p-8 text-center">
+        <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+        <h3 className="text-lg font-semibold mb-2">No Learning Path Generated</h3>
+        <p className="text-gray-600">
+          Select a job from the "Career Explorer" to generate a personalized learning path.
+        </p>
       </div>
     );
   }
@@ -521,7 +525,7 @@ export default function LearningPaths() {
           )}
 
           <Button
-            onClick={handleGenerateLearningPath}
+            onClick={() => handleGenerateLearningPath(job)}
             disabled={!selectedCareer || !selectedJob || generatingPlan}
             className="w-full"
           >

@@ -1,5 +1,22 @@
 // Enhanced learning resource generation with verified links
-import { verifyLink, generateFallbackUrl, getPlatformInfo, type VerifiedResource } from './linkVerification';
+import { openai, isOpenAIConfigured } from './openaiConfig';
+import { extractJsonFromMarkdown } from './utils';
+import { verifyLink, generateFallbackUrl, getPlatformInfo, type LinkVerificationResult } from './linkVerification';
+
+export interface VerifiedResource {
+  type: string;
+  title: string;
+  description: string;
+  url: string;
+  verified: boolean;
+  lastVerified: string;
+  fallbackUrl?: string;
+  price: 'free' | 'freemium' | 'paid';
+  rating?: number;
+  provider: string;
+  difficulty: 'beginner' | 'intermediate' | 'advanced';
+  duration?: string;
+}
 
 // Curated 2024-2025 learning resources with verified links
 const VERIFIED_LEARNING_RESOURCES = {
@@ -363,161 +380,95 @@ export async function generateVerifiedLearningResources(
   requirements: string[] = []
 ): Promise<VerifiedResource[]> {
   try {
+    if (!isOpenAIConfigured()) {
+      throw new Error('OpenAI API key not configured.');
+    }
+
     console.log('Generating verified learning resources for:', jobTitle);
 
-    const jobTitleLower = jobTitle.toLowerCase();
-    const skillsLower = requirements.map(req => req.toLowerCase()).join(' ');
-    const descriptionLower = jobDescription.toLowerCase();
-    
-    let selectedResources: any[] = [];
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4-turbo",
+      messages: [
+        {
+          role: "system",
+          content: `You are an expert career development assistant. Your task is to generate a concise, relevant, and high-quality learning path for a specific job role.
 
-    // Determine the most relevant resource category
-    if (jobTitleLower.includes('software') || jobTitleLower.includes('developer') || 
-        jobTitleLower.includes('engineer') || skillsLower.includes('javascript') || 
-        skillsLower.includes('react') || skillsLower.includes('python')) {
-      
-      // Software Development Resources
-      if (skillsLower.includes('javascript') || skillsLower.includes('react') || 
-          skillsLower.includes('frontend') || skillsLower.includes('web')) {
-        selectedResources.push(
-          ...VERIFIED_LEARNING_RESOURCES.software_development.javascript.slice(0, 2),
-          ...VERIFIED_LEARNING_RESOURCES.software_development.react.slice(0, 2)
-        );
-      }
-      
-      if (skillsLower.includes('python') || skillsLower.includes('backend') || 
-          skillsLower.includes('django') || skillsLower.includes('flask')) {
-        selectedResources.push(
-          ...VERIFIED_LEARNING_RESOURCES.software_development.python.slice(0, 2)
-        );
-      }
+          Please return a JSON object with a single key "resources" which is an array of 5-7 learning resource objects.
+          
+          Each resource object must have the following structure:
+          - "type": (e.g., "Course", "Tutorial", "Book", "Documentation", "Article", "Video", "Project")
+          - "title": (string) - The official title of the resource.
+          - "url": (string) - A direct, valid URL to the resource. Prioritize official sources and well-known platforms (e.g., official docs, Coursera, Udemy, freeCodeCamp, Pluralsight, major tech blogs).
+          - "description": (string, 1-2 sentences) - A brief, compelling summary of what the resource covers and why it's relevant.
+          - "difficulty": (enum: "Beginner", "Intermediate", "Advanced")
+          - "price": (enum: "Free", "Paid", "Freemium") - "Freemium" means it has both free and paid components.
+          - "duration": (string) - Estimated time to complete (e.g., "10 hours", "3 weeks", "Self-paced").
+          
+          Guidelines:
+          - The resources MUST be highly relevant to the provided job title, description, and requirements.
+          - Provide a mix of resource types (e.g., a foundational course, a practical tutorial, official documentation).
+          - Ensure all generated URLs are likely to be valid and lead to the actual resource, not a search page.
+          - Do not invent resources. Use well-known, reputable sources.
+          - The entire response must be a single, valid JSON object. Do not include any text or markdown outside of the JSON structure.`
+        },
+        {
+          role: "user",
+          content: `Generate a learning path for the following job:
+          Job Title: ${jobTitle}
+          Job Description: ${jobDescription}
+          Key Requirements: ${requirements.join(', ')}`
+        }
+      ],
+      response_format: { type: "json_object" },
+    });
 
-      // Add general programming resources if not enough specific ones
-      if (selectedResources.length < 4) {
-        selectedResources.push(
-          ...VERIFIED_LEARNING_RESOURCES.software_development.javascript.slice(0, 2)
-        );
-      }
+    const content = completion.choices[0]?.message?.content;
+    if (!content) {
+      throw new Error('No content received from OpenAI');
     }
+
+    const parsedJson = JSON.parse(extractJsonFromMarkdown(content));
     
-    else if (jobTitleLower.includes('data') || jobTitleLower.includes('analyst') || 
-             jobTitleLower.includes('scientist') || skillsLower.includes('sql') ||
-             skillsLower.includes('machine learning') || skillsLower.includes('analytics')) {
-      
-      // Data Science Resources
-      selectedResources.push(
-        ...VERIFIED_LEARNING_RESOURCES.data_science.python_data.slice(0, 2),
-        ...VERIFIED_LEARNING_RESOURCES.data_science.sql.slice(0, 2)
-      );
-      
-      if (skillsLower.includes('machine learning') || skillsLower.includes('ai')) {
-        selectedResources.push(
-          ...VERIFIED_LEARNING_RESOURCES.data_science.machine_learning.slice(0, 2)
-        );
-      }
+    if (!parsedJson.resources || !Array.isArray(parsedJson.resources)) {
+        throw new Error("Invalid JSON structure from OpenAI. Missing 'resources' array.");
     }
     
-    else if (jobTitleLower.includes('design') || jobTitleLower.includes('ui') || 
-             jobTitleLower.includes('ux') || skillsLower.includes('figma') ||
-             skillsLower.includes('design')) {
-      
-      // Design Resources
-      selectedResources.push(
-        ...VERIFIED_LEARNING_RESOURCES.design.ui_ux.slice(0, 2),
-        ...VERIFIED_LEARNING_RESOURCES.design.figma.slice(0, 2)
-      );
-    }
-    
-    else if (jobTitleLower.includes('marketing') || jobTitleLower.includes('growth') ||
-             skillsLower.includes('marketing') || skillsLower.includes('seo')) {
-      
-      // Marketing Resources
-      selectedResources.push(
-        ...VERIFIED_LEARNING_RESOURCES.marketing.digital_marketing.slice(0, 3)
-      );
-    }
-    
-    // Default to general programming if no specific match
-    if (selectedResources.length === 0) {
-      selectedResources.push(
-        ...VERIFIED_LEARNING_RESOURCES.software_development.javascript.slice(0, 2),
-        ...VERIFIED_LEARNING_RESOURCES.software_development.python.slice(0, 2)
-      );
-    }
+    const resources = parsedJson.resources;
 
-    // Ensure we have 6-8 resources
-    while (selectedResources.length < 6) {
-      selectedResources.push(
-        ...VERIFIED_LEARNING_RESOURCES.software_development.javascript.slice(0, 1)
-      );
-    }
+    // Asynchronously verify and enrich each resource
+    const verifiedResources = await Promise.all(
+      resources.map(async (resource: any) => {
+        const { isValid } = await verifyLink(resource.url);
+        const platformInfo = getPlatformInfo(resource.url);
 
-    // Limit to 8 resources
-    selectedResources = selectedResources.slice(0, 8);
+        return {
+          ...resource,
+          verified: isValid,
+          lastVerified: new Date().toISOString(),
+          fallbackUrl: !isValid ? generateFallbackUrl(resource.url, resource.type, resource.title) : undefined,
+          provider: resource.provider || (platformInfo ? platformInfo.name : 'Unknown'),
+          rating: resource.rating || (platformInfo ? platformInfo.rating : undefined),
+        };
+      })
+    );
 
-    // Verify all URLs and create VerifiedResource objects
-    const verifiedResources: VerifiedResource[] = [];
-    
-    for (const resource of selectedResources) {
-      const verification = await verifyLink(resource.url);
-      const platformInfo = getPlatformInfo(resource.url);
-      
-      const verifiedResource: VerifiedResource = {
-        type: resource.type,
-        title: resource.title,
-        description: resource.description,
-        url: verification.isValid ? resource.url : generateFallbackUrl(resource.url, resource.type, resource.title),
-        verified: verification.isValid,
-        lastVerified: new Date().toISOString(),
-        fallbackUrl: !verification.isValid ? generateFallbackUrl(resource.url, resource.type, resource.title) : undefined,
-        price: resource.price,
-        rating: resource.rating,
-        provider: resource.provider,
-        difficulty: resource.difficulty,
-        duration: resource.duration
-      };
-
-      verifiedResources.push(verifiedResource);
-    }
-
-    console.log('Generated verified resources:', verifiedResources.length);
+    console.log(`Generated and verified ${verifiedResources.length} resources for ${jobTitle}.`);
     return verifiedResources;
 
   } catch (error) {
-    console.error('Error generating verified learning resources:', error);
-    
-    // Return fallback resources
-    return [
-      {
-        type: 'Course',
-        title: 'freeCodeCamp Full Stack Development',
-        description: 'Comprehensive free curriculum covering web development fundamentals.',
-        url: 'https://www.freecodecamp.org/learn/',
-        verified: true,
-        lastVerified: new Date().toISOString(),
-        price: 'free',
-        rating: 4.8,
-        provider: 'freeCodeCamp',
-        difficulty: 'beginner',
-        duration: '300 hours'
-      },
-      {
-        type: 'Tutorial',
-        title: 'Programming Tutorial for Beginners',
-        description: 'Learn programming fundamentals with practical examples.',
-        url: 'https://www.youtube.com/results?search_query=programming+tutorial+2024',
-        verified: true,
-        lastVerified: new Date().toISOString(),
-        price: 'free',
-        rating: 4.5,
-        provider: 'YouTube',
-        difficulty: 'beginner',
-        duration: 'Varies'
-      }
-    ];
+    console.error('Error in generateVerifiedLearningResources:', error);
+    // In case of any error (API call, parsing, etc.), return an empty array.
+    // The higher-level function will handle this case.
+    return [];
   }
 }
 
+/**
+ * Retrieves a predefined list of learning resources based on a category.
+ * This can be used as a fallback or for browsing generic paths.
+ * @param category The category of resources to retrieve (e.g., 'software_development').
+ * @returns An array of resource objects.
+ */
 export function getResourcesByCategory(category: string): any[] {
   switch (category.toLowerCase()) {
     case 'software_development':

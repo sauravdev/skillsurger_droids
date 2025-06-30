@@ -1,19 +1,21 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, ArrowRight } from 'lucide-react';
+import { User, ArrowRight, Briefcase, Award } from 'lucide-react';
 import Button from './Button';
 import { supabase } from '../lib/supabase';
 
 interface OnboardingData {
   fullName: string;
+  currentRole: string;
+  yearsOfExperience: string;
   workPreference: string;
   preferredLocations: string;
 }
 
 const workPreferences = [
   { value: 'hybrid', label: 'Hybrid' },
-  { value: 'remote', label: 'Remote' },
-  { value: 'office', label: 'Office' }
+  { value: 'remote_only', label: 'Remote' },
+  { value: 'office_only', label: 'Office' }
 ];
 
 export default function OnboardingForm() {
@@ -22,6 +24,8 @@ export default function OnboardingForm() {
   const [error, setError] = useState('');
   const [formData, setFormData] = useState<OnboardingData>({
     fullName: '',
+    currentRole: '',
+    yearsOfExperience: '',
     workPreference: 'hybrid',
     preferredLocations: ''
   });
@@ -38,6 +42,8 @@ export default function OnboardingForm() {
         .from('profiles')
         .update({
           full_name: formData.fullName,
+          current_role: formData.currentRole,
+          years_of_experience: parseInt(formData.yearsOfExperience, 10) || 0,
           remote_preference: formData.workPreference,
           preferred_locations: formData.preferredLocations.split(',').map(loc => loc.trim()).filter(Boolean),
           onboarding_completed: true
@@ -46,8 +52,8 @@ export default function OnboardingForm() {
 
       if (profileError) throw profileError;
       
+      navigate('/dashboard?section=profile');
       window.location.reload();
-      navigate('/dashboard');
 
     } catch (error: any) {
       console.error('Error completing onboarding:', error);
@@ -58,7 +64,7 @@ export default function OnboardingForm() {
   };
 
   const isFormValid = () => {
-    return formData.fullName.trim() && formData.preferredLocations.trim();
+    return formData.fullName.trim() && formData.currentRole.trim() && formData.yearsOfExperience.trim() && formData.preferredLocations.trim();
   };
 
   return (
@@ -88,13 +94,44 @@ export default function OnboardingForm() {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Full Name *</label>
-                <input
-                  type="text"
-                  value={formData.fullName}
-                  onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Enter your full name"
-                />
+                <div className="relative">
+                  <User className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={formData.fullName}
+                    onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Enter your full name"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Current Role *</label>
+                <div className="relative">
+                  <Briefcase className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={formData.currentRole}
+                    onChange={(e) => setFormData({ ...formData, currentRole: e.target.value })}
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="e.g., Software Engineer"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Years of Experience *</label>
+                <div className="relative">
+                  <Award className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="number"
+                    value={formData.yearsOfExperience}
+                    onChange={(e) => setFormData({ ...formData, yearsOfExperience: e.target.value })}
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Enter a number"
+                  />
+                </div>
               </div>
 
               <div>

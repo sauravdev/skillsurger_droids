@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Briefcase, Search, FileText, Brain, Download, ExternalLink, Bookmark, BookmarkCheck, Trash2, AlertTriangle, Plus, X, Sparkles, Target, MapPin } from 'lucide-react';
+import {
+  Briefcase, Search, FileText, Brain, Download, ExternalLink, Bookmark,
+  BookmarkCheck, Trash2, AlertTriangle, Plus, X, Sparkles, Target, MapPin, BookOpen, ChevronDown, ChevronUp
+} from 'lucide-react';
 import Button from './Button';
 import { supabase } from '../lib/supabase';
 import CVEditor from './CVEditor';
@@ -30,7 +33,11 @@ interface ExperienceItem {
   description: string;
 }
 
-export default function CareerExplorer() {
+interface CareerExplorerProps {
+  onGenerateLearningPath: (job: JobOpportunity) => void;
+}
+
+export default function CareerExplorer({ onGenerateLearningPath }: CareerExplorerProps) {
   const navigate = useNavigate();
   const [careerOptions, setCareerOptions] = useState<CareerOption[]>([]);
   const [selectedCareer, setSelectedCareer] = useState<string>('');
@@ -62,6 +69,7 @@ export default function CareerExplorer() {
   const [lastGenerationMethod, setLastGenerationMethod] = useState<'profile' | 'interests'>('profile');
   const [lastCustomFormData, setLastCustomFormData] = useState<any>(null);
   const [jobSearchLoading, setJobSearchLoading] = useState(false);
+  const [expandedJob, setExpandedJob] = useState<number | null>(null);
 
   useEffect(() => {
     loadUserData();
@@ -1366,7 +1374,19 @@ export default function CareerExplorer() {
                     </div>
                   </div>
                 </div>
-                <p className="text-gray-700 mb-4">{job.description}</p>
+                <div className="text-gray-700 mb-4">
+                  <p className={`whitespace-pre-wrap ${expandedJob !== index && 'line-clamp-3'}`}>
+                    {job.description}
+                  </p>
+                  {job.description.length > 200 && (
+                    <button
+                      onClick={() => setExpandedJob(expandedJob === index ? null : index)}
+                      className="text-blue-600 hover:underline text-sm mt-2"
+                    >
+                      {expandedJob === index ? 'Show Less' : 'Show More'}
+                    </button>
+                  )}
+                </div>
                 {job.requirements && job.requirements.length > 0 && (
                   <div className="mb-4">
                     <p className="text-sm font-medium text-gray-500 mb-2">Requirements</p>
@@ -1424,6 +1444,17 @@ export default function CareerExplorer() {
                     >
                       <Brain className="w-4 h-4 mr-2" />
                       Optimize CV
+                    </Button>
+
+                    {/* Generate Learning Path Button */}
+                    <Button
+                      onClick={() => onGenerateLearningPath(job)}
+                      variant="outline"
+                      size="sm"
+                      className="bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100"
+                    >
+                      <BookOpen className="w-4 h-4 mr-2" />
+                      Create Learning Path
                     </Button>
                   </div>
                 </div>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import Button from '../components/Button';
 import OnboardingCheck from '../components/OnboardingCheck';
@@ -24,12 +24,20 @@ type DashboardSection = 'overview' | 'profile' | 'career' | 'mentorship' | 'lear
 
 export default function DashboardPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [activeSection, setActiveSection] = useState<DashboardSection>('overview');
+  const [selectedJobForLearning, setSelectedJobForLearning] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(true);
 
   useEffect(() => {
+    // Read section from URL query params
+    const sectionFromQuery = searchParams.get('section');
+    if (sectionFromQuery && ['overview', 'profile', 'career', 'mentorship', 'learning'].includes(sectionFromQuery)) {
+      setActiveSection(sectionFromQuery as DashboardSection);
+    }
+    
     checkUser();
 
     // Listen for section change events from achievements
@@ -55,7 +63,7 @@ export default function DashboardPage() {
     return () => {
       window.removeEventListener('changeSection', handleSectionChange as EventListener);
     };
-  }, []);
+  }, [searchParams]);
 
   async function checkUser() {
     try {
@@ -208,7 +216,10 @@ export default function DashboardPage() {
             {activeSection === 'career' && (
               <>
                 <h1 className="text-2xl font-bold">Career Explorer</h1>
-                <CareerExplorer />
+                <CareerExplorer onGenerateLearningPath={(job) => {
+                  setSelectedJobForLearning(job);
+                  setActiveSection('learning');
+                }} />
               </>
             )}
 
@@ -222,7 +233,7 @@ export default function DashboardPage() {
             {activeSection === 'learning' && (
               <>
                 <h1 className="text-2xl font-bold">Learning Paths</h1>
-                <LearningPaths />
+                <LearningPaths job={selectedJobForLearning} />
               </>
             )}
           </div>

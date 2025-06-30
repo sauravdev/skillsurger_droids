@@ -502,8 +502,7 @@ function cleanAdzunaDescription(description: string): string {
     .replace(/\\'/g, "'") // Replace escaped apostrophes
     .replace(/\s+/g, ' ') // Normalize whitespace
     .replace(/[^\w\s.,!?()-]/g, '') // Remove special characters but keep basic punctuation
-    .trim()
-    .substring(0, 300) + (description.length > 300 ? '...' : '');
+    .trim();
 }
 
 function extractAdzunaRequirements(description: string): string[] {
