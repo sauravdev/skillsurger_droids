@@ -119,3 +119,53 @@ export async function generateCVSuggestions(cvText: string, jobDescription: stri
   return response.choices[0]?.message?.content || 'No suggestions generated.';
 }
 */
+
+/**
+ * Given a job title, use OpenAI to generate 3-4 synonyms or related job titles.
+ * Returns an array of strings. Falls back to the original if OpenAI is not configured or fails.
+ */
+export async function getJobTitleSynonymsWithOpenAI(jobTitle: string): Promise<string[]> {
+  if (!isOpenAIConfigured()) {
+    return [jobTitle];
+  }
+  try {
+    const response = await openai.chat.completions.create({
+      model: 'gpt-3.5-turbo',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are an expert in job market analysis. Given a job title, provide 3-4 synonyms or closely related job titles that a candidate should also search for. Respond with only a JSON array of strings.'
+        },
+        {
+          role: 'user',
+          content: `Job Title: ${jobTitle}`
+        }
+      ],
+      temperature: 0.4,
+      max_tokens: 100
+    });
+    const content = response.choices[0]?.message?.content?.trim();
+    if (!content) return [jobTitle];
+    // Try to parse as JSON array
+    let parsed: string[] = [];
+    try {
+      parsed = JSON.parse(content);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed.map(s => s.trim()).filter(Boolean);
+      }
+    } catch {
+      // fallback: try to extract array from markdown
+      try {
+        const cleaned = extractJsonFromMarkdown(content);
+        parsed = JSON.parse(cleaned);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.map(s => s.trim()).filter(Boolean);
+        }
+      } catch {}
+    }
+    return [jobTitle];
+  } catch (e) {
+    return [jobTitle];
+  }
+  return [jobTitle];
+}

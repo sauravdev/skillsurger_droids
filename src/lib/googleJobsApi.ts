@@ -52,6 +52,8 @@ const ADZUNA_COUNTRY_CODES = {
 const GOOGLE_API_KEY = import.meta.env.VITE_GOOGLE_API_KEY;
 const GOOGLE_SEARCH_ENGINE_ID = import.meta.env.VITE_GOOGLE_SEARCH_ENGINE_ID;
 
+import { getJobTitleSynonymsWithOpenAI } from './openai';
+
 export function isGoogleJobsConfigured(): boolean {
   return !!(GOOGLE_API_KEY && GOOGLE_SEARCH_ENGINE_ID && 
            GOOGLE_API_KEY !== 'your_google_api_key' && 
@@ -63,12 +65,38 @@ export async function searchGoogleJobs(params: GoogleJobsSearchParams): Promise<
   if (params.countryCode && ADZUNA_COUNTRY_CODES[params.countryCode as keyof typeof ADZUNA_COUNTRY_CODES]) {
     try {
       console.log(`Searching Adzuna API for country: ${params.countryCode}`);
-      const adzunaResults = await searchAdzunaJobs(params);
+      let adzunaResults = await searchAdzunaJobs(params);
       if (adzunaResults.length > 0) {
         console.log(`Found ${adzunaResults.length} jobs from Adzuna API`);
         return adzunaResults;
       } else {
-        console.log('No results from Adzuna API, falling back to Google Jobs');
+        // No results, try synonyms
+        console.log('No results from Adzuna API, trying synonyms with OpenAI...');
+        const synonyms = await getJobTitleSynonymsWithOpenAI(params.query);
+        let allResults: GoogleJobResult[] = [];
+        for (const synonym of synonyms) {
+          if (synonym.toLowerCase() === params.query.toLowerCase()) continue;
+          const synonymParams = { ...params, query: synonym };
+          try {
+            const synonymResults = await searchAdzunaJobs(synonymParams);
+            allResults = allResults.concat(synonymResults);
+          } catch (e) {
+            // ignore errors for individual synonym calls
+          }
+        }
+        // Deduplicate by title+company
+        const seen = new Set<string>();
+        const deduped = allResults.filter(job => {
+          const key = `${job.title.toLowerCase()}-${job.company.toLowerCase()}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+        if (deduped.length > 0) {
+          console.log(`Found ${deduped.length} jobs from Adzuna API using synonyms`);
+          return deduped;
+        }
+        console.log('No results from Adzuna API even after synonyms, falling back to Google Jobs');
       }
     } catch (error) {
       console.warn('Adzuna API failed, falling back to Google Jobs:', error);

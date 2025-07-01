@@ -1004,6 +1004,7 @@ export default function ProfileSection() {
                       setError('Failed to update profile');
                     }
                   }}
+                  hideSummaryInPreview={!!(profile.cv_parsed_data?.summary || profile.summary)}
                 />
               )}
             </div>

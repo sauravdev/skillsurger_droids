@@ -29,9 +29,10 @@ interface CVData {
 interface Props {
   initialData: CVData;
   onSave: (data: CVData) => Promise<void>;
+  hideSummaryInPreview?: boolean;
 }
 
-export default function CVEditor({ initialData, onSave }: Props) {
+export default function CVEditor({ initialData, onSave, hideSummaryInPreview }: Props) {
   const [isEditing, setIsEditing] = useState(false);
   const [data, setData] = useState<CVData>(initialData);
   const [loading, setLoading] = useState(false);
@@ -394,7 +395,7 @@ export default function CVEditor({ initialData, onSave }: Props) {
         </div>
 
         {/* Summary */}
-        {data.summary && (
+        {data.summary && !hideSummaryInPreview && (
           <div className="mb-8">
             <h2 className="text-xl font-semibold text-gray-900 mb-3 pb-2 border-b">Professional Summary</h2>
             <p className="text-gray-700 leading-relaxed">{data.summary}</p>
