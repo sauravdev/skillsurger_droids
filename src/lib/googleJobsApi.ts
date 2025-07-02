@@ -455,9 +455,12 @@ async function searchAdzunaJobs(params: GoogleJobsSearchParams): Promise<GoogleJ
   searchUrl.searchParams.set('what', params.query);
   
   // Add location if provided
-  // if (params.location) {
-  //   searchUrl.searchParams.set('where', params.location);
-  // }
+  if (params.location) {
+    console.log(`Setting Adzuna location parameter: ${params.location}`);
+    searchUrl.searchParams.set('where', params.location);
+  } else {
+    console.log('No location provided for Adzuna search');
+  }
   
   // Add job type filter
   if (params.jobType) {

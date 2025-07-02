@@ -16,6 +16,7 @@ import {
   findJobOpportunities,
   generateCVSuggestions
 } from '../lib/careerServices';
+import { cleanTruncatedDescription } from '../lib/utils';
 
 interface AcceptedSuggestions {
   summary?: string;
@@ -716,8 +717,15 @@ export default function CareerExplorer({ onGenerateLearningPath }: CareerExplore
       setError('');
       setSelectedCareer(careerTitle);
       
-      let location = customLocation || '';
-      if (!location) {
+      let location = '';
+      
+      // First check if we have custom form data from the last generation
+      if (lastCustomFormData && lastCustomFormData.location) {
+        location = lastCustomFormData.location;
+      } else if (customLocation) {
+        location = customLocation;
+      } else {
+        // Fall back to profile data
         const preferredLocations = profile?.preferred_locations;
         if (preferredLocations && preferredLocations.length > 0) {
           location = preferredLocations[0];
@@ -768,6 +776,7 @@ export default function CareerExplorer({ onGenerateLearningPath }: CareerExplore
       };
 
       console.log('Searching for jobs with context:', jobSearchContext);
+      console.log('Location being used for search:', location);
       
       const opportunities = await findJobOpportunities(jobSearchContext);
       setJobs(opportunities);
@@ -1375,17 +1384,17 @@ export default function CareerExplorer({ onGenerateLearningPath }: CareerExplore
                   </div>
                 </div>
                 <div className="text-gray-700 mb-4">
-                  <p className={`whitespace-pre-wrap ${expandedJob !== index && 'line-clamp-3'}`}>
-                    {job.description}
+                  <p>
+                    {cleanTruncatedDescription(job.description)}
                   </p>
-                  {job.description.length > 200 && (
+                  {/* {job.description.length > 200 && (
                     <button
                       onClick={() => setExpandedJob(expandedJob === index ? null : index)}
                       className="text-blue-600 hover:underline text-sm mt-2"
                     >
                       {expandedJob === index ? 'Show Less' : 'Show More'}
                     </button>
-                  )}
+                  )} */}
                 </div>
                 {job.requirements && job.requirements.length > 0 && (
                   <div className="mb-4">
