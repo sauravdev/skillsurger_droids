@@ -1,6 +1,8 @@
 import { openai, isOpenAIConfigured } from './openaiConfig';
 import { extractJsonFromMarkdown } from './utils';
 import { searchGoogleJobs, isGoogleJobsConfigured, type GoogleJobsSearchParams, type GoogleJobResult } from './googleJobsApi';
+import axios from 'axios';
+import dayjs from 'dayjs';
 
 export interface CareerOption {
   title: string;
@@ -12,17 +14,33 @@ export interface CareerOption {
 }
 
 export interface JobOpportunity {
+  id: string;
   title: string;
   company: string;
+  companyLogo?: string;
+  companyUrl?: string;
   location: string;
   description: string;
-  requirements: string[];
-  type: string;
-  salary: string;
+  requirements?: string[];
+  type?: string;
+  salary?: string;
   applicationUrl?: string;
   postedDate?: string;
-  isRemote?: boolean;
-  source?: string;
+  seniority?: string;
+  organizationSize?: string;
+  organizationIndustry?: string;
+  organizationHeadquarters?: string;
+  organizationFollowers?: number;
+  organizationFounded?: string;
+  organizationSlogan?: string;
+  remote?: boolean;
+  recruiterName?: string;
+  recruiterTitle?: string;
+  recruiterUrl?: string;
+  applicantsCount?: number;
+  timePosted?: string;
+  lastUpdated?: string;
+  country?: string;
 }
 
 export interface CVSuggestion {
@@ -560,7 +578,7 @@ function generateRealisticJobs(jobSearchContext: any): JobOpportunity[] {
     }
 
     if (workPreferences.type) {
-      workType = workPreferences.type.split('_').map(word => 
+      workType = workPreferences.type.split('_').map((word: string) => 
         word.charAt(0).toUpperCase() + word.slice(1)
       ).join('-');
     }
@@ -581,8 +599,11 @@ function generateRealisticJobs(jobSearchContext: any): JobOpportunity[] {
     const postedDate = getRandomPostedDate();
 
     jobs.push({
+      id: '',
       title: jobTitle,
       company: company,
+      companyLogo: '',
+      companyUrl: '',
       location: jobLocation,
       description: description,
       requirements: requirements,
@@ -590,7 +611,21 @@ function generateRealisticJobs(jobSearchContext: any): JobOpportunity[] {
       salary: salary,
       applicationUrl: applicationUrl,
       postedDate: postedDate,
-      isRemote: isRemote
+      seniority: '',
+      organizationSize: '',
+      organizationIndustry: '',
+      organizationHeadquarters: '',
+      organizationFollowers: 0,
+      organizationFounded: '',
+      organizationSlogan: '',
+      remote: isRemote,
+      recruiterName: '',
+      recruiterTitle: '',
+      recruiterUrl: '',
+      applicantsCount: undefined,
+      timePosted: undefined,
+      lastUpdated: undefined,
+      country: undefined
     });
   }
 
@@ -682,7 +717,7 @@ export async function generateCareerOptions(
           Salary Range: ${contextData.salaryExpectations.min && contextData.salaryExpectations.max 
             ? `$${contextData.salaryExpectations.min.toLocaleString()} - $${contextData.salaryExpectations.max.toLocaleString()}`
             : 'Market rate'}
-          Education: ${contextData.education.map(edu => `${edu.degree} from ${edu.institution}`).join(', ') || 'Not specified'}
+          Education: ${Array.isArray(contextData.education) ? contextData.education.join(', ') : 'Not specified'}
           Languages: ${contextData.languages.join(', ') || 'Not specified'}
           Summary: ${contextData.summary || 'Not provided'}
           
@@ -750,43 +785,75 @@ export async function generateCareerOptions(
 export async function findJobOpportunities(
   jobSearchContext: any
 ): Promise<JobOpportunity[]> {
-  console.log('Finding job opportunities with context:', jobSearchContext);
+  // Prepare params
+  const title = jobSearchContext.jobTitle || '';
+  let location = '';
+  if (jobSearchContext.location?.city) location = jobSearchContext.location.city;
+  else if (typeof jobSearchContext.location === 'string') location = jobSearchContext.location;
+  else location = 'United States';
 
-  if (isGoogleJobsConfigured()) {
-    try {
-      const searchParams: GoogleJobsSearchParams = {
-        query: jobSearchContext.jobTitle,
-        location: jobSearchContext.location?.city || '',
-        remoteOnly: jobSearchContext.workPreferences?.remotePreference === 'remote_only',
-        countryCode: jobSearchContext.countryCode || 'us',
-      };
+  // Date filters for freshness (last 90 days)
+  const now = dayjs();
+  const ninetyDaysAgo = now.subtract(90, 'day').format('YYYY-MM-DD HH:mm:ss');
 
-      const googleJobs = await searchGoogleJobs(searchParams);
+  // Determine API endpoint
+  const apiBase = import.meta.env.VITE_CORESIGNAL_API || 'http://localhost:5002/api/v1/candidate/jobs';
+  const apiUrl = apiBase;
 
-      if (googleJobs.length > 0) {
-        console.log(`Found ${googleJobs.length} jobs from Google Jobs API/Adzuna API`);
-        return googleJobs.map(job => ({
-          title: job.title,
-          company: job.company,
-          location: job.location,
-          description: job.description,
-          requirements: job.requirements,
-          type: job.jobType || 'Full-time', // Use jobType from API response
-          salary: job.salary || 'Not specified',
-          applicationUrl: job.applicationUrl,
-          postedDate: job.postedDate,
-          isRemote: job.isRemote,
-          source: job.source,
-        }));
+  try {
+    const response = await axios.post(
+      apiUrl,
+      {
+        title: title,
+        keyword_description: title,
+        location: location,
+        created_at_gte: ninetyDaysAgo,
+        last_updated_gte: ninetyDaysAgo,
+        application_active: true,
+        deleted: false
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json'
+        }
       }
-    } catch (error) {
-      console.error('Error fetching from Google Jobs API/Adzuna API, using fallback:', error);
-    }
+    );
+    const jobs = response.data.data;
+    if (!Array.isArray(jobs) || jobs.length === 0) return [];
+    // Map jobs to JobOpportunity[]
+    return jobs.map((job: any) => ({
+      id: job.id?.toString() || '',
+      title: job.title,
+      company: job.company_name,
+      companyLogo: job.company_logo,
+      companyUrl: job.company_url,
+      location: job.location,
+      description: job.description,
+      requirements: Array.isArray(job.job_functions_collection) ? job.job_functions_collection : [],
+      type: job.employment_type,
+      salary: job.salary,
+      applicationUrl: job.url || job.redirected_url || job.external_url,
+      postedDate: job.created,
+      seniority: job.seniority,
+      organizationSize: job.organization_size,
+      organizationIndustry: Array.isArray(job.job_industry_collection) && job.job_industry_collection.length > 0 ? job.job_industry_collection[0].job_industry_list.industry : undefined,
+      organizationHeadquarters: job.organization_headquarters,
+      organizationFollowers: job.organization_followers,
+      organizationFounded: job.organization_founded,
+      organizationSlogan: job.organization_slogan,
+      remote: job.remote,
+      recruiterName: job.recruiter_name,
+      recruiterTitle: job.recruiter_title,
+      recruiterUrl: job.recruiter_url,
+      applicantsCount: job.applicants_count,
+      timePosted: job.time_posted,
+      lastUpdated: job.last_updated,
+      country: job.country
+    }));
+  } catch (error) {
+    console.error('Error fetching jobs:', error);
+    return [];
   }
-
-  // Fallback to existing job generation if Google Jobs API fails or is not configured
-  console.log('Using AI-powered job generation as fallback');
-  return generateRealisticJobs(jobSearchContext);
 }
 
 export async function generateCVSuggestions(
@@ -805,13 +872,10 @@ export async function generateCVSuggestions(
   
   const fallbackSuggestion: CVSuggestion = {
     summary: `Results-driven ${cvData.professional?.currentRole || 'professional'} with ${cvData.professional?.yearsOfExperience || 'several'} years of experience seeking to leverage expertise in ${targetJob.title} role. Proven track record of delivering high-quality results and contributing to team success. ${cvData.preferences?.remotePreference === 'remote_only' ? 'Experienced in remote work environments.' : ''}`,
-    highlightedSkills: [
-      ...targetJob.requirements.slice(0, 3),
-      ...(cvData.skills || []).slice(0, 3)
-    ].slice(0, 6),
-    experienceImprovements: cvData.experience?.length > 0 ? [
+    highlightedSkills: Array.isArray(targetJob.requirements) ? targetJob.requirements : [],
+    experienceImprovements: Array.isArray(targetJob.requirements) && targetJob.requirements.length > 0 ? [
       {
-        original: cvData.experience[0]?.description || "Worked on various projects and tasks",
+        original: targetJob.requirements[0],
         improved: `Led ${targetJob.title.toLowerCase()} initiatives resulting in measurable business impact and improved team efficiency. Collaborated with cross-functional teams to deliver high-quality solutions.`
       }
     ] : [],

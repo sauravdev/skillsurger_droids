@@ -1371,41 +1371,80 @@ export default function CareerExplorer({ onGenerateLearningPath }: CareerExplore
           <div className="space-y-4">
             {jobs.map((job, index) => (
               <div key={index} className="border rounded-lg p-6 hover:shadow-md transition-shadow">
-                <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <h4 className="text-xl font-semibold">{job.title}</h4>
-                    <p className="text-gray-600">{job.company}</p>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <div className="text-right">
-                      <p className="text-gray-600">{job.location}</p>
-                      <p className="text-gray-600">{job.type}</p>
+                <div className="text-gray-700 mb-4">
+                  <div className="flex items-center mb-2">
+                    {job.companyLogo && (
+                      <img src={job.companyLogo} alt={job.company} className="w-12 h-12 rounded-full mr-3 border" />
+                    )}
+                    <div>
+                      <h4 className="text-xl font-semibold flex items-center">
+                        {job.title}
+                        {job.seniority && (
+                          <span className="ml-2 px-2 py-0.5 bg-yellow-100 text-yellow-800 rounded text-xs font-medium">{job.seniority}</span>
+                        )}
+                      </h4>
+                      <a href={job.companyUrl} target="_blank" rel="noopener noreferrer" className="text-blue-700 hover:underline text-sm font-medium">
+                        {job.company}
+                      </a>
                     </div>
                   </div>
-                </div>
-                <div className="text-gray-700 mb-4">
-                  <p>
-                    {cleanTruncatedDescription(job.description)}
-                  </p>
-                  {/* {job.description.length > 200 && (
-                    <button
-                      onClick={() => setExpandedJob(expandedJob === index ? null : index)}
-                      className="text-blue-600 hover:underline text-sm mt-2"
-                    >
-                      {expandedJob === index ? 'Show Less' : 'Show More'}
-                    </button>
-                  )} */}
-                </div>
-                {job.requirements && job.requirements.length > 0 && (
-                  <div className="mb-4">
-                    <p className="text-sm font-medium text-gray-500 mb-2">Requirements</p>
-                    <ul className="list-disc list-inside text-gray-700">
-                      {job.requirements.map((req, i) => (
-                        <li key={i}>{req}</li>
-                      ))}
-                    </ul>
+                  <div className="flex flex-wrap gap-4 text-sm mb-2">
+                    {job.organizationIndustry && (
+                      <span className="bg-gray-100 px-2 py-1 rounded text-gray-700">{job.organizationIndustry}</span>
+                    )}
+                    {job.organizationSize && (
+                      <span className="bg-gray-100 px-2 py-1 rounded text-gray-700">{job.organizationSize}</span>
+                    )}
+                    {job.organizationHeadquarters && (
+                      <span className="bg-gray-100 px-2 py-1 rounded text-gray-700">{job.organizationHeadquarters}</span>
+                    )}
+                    {job.organizationFollowers && (
+                      <span className="bg-gray-100 px-2 py-1 rounded text-gray-700">{job.organizationFollowers.toLocaleString()} followers</span>
+                    )}
+                    {job.organizationFounded && (
+                      <span className="bg-gray-100 px-2 py-1 rounded text-gray-700">Founded: {job.organizationFounded}</span>
+                    )}
+                    {job.remote && (
+                      <span className="bg-green-100 px-2 py-1 rounded text-green-700">Remote</span>
+                    )}
                   </div>
-                )}
+                  <div className="mb-2 text-gray-600">
+                    <span className="font-medium">Location:</span> {job.location}
+                  </div>
+                  <div className="mb-2 text-gray-600">
+                    <span className="font-medium">Employment Type:</span> {job.type}
+                  </div>
+                  <div className="mb-2 text-gray-600">
+                    <span className="font-medium">Posted:</span> {job.postedDate ? new Date(job.postedDate).toLocaleDateString() : 'N/A'}
+                  </div>
+                  <div className="mb-2 text-gray-600">
+                    <span className="font-medium">Salary:</span> {job.salary || 'Not specified'}
+                  </div>
+                  <div className="mb-2 text-gray-600">
+                    <span className="font-medium">Company Slogan:</span> {job.organizationSlogan}
+                  </div>
+                  <div className="mb-2 text-gray-600">
+                    <span className="font-medium">Description:</span> {cleanTruncatedDescription(job.description)}
+                  </div>
+                  {job.requirements && job.requirements.length > 0 && (
+                    <div className="mb-2">
+                      <span className="font-medium text-gray-600">Specialties:</span>
+                      <ul className="list-disc list-inside text-gray-700 ml-4">
+                        {job.requirements.map((req, i) => (
+                          <li key={i}>{req}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {job.recruiterName && (
+                    <div className="mb-2 text-gray-600">
+                      <span className="font-medium">Recruiter:</span> {job.recruiterName} {job.recruiterTitle && `(${job.recruiterTitle})`}
+                      {job.recruiterUrl && (
+                        <a href={job.recruiterUrl} target="_blank" rel="noopener noreferrer" className="ml-2 text-blue-700 hover:underline">Profile</a>
+                      )}
+                    </div>
+                  )}
+                </div>
                 <div className="flex items-center justify-between">
                   <p className="text-lg font-semibold">{job.salary}</p>
                   <div className="flex items-center space-x-2">
