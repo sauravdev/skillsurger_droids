@@ -1388,7 +1388,7 @@ export default function CareerExplorer({ onGenerateLearningPath }: CareerExplore
                       </a>
                     </div>
                   </div>
-                  <div className="flex flex-wrap gap-4 text-sm mb-2">
+                  {/* <div className="flex flex-wrap gap-4 text-sm mb-2">
                     {job.organizationIndustry && (
                       <span className="bg-gray-100 px-2 py-1 rounded text-gray-700">{job.organizationIndustry}</span>
                     )}
@@ -1407,7 +1407,7 @@ export default function CareerExplorer({ onGenerateLearningPath }: CareerExplore
                     {job.remote && (
                       <span className="bg-green-100 px-2 py-1 rounded text-green-700">Remote</span>
                     )}
-                  </div>
+                  </div> */}
                   <div className="mb-2 text-gray-600">
                     <span className="font-medium">Location:</span> {job.location}
                   </div>

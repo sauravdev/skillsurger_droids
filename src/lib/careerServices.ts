@@ -41,6 +41,10 @@ export interface JobOpportunity {
   timePosted?: string;
   lastUpdated?: string;
   country?: string;
+  via?: string;
+  shareLink?: string;
+  benefits?: string[];
+  responsibilities?: string[];
 }
 
 export interface CVSuggestion {
@@ -801,55 +805,207 @@ export async function findJobOpportunities(
   const apiUrl = apiBase;
 
   try {
-    const response = await axios.post(
-      apiUrl,
-      {
-        title: title,
-        keyword_description: title,
-        location: location,
-        created_at_gte: ninetyDaysAgo,
-        last_updated_gte: ninetyDaysAgo,
-        application_active: true,
-        deleted: false
-      },
-      {
-        headers: {
-          'Content-Type': 'application/json'
+    // Try the new API structure first, fallback to old structure
+    let response;
+    try {
+      response = await axios.post(
+        apiUrl,
+        {
+          query: title,
+          location: location,
+          limit: 20
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+    } catch (newApiError) {
+      console.log('New API failed, trying old API structure:', newApiError);
+      // Fallback to old API structure
+      response = await axios.post(
+        apiUrl,
+        {
+          title: title,
+          keyword_description: title,
+          location: location,
+          created_at_gte: ninetyDaysAgo,
+          last_updated_gte: ninetyDaysAgo,
+          application_active: true,
+          deleted: false
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+    }
+    const jobs = response.data.data || response.data;
+    console.log('API Response structure:', {
+      hasData: !!response.data.data,
+      hasDirectData: !!response.data,
+      jobsLength: Array.isArray(jobs) ? jobs.length : 'Not an array',
+      sampleJob: Array.isArray(jobs) && jobs.length > 0 ? Object.keys(jobs[0]) : 'No jobs'
+    });
+    
+    if (!Array.isArray(jobs) || jobs.length === 0) {
+      console.log('No jobs found in response');
+      return [];
+    }
+    
+    // Map jobs to JobOpportunity[]
+    return jobs.map((job: any, index: number) => {
+      console.log(`Mapping job ${index + 1}:`, {
+        title: job.title,
+        company: job.company_name,
+        hasHighlights: Array.isArray(job.job_highlights),
+        hasExtensions: Array.isArray(job.extensions),
+        hasApplyOptions: Array.isArray(job.apply_options)
+      });
+      // Extract requirements from job_highlights
+      let requirements: string[] = [];
+      if (Array.isArray(job.job_highlights)) {
+        const qualifications = job.job_highlights.find((highlight: any) => 
+          highlight.title?.toLowerCase().includes('qualification')
+        );
+        if (qualifications?.items) {
+          requirements = qualifications.items;
+        }
+        
+        // Also add responsibilities if no qualifications found
+        if (requirements.length === 0) {
+          const responsibilities = job.job_highlights.find((highlight: any) => 
+            highlight.title?.toLowerCase().includes('responsibilit')
+          );
+          if (responsibilities?.items) {
+            requirements = responsibilities.items.slice(0, 5); // Limit to first 5
+          }
         }
       }
-    );
-    const jobs = response.data.data;
-    if (!Array.isArray(jobs) || jobs.length === 0) return [];
-    // Map jobs to JobOpportunity[]
-    return jobs.map((job: any) => ({
-      id: job.id?.toString() || '',
-      title: job.title,
-      company: job.company_name,
-      companyLogo: job.company_logo,
-      companyUrl: job.company_url,
-      location: job.location,
-      description: job.description,
-      requirements: Array.isArray(job.job_functions_collection) ? job.job_functions_collection : [],
-      type: job.employment_type,
-      salary: job.salary,
-      applicationUrl: job.url || job.redirected_url || job.external_url,
-      postedDate: job.created,
-      seniority: job.seniority,
-      organizationSize: job.organization_size,
-      organizationIndustry: Array.isArray(job.job_industry_collection) && job.job_industry_collection.length > 0 ? job.job_industry_collection[0].job_industry_list.industry : undefined,
-      organizationHeadquarters: job.organization_headquarters,
-      organizationFollowers: job.organization_followers,
-      organizationFounded: job.organization_founded,
-      organizationSlogan: job.organization_slogan,
-      remote: job.remote,
-      recruiterName: job.recruiter_name,
-      recruiterTitle: job.recruiter_title,
-      recruiterUrl: job.recruiter_url,
-      applicantsCount: job.applicants_count,
-      timePosted: job.time_posted,
-      lastUpdated: job.last_updated,
-      country: job.country
-    }));
+      
+      // Extract job type from extensions or detected_extensions
+      let jobType = '';
+      if (Array.isArray(job.extensions)) {
+        const typeExtension = job.extensions.find((ext: string) => 
+          ext.toLowerCase().includes('full-time') || 
+          ext.toLowerCase().includes('part-time') || 
+          ext.toLowerCase().includes('contract')
+        );
+        if (typeExtension) jobType = typeExtension;
+      } else if (job.detected_extensions?.schedule_type) {
+        jobType = job.detected_extensions.schedule_type;
+      }
+      
+      // Extract salary from job_highlights or extensions
+      let salary = '';
+      if (Array.isArray(job.job_highlights)) {
+        const benefits = job.job_highlights.find((highlight: any) => 
+          highlight.title?.toLowerCase().includes('benefit')
+        );
+        if (benefits?.items) {
+          const salaryItem = benefits.items.find((item: string) => 
+            item.includes('$') || item.includes('salary') || item.includes('compensation') || item.includes('/hr')
+          );
+          if (salaryItem) salary = salaryItem;
+        }
+      }
+      
+      // Also check extensions for salary info
+      if (!salary && Array.isArray(job.extensions)) {
+        const salaryExtension = job.extensions.find((ext: string) => 
+          ext.includes('$') || ext.includes('salary') || ext.includes('compensation')
+        );
+        if (salaryExtension) salary = salaryExtension;
+      }
+      
+      // Get application URL from apply_options
+      let applicationUrl = '';
+      if (Array.isArray(job.apply_options) && job.apply_options.length > 0) {
+        // Prefer direct company application if available
+        const directApply = job.apply_options.find((option: any) => 
+          option.title?.toLowerCase().includes('lever') || 
+          option.title?.toLowerCase().includes('greenhouse') ||
+          option.title?.toLowerCase().includes('workday') ||
+          option.title?.toLowerCase().includes('bamboohr') ||
+          option.title?.toLowerCase().includes('smartrecruiters')
+        );
+        applicationUrl = directApply?.link || job.apply_options[0].link;
+      } else if (job.share_link) {
+        // Fallback to share link if no apply options
+        applicationUrl = job.share_link;
+      }
+      
+      // Extract posted date from detected_extensions
+      let postedDate = '';
+      if (job.detected_extensions?.posted_at) {
+        postedDate = job.detected_extensions.posted_at;
+      }
+      
+      // Determine if remote from extensions or detected_extensions
+      let isRemote = false;
+      if (Array.isArray(job.extensions)) {
+        isRemote = job.extensions.some((ext: string) => 
+          ext.toLowerCase().includes('remote') || ext.toLowerCase().includes('work from home')
+        );
+      } else if (job.detected_extensions?.remote) {
+        isRemote = job.detected_extensions.remote;
+      }
+      
+      // Extract benefits and responsibilities
+      let benefits: string[] = [];
+      let responsibilities: string[] = [];
+      if (Array.isArray(job.job_highlights)) {
+        const benefitsHighlight = job.job_highlights.find((highlight: any) => 
+          highlight.title?.toLowerCase().includes('benefit')
+        );
+        if (benefitsHighlight?.items) {
+          benefits = benefitsHighlight.items;
+        }
+        
+        const responsibilitiesHighlight = job.job_highlights.find((highlight: any) => 
+          highlight.title?.toLowerCase().includes('responsibilit')
+        );
+        if (responsibilitiesHighlight?.items) {
+          responsibilities = responsibilitiesHighlight.items;
+        }
+      }
+      
+      return {
+        id: job.job_id || job.id?.toString() || '',
+        title: job.title || '',
+        company: job.company_name || '',
+        companyLogo: job.thumbnail || job.company_logo || '',
+        companyUrl: job.company_url || '',
+        location: job.location || '',
+        description: job.description || '',
+        requirements: requirements,
+        type: jobType,
+        salary: salary,
+        applicationUrl: applicationUrl,
+        postedDate: postedDate,
+        seniority: job.seniority || '',
+        organizationSize: job.organization_size || '',
+        organizationIndustry: job.organization_industry || '',
+        organizationHeadquarters: job.organization_headquarters || '',
+        organizationFollowers: job.organization_followers || 0,
+        organizationFounded: job.organization_founded || '',
+        organizationSlogan: job.organization_slogan || '',
+        remote: isRemote,
+        recruiterName: job.recruiter_name || '',
+        recruiterTitle: job.recruiter_title || '',
+        recruiterUrl: job.recruiter_url || '',
+        applicantsCount: job.applicants_count,
+        timePosted: job.time_posted || postedDate,
+        lastUpdated: job.last_updated || '',
+        country: job.country || '',
+        via: job.via || '',
+        shareLink: job.share_link || '',
+        benefits: benefits,
+        responsibilities: responsibilities
+      };
+    });
   } catch (error) {
     console.error('Error fetching jobs:', error);
     return [];
