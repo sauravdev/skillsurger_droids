@@ -674,78 +674,24 @@ export async function generateCareerOptions(
       languages: profileData?.languages || [],
       summary: profileData?.summary || ''
     };
-    
-    const response = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
-      messages: [
-        {
-          role: "system",
-          content: `You are an expert career counselor with access to comprehensive profile data. Generate 3-5 highly personalized career options.
-          
-          Consider ALL provided information including:
-          - Current skills and interests
-          - Years of experience and current role
-          - Desired career direction
-          - Location and work preferences (remote, hybrid, etc.)
-          - Salary expectations
-          - Educational background
-          - Languages spoken
-          - Professional summary
-          
-          Respond with ONLY a JSON array of career objects. Each object must have:
-          - title (string) - specific to experience level
-          - description (string, 2-3 sentences) - personalized based on profile
-          - requiredSkills (array of 4-6 strings) - mix of existing and growth skills
-          - potentialCompanies (array of 5-7 relevant company names)
-          - averageSalary (string with realistic range based on location and experience)
-          - growthPotential (string describing realistic growth outlook)
-          
-          Make recommendations that:
-          1. Build on existing experience and skills
-          2. Align with stated career goals and interests
-          3. Consider location and work preferences
-          4. Respect salary expectations
-          5. Provide realistic progression paths`
-        },
-        {
-          role: "user",
-          content: `Generate personalized career options for this profile:
-          
-          Skills: ${skills.join(', ') || 'General skills'}
-          Interests: ${interests.join(', ') || 'Various interests'}
-          Experience: ${experience} years
-          Current Role: ${contextData.currentRole || 'Not specified'}
-          Desired Role: ${contextData.desiredRole || 'Open to opportunities'}
-          Location: ${[contextData.location.city, contextData.location.state, contextData.location.country].filter(Boolean).join(', ') || 'Flexible'}
-          Work Preference: ${contextData.workPreferences.remotePreference || 'No preference'}
-          Salary Range: ${contextData.salaryExpectations.min && contextData.salaryExpectations.max 
-            ? `$${contextData.salaryExpectations.min.toLocaleString()} - $${contextData.salaryExpectations.max.toLocaleString()}`
-            : 'Market rate'}
-          Education: ${Array.isArray(contextData.education) ? contextData.education.join(', ') : 'Not specified'}
-          Languages: ${contextData.languages.join(', ') || 'Not specified'}
-          Summary: ${contextData.summary || 'Not provided'}
-          
-          Generate realistic, personalized career paths that align with this comprehensive profile.`
-        }
-      ],
-      temperature: 0.7,
-      max_tokens: 2500
-    });
+    const apiBase = import.meta.env.VITE_BACKEND_API || 'http://localhost:5002/api/v1';
+    const apiUrl = `${apiBase}/openai/skillsurger`;
+    const response = await axios.post(apiUrl,{contextData : contextData,type : "generateCareerOptions"})
 
-    if (!response.choices[0]?.message?.content) {
+    if (!response.data.success) {
       console.log('No response from OpenAI, using enhanced fallback');
       return fallbackOptions;
     }
 
     try {
-      const content = response.choices[0].message.content.trim();
+      const content = response.data.data;
       console.log('OpenAI response:', content);
       
       // Extract JSON from markdown if needed
-      const cleanedContent = extractJsonFromMarkdown(content);
+      // const cleanedContent = extractJsonFromMarkdown(content);
       
       // Try to parse as JSON array directly
-      let parsed = JSON.parse(cleanedContent);
+      let parsed = content;
       
       // If it's wrapped in an object, extract the array
       if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
@@ -801,8 +747,8 @@ export async function findJobOpportunities(
   const ninetyDaysAgo = now.subtract(90, 'day').format('YYYY-MM-DD HH:mm:ss');
 
   // Determine API endpoint
-  const apiBase = import.meta.env.VITE_CORESIGNAL_API || 'http://localhost:5002/api/v1/candidate/jobs';
-  const apiUrl = apiBase;
+  const apiBase = import.meta.env.VITE_BACKEND_API || 'http://localhost:5002/api/v1';
+  const apiUrl = `${apiBase}/candidate/jobs`;
 
   try {
     // Try the new API structure first, fallback to old structure
@@ -1052,71 +998,13 @@ export async function generateCVSuggestions(
   }
 
   try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
-      messages: [
-        {
-          role: "system",
-          content: `You are an expert CV optimization specialist. Analyze comprehensive profile data and provide specific, actionable CV improvements for a target job.
-
-          Respond with ONLY a JSON object:
-          {
-            "summary": "optimized professional summary (2-3 sentences)",
-            "highlightedSkills": ["skill1", "skill2", "skill3", "skill4", "skill5"],
-            "experienceImprovements": [
-              {
-                "original": "original experience description",
-                "improved": "enhanced version with impact and metrics"
-              }
-            ],
-            "additionalSections": [
-              {
-                "title": "section name",
-                "content": "specific suggested content"
-              }
-            ]
-          }
-          
-          Focus on:
-          - Matching keywords from job requirements
-          - Quantifying achievements where possible
-          - Highlighting relevant experience and skills
-          - Addressing any gaps with transferable skills
-          - Optimizing for ATS systems
-          - Tailoring language to company culture`
-        },
-        {
-          role: "user",
-          content: `Optimize CV for this job opportunity:
-          
-          Job: ${targetJob.title} at ${targetJob.company}
-          Location: ${targetJob.location}
-          Requirements: ${targetJob.requirements.join(', ')}
-          Description: ${targetJob.description}
-          
-          Current Profile Data:
-          Personal: ${JSON.stringify(cvData.personalInfo || {})}
-          Professional: ${JSON.stringify(cvData.professional || {})}
-          Experience: ${JSON.stringify(cvData.experience || [])}
-          Education: ${JSON.stringify(cvData.education || [])}
-          Skills: ${JSON.stringify(cvData.skills || [])}
-          Languages: ${JSON.stringify(cvData.languages || [])}
-          Interests: ${JSON.stringify(cvData.interests || [])}
-          Work Preferences: ${JSON.stringify(cvData.preferences || {})}
-          
-          Provide specific, actionable CV optimization suggestions that will make this candidate stand out for this specific role.`
-        }
-      ],
-      temperature: 0.7,
-      max_tokens: 1500
-    });
-
-    if (!response.choices[0]?.message?.content) {
+    const response = await axios.post(``,{type : "generateCVSuggestions",targetJob:targetJob,cvData:cvData})
+    if (!response.data.success) {
       return fallbackSuggestion;
     }
 
     try {
-      const content = response.choices[0].message.content.trim();
+      const content = response.data.data;
       
       // Extract JSON from markdown if needed
       const cleanedContent = extractJsonFromMarkdown(content);

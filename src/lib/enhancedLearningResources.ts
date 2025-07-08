@@ -2,6 +2,7 @@
 import { openai, isOpenAIConfigured } from './openaiConfig';
 import { extractJsonFromMarkdown } from './utils';
 import { verifyLink, generateFallbackUrl, getPlatformInfo, type LinkVerificationResult } from './linkVerification';
+import axios from 'axios';
 
 export interface VerifiedResource {
   type: string;
@@ -385,49 +386,16 @@ export async function generateVerifiedLearningResources(
     }
 
     console.log('Generating verified learning resources for:', jobTitle);
+    const apiBase = import.meta.env.VITE_BACKEND_API || 'http://localhost:5002/api/v1';
+    const apiUrl = `${apiBase}/openai/skillsurger`;
+    const response = await axios.post(apiUrl,{type : "generateVerifiedLearningResources",jobTitle,jobDescription,requirements})
 
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4-turbo",
-      messages: [
-        {
-          role: "system",
-          content: `You are an expert career development assistant. Your task is to generate a concise, relevant, and high-quality learning path for a specific job role.
-
-          Please return a JSON object with a single key "resources" which is an array of 5-7 learning resource objects.
-          
-          Each resource object must have the following structure:
-          - "type": (e.g., "Course", "Tutorial", "Book", "Documentation", "Article", "Video", "Project")
-          - "title": (string) - The official title of the resource.
-          - "url": (string) - A direct, valid URL to the resource. Prioritize official sources and well-known platforms (e.g., official docs, Coursera, Udemy, freeCodeCamp, Pluralsight, major tech blogs).
-          - "description": (string, 1-2 sentences) - A brief, compelling summary of what the resource covers and why it's relevant.
-          - "difficulty": (enum: "Beginner", "Intermediate", "Advanced")
-          - "price": (enum: "Free", "Paid", "Freemium") - "Freemium" means it has both free and paid components.
-          - "duration": (string) - Estimated time to complete (e.g., "10 hours", "3 weeks", "Self-paced").
-          
-          Guidelines:
-          - The resources MUST be highly relevant to the provided job title, description, and requirements.
-          - Provide a mix of resource types (e.g., a foundational course, a practical tutorial, official documentation).
-          - Ensure all generated URLs are likely to be valid and lead to the actual resource, not a search page.
-          - Do not invent resources. Use well-known, reputable sources.
-          - The entire response must be a single, valid JSON object. Do not include any text or markdown outside of the JSON structure.`
-        },
-        {
-          role: "user",
-          content: `Generate a learning path for the following job:
-          Job Title: ${jobTitle}
-          Job Description: ${jobDescription}
-          Key Requirements: ${requirements.join(', ')}`
-        }
-      ],
-      response_format: { type: "json_object" },
-    });
-
-    const content = completion.choices[0]?.message?.content;
-    if (!content) {
+    const content = response.data
+    if (!content.success) {
       throw new Error('No content received from OpenAI');
     }
 
-    const parsedJson = JSON.parse(extractJsonFromMarkdown(content));
+    const parsedJson = content.data;
     
     if (!parsedJson.resources || !Array.isArray(parsedJson.resources)) {
         throw new Error("Invalid JSON structure from OpenAI. Missing 'resources' array.");

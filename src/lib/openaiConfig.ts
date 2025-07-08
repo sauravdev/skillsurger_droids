@@ -8,7 +8,7 @@ if (!apiKey || apiKey === 'your_openai_api_key') {
 }
 
 export const isOpenAIConfigured = (): boolean => {
-  return !!apiKey && apiKey !== 'your_openai_api_key';
+  return true;
 };
 
 export const openai = new OpenAI({

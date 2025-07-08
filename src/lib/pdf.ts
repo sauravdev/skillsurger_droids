@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
 import * as pdfjsLib from 'pdfjs-dist';
 import { openai, isOpenAIConfigured } from './openaiConfig';
+import axios from 'axios';
 
 // Configure PDF.js worker - use the correct worker path for Vite
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
@@ -503,73 +504,17 @@ async function analyzeCVTextWithOpenAI(text: string): Promise<ParsedCV> {
   if (!isOpenAIConfigured()) {
     throw new Error('OpenAI is not configured.');
   }
-
-  const prompt = `Extract structured information from the provided CV text. Extract the following information from the provided CV text and return it in JSON format according to the specified schema. If any information is missing, use null or empty arrays as appropriate. Do not invent data.
-
-CV Text:
-${text}
-
-Structure your output strictly as JSON:
-{
-  "years_of_experience": number,
-  "summary": string,
-  "experience": [
-    {
-      "title": string,
-      "company": string,
-      "duration": string,
-      "description": string
-    }
-  ],
-  "projects": [
-    {
-      "name": string,
-      "description": string,
-      "technologies": [string]
-    }
-  ],
-  "skills": [string],
-  "education": [
-    {
-      "degree": string,
-      "institution": string,
-      "year": string
-    }
-  ],
-  "full_name": string,
-  "email": string,
-  "phone": string,
-  "city": string,
-  "state": string,
-  "country": string,
-  "current_role": string,
-  "languages": [string]
-}`;
-
-  // OpenAI API call with extracted text
-  const response = await openai.chat.completions.create({
-    model: 'gpt-4o',
-    messages: [
-      {
-        role: 'system',
-        content: 'You are an expert at extracting structured data from resumes and CVs.'
-      },
-      {
-        role: 'user',
-        content: prompt
-      }
-    ],
-    max_tokens: 2000,
-    response_format: { type: 'json_object' }
-  });
+  const apiBase = import.meta.env.VITE_BACKEND_API || 'http://localhost:5002/api/v1';
+  const apiUrl = `${apiBase}/openai/skillsurger`;
+  const response = await axios.post(apiUrl,{type : "analyzeCVText",text:text})
 
   // Parse the JSON response
-  const content = response.choices[0]?.message?.content;
+  const content = response.data.data;
   if (!content) throw new Error('No response from OpenAI API.');
   
   let parsed: ParsedCV;
   try {
-    parsed = JSON.parse(content);
+    parsed = content;
   } catch (e) {
     throw new Error('Failed to parse OpenAI API response as JSON.');
   }
