@@ -158,6 +158,7 @@ export default function LandingPage() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [showDemoModal, setShowDemoModal] = useState(false);
 
   const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -175,6 +176,30 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen">
+      {/* Demo Video Modal */}
+      {showDemoModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70">
+          <div className="relative bg-white rounded-lg shadow-lg max-w-2xl w-full mx-4">
+            <button
+              className="absolute top-2 right-2 text-gray-700 hover:text-red-500 text-2xl font-bold focus:outline-none"
+              onClick={() => setShowDemoModal(false)}
+              aria-label="Close"
+            >
+              ×
+            </button>
+            <div className="p-4">
+              <video
+                src="https://firebasestorage.googleapis.com/v0/b/wisedroids-c9988.appspot.com/o/videos%2Fskillsurger%20demo.mov?alt=media&token=08472c85-7e45-4ec4-a813-902458105df2"
+                controls
+                autoPlay
+                muted
+                className="w-full h-auto rounded-lg"
+                style={{ maxHeight: '70vh' }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
       {/* Hero Section */}
       <section className="relative pt-32 pb-20 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 overflow-hidden">
         <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?ixlib=rb-1.2.1&auto=format&fit=crop&w=1920&q=80')] bg-cover bg-center opacity-5"></div>
@@ -209,7 +234,12 @@ export default function LandingPage() {
                   <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </Button>
               </Link>
-              <Button variant="outline" size="lg" className="px-8 py-4 text-lg border-2">
+              <Button
+                variant="outline"
+                size="lg"
+                className="px-8 py-4 text-lg border-2"
+                onClick={() => setShowDemoModal(true)}
+              >
                 Watch Demo
               </Button>
             </div>

@@ -107,16 +107,13 @@ export async function uploadCV(file: File, userId: string): Promise<string> {
     }
 
     // Get the public URL for the uploaded file
-    const { data: { publicUrl } } = supabase.storage
+    const { data: { signedUrl } } = await supabase.storage
       .from('cvs')
-      .getPublicUrl(filePath);
+      .createSignedUrl(filePath, 60 * 60); // 1 hour expiry
+    if (error) throw error;
 
-    if (!publicUrl) {
-      throw new Error('Failed to get CV URL. Please try again.');
-    }
-
-    console.log('CV uploaded successfully:', publicUrl);
-    return publicUrl;
+    console.log('CV uploaded successfully:', signedUrl);
+    return signedUrl;
   } catch (error) {
     console.error('Error uploading CV:', error);
     throw error;
