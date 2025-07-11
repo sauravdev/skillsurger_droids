@@ -17,6 +17,11 @@ interface CVData {
     duration: string;
     description: string;
   }>;
+  projects: Array<{
+    name: string;
+    description: string;
+    technologies: string[];
+  }>;
   education: Array<{
     degree: string;
     institution: string;
@@ -251,6 +256,91 @@ export default function CVEditor({ initialData, onSave, hideSummaryInPreview }: 
             </div>
           </div>
 
+          {/* Projects */}
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <label className="block text-sm font-medium text-gray-700">Projects</label>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setData({
+                  ...data,
+                  projects: [
+                    ...data.projects,
+                    { name: '', description: '', technologies: [] }
+                  ]
+                })}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Project
+              </Button>
+            </div>
+            <div className="space-y-4">
+              {data.projects.map((project, index) => (
+                <div key={index} className="border rounded-lg p-4">
+                  <div className="flex justify-between mb-4">
+                    <h4 className="font-medium">Project #{index + 1}</h4>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setData({
+                        ...data,
+                        projects: data.projects.filter((_, i) => i !== index)
+                      })}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Name</label>
+                      <input
+                        type="text"
+                        value={project.name}
+                        onChange={(e) => {
+                          const newProjects = [...data.projects];
+                          newProjects[index] = { ...project, name: e.target.value };
+                          setData({ ...data, projects: newProjects });
+                        }}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Description</label>
+                      <textarea
+                        value={project.description}
+                        onChange={(e) => {
+                          const newProjects = [...data.projects];
+                          newProjects[index] = { ...project, description: e.target.value };
+                          setData({ ...data, projects: newProjects });
+                        }}
+                        rows={3}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Technologies</label>
+                      <input
+                        type="text"
+                        value={project.technologies.join(', ')}
+                        onChange={(e) => {
+                          const newProjects = [...data.projects];
+                          newProjects[index] = {
+                            ...project,
+                            technologies: e.target.value.split(',').map(s => s.trim()).filter(Boolean)
+                          };
+                          setData({ ...data, projects: newProjects });
+                        }}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        placeholder="e.g., React, Node.js, MongoDB"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
           {/* Education */}
           <div>
             <div className="flex items-center justify-between mb-4">
@@ -417,6 +507,26 @@ export default function CVEditor({ initialData, onSave, hideSummaryInPreview }: 
                     <span className="text-gray-500">{exp.duration}</span>
                   </div>
                   <p className="mt-2 text-gray-700">{exp.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Projects */}
+        {data.projects.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-xl font-semibold text-gray-900 mb-3 pb-2 border-b">Projects</h2>
+            <div className="space-y-6">
+              {data.projects.map((project, index) => (
+                <div key={index}>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="text-lg font-medium text-gray-900">{project.name}</h3>
+                      <p className="text-gray-600">{project.description}</p>
+                    </div>
+                    <span className="text-gray-500">Technologies: {project.technologies.join(', ')}</span>
+                  </div>
                 </div>
               ))}
             </div>

@@ -125,7 +125,8 @@ const pricingPlans = [
     ],
     cta: "Get Started",
     popular: true,
-    color: "blue"
+    color: "blue",
+    url : "https://test.checkout.dodopayments.com/buy/pdt_JLSo4zewc0ftJnmIgXPGh?quantity=1"
   },
   {
     name: "Yearly Pro",
@@ -145,7 +146,8 @@ const pricingPlans = [
     ],
     cta: "Save 17%",
     popular: false,
-    color: "green"
+    color: "green",
+    url: "https://test.checkout.dodopayments.com/buy/pdt_yOoATGzjBE3S6dR5c45PY?quantity=1"
   }
 ];
 
@@ -440,7 +442,7 @@ export default function LandingPage() {
                   ))}
                 </ul>
 
-                <Link to="/signup" className="block">
+                <Link to={plan.url} className="block">
                   <Button 
                     className={`w-full py-3 ${
                       plan.popular 

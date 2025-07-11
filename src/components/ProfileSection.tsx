@@ -423,13 +423,184 @@ export default function ProfileSection() {
   };
 
   const handleDownloadCV = async () => {
-    if (!profile?.cv_url) return;
+    if (!profile) return;
 
     try {
-      const filename = `${profile.full_name.replace(/\s+/g, '_')}_CV.pdf`;
-      await downloadCV(profile.cv_url, filename);
+      // Create CV data with all parsed information including projects
+      const cvData = {
+        fullName: profile.cv_parsed_data?.full_name || profile.full_name || '',
+        title: profile.cv_parsed_data?.current_role || profile.current_role || '',
+        email: profile.cv_parsed_data?.email || profile.email || '',
+        phone: profile.cv_parsed_data?.phone || profile.phone || '',
+        location: [profile.cv_parsed_data?.city || profile.city, profile.cv_parsed_data?.state || profile.state, profile.cv_parsed_data?.country || profile.country].filter(Boolean).join(', '),
+        summary: profile.cv_parsed_data?.summary || profile.summary || '',
+        experience: profile.cv_parsed_data?.experience || profile.experience || [],
+        projects: profile.cv_parsed_data?.projects || profile.projects || [],
+        education: profile.cv_parsed_data?.education || profile.education || [],
+        skills: profile.cv_parsed_data?.skills || profile.skills || [],
+        languages: profile.cv_parsed_data?.languages || profile.languages || []
+      };
+
+      // Create a temporary CV preview element
+      const tempDiv = document.createElement('div');
+      tempDiv.id = 'temp-cv-download';
+      tempDiv.style.position = 'absolute';
+      tempDiv.style.left = '-9999px';
+      tempDiv.style.width = '800px';
+      tempDiv.style.backgroundColor = 'white';
+      tempDiv.style.padding = '40px';
+      tempDiv.style.fontFamily = 'Arial, sans-serif';
+
+      // Generate CV HTML content
+      tempDiv.innerHTML = `
+        <div style="max-width: 800px; margin: 0 auto; background: white; padding: 40px; font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+          <!-- Header -->
+          <div style="text-align: center; margin-bottom: 40px; border-bottom: 2px solid #2563eb; padding-bottom: 20px;">
+            <h1 style="font-size: 32px; font-weight: bold; color: #1f2937; margin: 0 0 8px 0;">${cvData.fullName}</h1>
+            <p style="font-size: 18px; color: #6b7280; margin: 0 0 12px 0;">${cvData.title}</p>
+            <div style="display: flex; justify-content: center; gap: 20px; font-size: 14px; color: #6b7280; flex-wrap: wrap;">
+              ${cvData.email ? `<span>${cvData.email}</span>` : ''}
+              ${cvData.phone ? `<span>•</span><span>${cvData.phone}</span>` : ''}
+              ${cvData.location ? `<span>•</span><span>${cvData.location}</span>` : ''}
+            </div>
+          </div>
+
+          <!-- Professional Summary -->
+          ${cvData.summary ? `
+          <div style="margin-bottom: 32px;">
+            <h2 style="font-size: 20px; font-weight: 600; color: #1f2937; margin: 0 0 12px 0; padding-bottom: 8px; border-bottom: 1px solid #e5e7eb;">Professional Summary</h2>
+            <p style="color: #374151; margin: 0; text-align: justify;">${cvData.summary}</p>
+          </div>
+          ` : ''}
+
+          <!-- Professional Experience -->
+          ${cvData.experience.length > 0 ? `
+          <div style="margin-bottom: 32px;">
+            <h2 style="font-size: 20px; font-weight: 600; color: #1f2937; margin: 0 0 12px 0; padding-bottom: 8px; border-bottom: 1px solid #e5e7eb;">Professional Experience</h2>
+            <div style="margin-left: 0;">
+              ${cvData.experience.map(exp => `
+                <div style="margin-bottom: 24px;">
+                  <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
+                    <div>
+                      <h3 style="font-size: 16px; font-weight: 600; color: #1f2937; margin: 0;">${exp.title}</h3>
+                      <p style="color: #6b7280; margin: 0; font-size: 14px;">${exp.company}</p>
+                    </div>
+                    <span style="color: #6b7280; font-size: 14px; white-space: nowrap;">${exp.duration}</span>
+                  </div>
+                  <p style="color: #374151; margin: 0; text-align: justify; font-size: 14px;">${exp.description}</p>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+          ` : ''}
+
+          <!-- Projects -->
+          ${cvData.projects && cvData.projects.length > 0 ? `
+          <div style="margin-bottom: 32px;">
+            <h2 style="font-size: 20px; font-weight: 600; color: #1f2937; margin: 0 0 12px 0; padding-bottom: 8px; border-bottom: 1px solid #e5e7eb;">Projects</h2>
+            <div>
+              ${cvData.projects.map(project => `
+                <div style="margin-bottom: 24px;">
+                  <h3 style="font-size: 16px; font-weight: 600; color: #1f2937; margin: 0;">${project.name}</h3>
+                  <p style="color: #6b7280; margin: 0; font-size: 14px;">${project.description}</p>
+                  <p style="color: #6b7280; margin: 0; font-size: 14px;">Technologies: ${project.technologies.join(', ')}</p>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+          ` : ''}
+
+          <!-- Education -->
+          ${cvData.education && cvData.education.length > 0 ? `
+          <div style="margin-bottom: 32px;">
+            <h2 style="font-size: 20px; font-weight: 600; color: #1f2937; margin: 0 0 12px 0; padding-bottom: 8px; border-bottom: 1px solid #e5e7eb;">Education</h2>
+            <div>
+              ${cvData.education.map(edu => `
+                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 16px;">
+                  <div>
+                    <h3 style="font-size: 16px; font-weight: 600; color: #1f2937; margin: 0;">${edu.degree}</h3>
+                    <p style="color: #6b7280; margin: 0; font-size: 14px;">${edu.institution}</p>
+                  </div>
+                  <span style="color: #6b7280; font-size: 14px;">${edu.year}</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+          ` : ''}
+
+          <!-- Skills -->
+          ${cvData.skills.length > 0 ? `
+          <div style="margin-bottom: 32px;">
+            <h2 style="font-size: 20px; font-weight: 600; color: #1f2937; margin: 0 0 12px 0; padding-bottom: 8px; border-bottom: 1px solid #e5e7eb;">Skills</h2>
+            <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+              ${cvData.skills.map(skill => `
+                <span style="background: #f3f4f6; color: #374151; padding: 6px 12px; border-radius: 20px; font-size: 14px; border: 1px solid #e5e7eb;">${skill}</span>
+              `).join('')}
+            </div>
+          </div>
+          ` : ''}
+
+          <!-- Languages -->
+          ${cvData.languages && cvData.languages.length > 0 ? `
+          <div style="margin-bottom: 32px;">
+            <h2 style="font-size: 20px; font-weight: 600; color: #1f2937; margin: 0 0 12px 0; padding-bottom: 8px; border-bottom: 1px solid #e5e7eb;">Languages</h2>
+            <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+              ${cvData.languages.map(language => `
+                <span style="background: #dbeafe; color: #1d4ed8; padding: 6px 12px; border-radius: 20px; font-size: 14px; border: 1px solid #bfdbfe;">${language}</span>
+              `).join('')}
+            </div>
+          </div>
+          ` : ''}
+        </div>
+      `;
+
+      document.body.appendChild(tempDiv);
+
+      // Generate PDF using html2canvas and jsPDF
+      const { default: html2canvas } = await import('html2canvas');
+      const { default: jsPDF } = await import('jspdf');
+
+      const canvas = await html2canvas(tempDiv, {
+        scale: 2,
+        logging: false,
+        useCORS: true,
+        backgroundColor: '#ffffff'
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      const imgWidth = 210; // A4 width in mm
+      const pageHeight = 297; // A4 height in mm
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+
+      let position = 0;
+
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+
+      // Clean up
+      document.body.removeChild(tempDiv);
+
+      // Download the PDF
+      const filename = `${cvData.fullName.replace(/\s+/g, '_')}_CV.pdf`;
+      pdf.save(filename);
+
     } catch (error: any) {
-      setError(error.message || 'Failed to download CV');
+      console.error('Error generating CV PDF:', error);
+      setError(error.message || 'Failed to generate CV PDF');
     }
   };
 
@@ -917,6 +1088,7 @@ export default function ProfileSection() {
                         variant="outline"
                         size="sm"
                         onClick={handleDownloadCV}
+                        disabled={!profile || (!profile.cv_url && !profile.cv_parsed_data && !profile.full_name)}
                       >
                         <Download className="w-4 h-4 mr-2" />
                         Download
@@ -975,6 +1147,7 @@ export default function ProfileSection() {
                     location: [profile.cv_parsed_data?.city || profile.city, profile.cv_parsed_data?.state || profile.state, profile.cv_parsed_data?.country || profile.country].filter(Boolean).join(', '),
                     summary: profile.cv_parsed_data?.summary || profile.summary || '',
                     experience: profile.cv_parsed_data?.experience || profile.experience || [],
+                    projects: profile.cv_parsed_data?.projects || profile.projects || [],
                     education: profile.cv_parsed_data?.education || profile.education || [],
                     skills: profile.cv_parsed_data?.skills || profile.skills || [],
                     languages: profile.cv_parsed_data?.languages || profile.languages || []

@@ -16,6 +16,11 @@ interface CVSuggestionManagerProps {
       duration: string;
       description: string;
     }>;
+    projects: Array<{
+      name: string;
+      description: string;
+      technologies: string[];
+    }>;
     education?: Array<{
       degree: string;
       institution: string;
@@ -158,6 +163,22 @@ export default function CVSuggestionManager({
                     <span style="color: #6b7280; font-size: 14px; white-space: nowrap;">${exp.duration}</span>
                   </div>
                   <p style="color: #374151; margin: 0; text-align: justify; font-size: 14px;">${exp.description}</p>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+          ` : ''}
+
+          <!-- Projects -->
+          ${optimizedData.projects && optimizedData.projects.length > 0 ? `
+          <div style="margin-bottom: 32px;">
+            <h2 style="font-size: 20px; font-weight: 600; color: #1f2937; margin: 0 0 12px 0; padding-bottom: 8px; border-bottom: 1px solid #e5e7eb;">Projects</h2>
+            <div>
+              ${optimizedData.projects.map(project => `
+                <div style="margin-bottom: 24px;">
+                  <h3 style="font-size: 16px; font-weight: 600; color: #1f2937; margin: 0;">${project.name}</h3>
+                  <p style="color: #6b7280; margin: 0; font-size: 14px;">${project.description}</p>
+                  <p style="color: #6b7280; margin: 0; font-size: 14px;">Technologies: ${project.technologies.join(', ')}</p>
                 </div>
               `).join('')}
             </div>
