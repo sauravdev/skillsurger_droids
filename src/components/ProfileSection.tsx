@@ -287,9 +287,6 @@ export default function ProfileSection() {
         profileUpdate.cv_parsed_data = parsedCvData;
         
         // Update email and location from CV if not already set
-        if (parsedCvData.email && !profile?.email) {
-          profileUpdate.email = parsedCvData.email;
-        }
         if (parsedCvData.city && !profile?.city) {
           profileUpdate.city = parsedCvData.city;
           profileUpdate.state = parsedCvData.state;
@@ -376,7 +373,6 @@ export default function ProfileSection() {
           education: parsedData.education,
           cv_parsed_data: parsedData,
           // Update email and location from CV if parsed
-          ...(parsedData.email && { email: parsedData.email }),
           ...(parsedData.city && { 
             city: parsedData.city,
             state: parsedData.state,

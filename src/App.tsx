@@ -13,43 +13,50 @@ import AboutUs from './pages/AboutUs';
 import Blog from './pages/Blog';
 import ProtectedRoute from './components/ProtectedRoute';
 import OnboardingCheck from './components/OnboardingCheck';
+import { UserProvider } from './context/UserContext';
+import Pricing from './pages/Pricing';
+import Subscription from './pages/Subscription';
 
 function App() {
   return (
     <Router>
-      <div className="min-h-screen bg-gray-50">
-        <Header />
-        <main>
-          <Routes>
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/signup" element={<SignUpPage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/auth/callback" element={<GoogleAuthCallback />} />
-            <Route path="/privacy" element={<PrivacyPolicy />} />
-            <Route path="/terms" element={<TermsAndConditions />} />
-            <Route path="/contact" element={<ContactUs />} />
-            <Route path="/about" element={<AboutUs />} />
-            <Route path="/blog" element={<Blog />} />
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <DashboardPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/job-search"
-              element={
-                <ProtectedRoute>
-                  <JobSearchPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route path="/auth/callback/google" element={<GoogleAuthCallback />} />
-          </Routes>
-        </main>
-      </div>
+      <UserProvider>
+        <div className="min-h-screen bg-gray-50">
+          <Header />
+          <main>
+            <Routes>
+              <Route path="/" element={<LandingPage />} />
+              <Route path="/signup" element={<SignUpPage />} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/pricing" element={<Pricing />} />
+              <Route path="/subscription" element={<Subscription />} />
+              <Route path="/auth/callback" element={<GoogleAuthCallback />} />
+              <Route path="/privacy" element={<PrivacyPolicy />} />
+              <Route path="/terms" element={<TermsAndConditions />} />
+              <Route path="/contact" element={<ContactUs />} />
+              <Route path="/about" element={<AboutUs />} />
+              <Route path="/blog" element={<Blog />} />
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <DashboardPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/job-search"
+                element={
+                  <ProtectedRoute>
+                    <JobSearchPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route path="/auth/callback/google" element={<GoogleAuthCallback />} />
+            </Routes>
+          </main>
+        </div>
+      </UserProvider>
     </Router>
   );
 }
