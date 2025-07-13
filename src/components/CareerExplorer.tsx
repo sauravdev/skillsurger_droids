@@ -17,6 +17,7 @@ import {
   generateCVSuggestions
 } from '../lib/careerServices';
 import { cleanTruncatedDescription } from '../lib/utils';
+import { useUser } from '../context/UserContext';
 
 interface AcceptedSuggestions {
   summary?: string;
@@ -40,6 +41,7 @@ interface CareerExplorerProps {
 
 export default function CareerExplorer({ onGenerateLearningPath }: CareerExplorerProps) {
   const navigate = useNavigate();
+  const { checkSubscriptionForAI } = useUser();
   const [careerOptions, setCareerOptions] = useState<CareerOption[]>([]);
   const [selectedCareer, setSelectedCareer] = useState<string>('');
   const [jobs, setJobs] = useState<JobOpportunity[]>([]);
@@ -544,6 +546,12 @@ export default function CareerExplorer({ onGenerateLearningPath }: CareerExplore
       setLoading(true);
       setError('');
       
+      // Check subscription for AI features
+      if (!checkSubscriptionForAI()) {
+        setLoading(false);
+        return;
+      }
+      
       // Clear old career options to show only latest
       setCareerOptions([]);
       
@@ -629,6 +637,12 @@ export default function CareerExplorer({ onGenerateLearningPath }: CareerExplore
     try {
       setLoading(true);
       setError('');
+      
+      // Check subscription for AI features
+      if (!checkSubscriptionForAI()) {
+        setLoading(false);
+        return;
+      }
       
       // Clear old career options to show only latest
       setCareerOptions([]);
@@ -796,6 +810,12 @@ export default function CareerExplorer({ onGenerateLearningPath }: CareerExplore
     try {
       setLoading(true);
       setError('');
+      
+      // Check subscription for AI features
+      if (!checkSubscriptionForAI()) {
+        setLoading(false);
+        return;
+      }
       
       if (!profile) {
         setError('Please complete your profile first');

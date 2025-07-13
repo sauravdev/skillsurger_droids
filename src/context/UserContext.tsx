@@ -19,12 +19,14 @@ interface UserContextType {
   user: any;
   subscription: SubscriptionData | null;
   loading: boolean;
+  checkSubscriptionForAI: () => boolean;
 }
 
 const UserContext = createContext<UserContextType>({
   user: null,
   subscription: null,
   loading: true,
+  checkSubscriptionForAI: () => false,
 });
 
 export const useUser = () => useContext(UserContext);
@@ -34,6 +36,22 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [subscription, setSubscription] = useState<SubscriptionData | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+
+  const checkSubscriptionForAI = (): boolean => {
+    // Check if user has a valid subscription for AI features
+    if (!subscription) {
+      navigate('/pricing');
+      return false;
+    }
+
+    const tier = subscription.subscription_tier?.toLowerCase();
+    if (!tier || tier === 'free') {
+      navigate('/pricing');
+      return false;
+    }
+
+    return true;
+  };
 
   useEffect(() => {
     const getUserAndSubscription = async () => {
@@ -51,21 +69,11 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const subRes = await fetchUserSubscription(session.user.id);
         if (subRes.success && subRes.data) {
           setSubscription(subRes.data);
-
-          // Redirect to pricing if plan is 'Free'
-          if (
-            !subRes.data.subscription_tier ||
-            subRes.data.subscription_tier.toLowerCase() === 'free'
-          ) {
-            navigate('/pricing');
-          }
         } else {
           setSubscription(null);
-          navigate('/pricing');
         }
       } catch (e) {
         setSubscription(null);
-        navigate('/pricing');
       }
       setLoading(false);
     };
@@ -86,7 +94,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [navigate]);
 
   return (
-    <UserContext.Provider value={{ user, subscription, loading }}>
+    <UserContext.Provider value={{ user, subscription, loading, checkSubscriptionForAI }}>
       {children}
     </UserContext.Provider>
   );

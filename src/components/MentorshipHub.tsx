@@ -18,6 +18,7 @@ import {
 import { analyzeFeedbackAndGenerateRecommendations } from '../lib/feedbackLoop';
 import { supabase } from '../lib/supabase';
 import AIMentorChat from './AIMentorChat';
+import { useUser } from '../context/UserContext';
 
 interface SavedJob {
   id: string;
@@ -33,6 +34,7 @@ interface InterviewMessage {
 
 export default function MentorshipHub() {
   const navigate = useNavigate();
+  const { checkSubscriptionForAI } = useUser();
   const [activeTab, setActiveTab] = useState<'mock-interviews' | 'ai-mentor' | 'human-mentors'>('mock-interviews');
   const [mockInterviews, setMockInterviews] = useState<MockInterview[]>([]);
   const [mentors, setMentors] = useState<MentorProfile[]>([]);
@@ -358,6 +360,11 @@ export default function MentorshipHub() {
       return;
     }
 
+    // Check subscription for AI features
+    if (!checkSubscriptionForAI()) {
+      return;
+    }
+
     try {
       const selectedJobData = savedJobs.find(job => job.id === selectedJob);
       if (!selectedJobData) {
@@ -476,6 +483,11 @@ export default function MentorshipHub() {
     e.preventDefault();
     setError('');
     
+    // Check subscription for AI features
+    if (!checkSubscriptionForAI()) {
+      return;
+    }
+    
     try {
       const session = await startAIMentorshipSession(mentorshipTopic);
       if (session) {
@@ -491,6 +503,11 @@ export default function MentorshipHub() {
   async function handleSendMessage(e: React.FormEvent) {
     e.preventDefault();
     if (!activeSessionId || !aiMessage.trim()) return;
+
+    // Check subscription for AI features
+    if (!checkSubscriptionForAI()) {
+      return;
+    }
 
     try {
       const response = await sendMessageToAIMentor(activeSessionId, aiMessage);

@@ -4,6 +4,7 @@ import Button from './Button';
 import { supabase } from '../lib/supabase';
 import CVEditor from './CVEditor';
 import { uploadCV, parseCV, downloadCV } from '../lib/pdf';
+import { useUser } from '../context/UserContext';
 
 interface ProfileData {
   id: string;
@@ -49,6 +50,7 @@ interface UserSkill {
 const workPreferences = ['hybrid', 'remote', 'office'];
 
 export default function ProfileSection() {
+  const { checkSubscriptionForAI } = useUser();
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [userSkills, setUserSkills] = useState<UserSkill[]>([]);
   const [loading, setLoading] = useState(true);
@@ -352,6 +354,12 @@ export default function ProfileSection() {
       setUploading(true);
       setError('');
 
+      // Check subscription for AI features
+      if (!checkSubscriptionForAI()) {
+        setUploading(false);
+        return;
+      }
+
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No user found');
 
@@ -605,6 +613,12 @@ export default function ProfileSection() {
     try {
       setReanalyzing(true);
       setError('');
+      
+      // Check subscription for AI features
+      if (!checkSubscriptionForAI()) {
+        setReanalyzing(false);
+        return;
+      }
       // Download the PDF file from the URL
       const response = await fetch(profile.cv_url);
       const blob = await response.blob();
@@ -670,6 +684,12 @@ export default function ProfileSection() {
     try {
       setReanalyzingAndSaving(true);
       setError('');
+      
+      // Check subscription for AI features
+      if (!checkSubscriptionForAI()) {
+        setReanalyzingAndSaving(false);
+        return;
+      }
       // Download the PDF file from the URL
       const response = await fetch(profile.cv_url);
       const blob = await response.blob();
