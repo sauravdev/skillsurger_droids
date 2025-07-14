@@ -54,12 +54,16 @@ const Subscription: React.FC = () => {
       <p className="text-gray-500 text-center mb-6">View your current plan and subscription status below.</p>
       <div className="mb-4 flex justify-between">
         <span className="font-medium text-gray-700">Plan:</span>
-        <span className="text-blue-600 font-semibold">{subscription.subscription_tier}</span>
+        <span className="text-blue-600 font-semibold">{
+          subscription.subscription_tier
+            ? subscription.subscription_tier.charAt(0).toUpperCase() + subscription.subscription_tier.slice(1).toLowerCase()
+            : ''
+        }</span>
       </div>
       <div className="mb-4 flex justify-between">
         <span className="font-medium text-gray-700">Status:</span>
-        <span className={subscription.is_active ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'}>
-          {subscription.subscription_status.toLocaleUpperCase()}
+        <span className={subscription.subscription_status === "active" ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'}>
+          {subscription.subscription_status.charAt(0).toUpperCase() + subscription.subscription_status.slice(1).toLowerCase()}
         </span>
       </div>
       <div className="mb-4 flex justify-between">
@@ -70,9 +74,14 @@ const Subscription: React.FC = () => {
         <span className="font-medium text-gray-700">Expires On:</span>
         <span>{expiry ? expiry.toLocaleDateString() : 'N/A'}</span>
       </div> */}
-      {!subscription.is_active && (
+      {subscription.subscription_status !== "active" && (
         <div className="mt-6 text-center">
           <span className="text-red-600 font-semibold">Your subscription is not active.</span>
+        </div>
+      )}
+      {subscription.subscription_tier === "trial" && (
+        <div className="mt-6 text-center">
+          <span className="text-yellow-600 font-semibold">Your 7-day Trial is live</span>
         </div>
       )}
     </div>

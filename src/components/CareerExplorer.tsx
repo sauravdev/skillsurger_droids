@@ -37,14 +37,16 @@ interface ExperienceItem {
 
 interface CareerExplorerProps {
   onGenerateLearningPath: (job: JobOpportunity) => void;
+  jobs: JobOpportunity[];
+  setJobs: (jobs: JobOpportunity[]) => void;
+  selectedCareer: string;
+  setSelectedCareer: (career: string) => void;
 }
 
-export default function CareerExplorer({ onGenerateLearningPath }: CareerExplorerProps) {
+export default function CareerExplorer({ onGenerateLearningPath, jobs, setJobs, selectedCareer, setSelectedCareer }: CareerExplorerProps) {
   const navigate = useNavigate();
   const { checkSubscriptionForAI } = useUser();
   const [careerOptions, setCareerOptions] = useState<CareerOption[]>([]);
-  const [selectedCareer, setSelectedCareer] = useState<string>('');
-  const [jobs, setJobs] = useState<JobOpportunity[]>([]);
   const [savedJobIds, setSavedJobIds] = useState<Set<string>>(new Set());
   const [cvSuggestions, setCvSuggestions] = useState<CVSuggestion | null>(null);
   const [selectedJob, setSelectedJob] = useState<JobOpportunity | null>(null);
@@ -353,7 +355,8 @@ export default function CareerExplorer({ onGenerateLearningPath }: CareerExplore
       if (error) throw error;
 
       // Update local state
-      setJobs(prev => prev.filter((_, index) => index !== jobIndex));
+      const newJobs = jobs.filter((_, index) => index !== jobIndex);
+      setJobs(newJobs);
       setSavedJobIds(prev => {
         const newSet = new Set(prev);
         newSet.delete(`${job.title}-${job.company}`);
@@ -1062,7 +1065,10 @@ export default function CareerExplorer({ onGenerateLearningPath }: CareerExplore
           currentData={{
             summary: profile?.summary || '',
             skills: [...userSkills, ...(profile?.skills || [])],
-            experience: profile?.experience || []
+            experience: profile?.experience || [],
+            projects: profile?.projects || [],
+            education: profile?.education || [],
+            languages: profile?.languages || []
           }}
           onAcceptSuggestion={handleAcceptSuggestion}
           onRejectSuggestion={handleRejectSuggestion}

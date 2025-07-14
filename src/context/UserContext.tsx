@@ -8,7 +8,7 @@ interface SubscriptionData {
   user_id: string;
   subscription_id: string;
   subscription_status: string;
-  subscription_tier: 'Free' | 'Trial' | 'Monthly Pro' | 'Yearly Pro';
+  subscription_tier: 'free' | 'trial' | 'Monthly Pro' | 'Yearly Pro';
   created_at: string;
   updated_at: string;
   expires_on: string;

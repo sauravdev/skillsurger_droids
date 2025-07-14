@@ -33,6 +33,10 @@ export default function DashboardPage() {
   const [error, setError] = useState('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(true);
 
+  // Persist job suggestions and selected career for CareerExplorer
+  const [careerExplorerJobs, setCareerExplorerJobs] = useState<any[]>([]);
+  const [careerExplorerSelectedCareer, setCareerExplorerSelectedCareer] = useState<string>('');
+
   const { user, subscription, loading: contextLoading } = useUser();
 
   useEffect(() => {
@@ -229,10 +233,16 @@ export default function DashboardPage() {
               {activeSection === 'career' && (
                 <>
                   <h1 className="text-2xl font-bold">Career Explorer</h1>
-                  <CareerExplorer onGenerateLearningPath={(job) => {
-                    setSelectedJobForLearning(job);
-                    setActiveSection('learning');
-                  }} />
+                  <CareerExplorer
+                    onGenerateLearningPath={(job) => {
+                      setSelectedJobForLearning(job);
+                      setActiveSection('learning');
+                    }}
+                    jobs={careerExplorerJobs}
+                    setJobs={setCareerExplorerJobs}
+                    selectedCareer={careerExplorerSelectedCareer}
+                    setSelectedCareer={setCareerExplorerSelectedCareer}
+                  />
                 </>
               )}
 
