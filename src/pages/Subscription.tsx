@@ -59,17 +59,17 @@ const Subscription: React.FC = () => {
       <div className="mb-4 flex justify-between">
         <span className="font-medium text-gray-700">Status:</span>
         <span className={subscription.is_active ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'}>
-          {subscription.subscription_status}
+          {subscription.subscription_status.toLocaleUpperCase()}
         </span>
       </div>
       <div className="mb-4 flex justify-between">
         <span className="font-medium text-gray-700">Started On:</span>
         <span>{new Date(subscription.created_at).toLocaleDateString()}</span>
       </div>
-      <div className="mb-4 flex justify-between">
+      {/* <div className="mb-4 flex justify-between">
         <span className="font-medium text-gray-700">Expires On:</span>
         <span>{expiry ? expiry.toLocaleDateString() : 'N/A'}</span>
-      </div>
+      </div> */}
       {!subscription.is_active && (
         <div className="mt-6 text-center">
           <span className="text-red-600 font-semibold">Your subscription is not active.</span>
