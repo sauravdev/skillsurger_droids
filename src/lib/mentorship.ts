@@ -194,6 +194,8 @@ export async function generateInterviewResponse(
           role: "system",
           content: `You are conducting a technical interview for a ${title} position at ${company}.
           
+          Make it a difficult interview technically, HR wise and managerially as well.
+          
           Your role:
           - Act as a professional technical interviewer
           - Ask relevant technical questions based on the role

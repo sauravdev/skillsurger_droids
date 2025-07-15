@@ -60,7 +60,8 @@ export default function CareerExplorer({ onGenerateLearningPath, jobs, setJobs, 
   const [profile, setProfile] = useState<any>(null);
   const [showCVEditor, setShowCVEditor] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [acceptedSuggestions, setAcceptedSuggestions] = useState<AcceptedSuggestions>({});
+  // Remove acceptedSuggestions, rejectedSuggestions, and all Accept/Reject logic
+  // Add a single button to apply all suggestions
 
   // New state for custom form
   const [showCustomForm, setShowCustomForm] = useState(false);
@@ -866,7 +867,8 @@ export default function CareerExplorer({ onGenerateLearningPath, jobs, setJobs, 
       setCvSuggestions(suggestions);
       setSelectedJob(job);
       setShowSuggestions(true);
-      setAcceptedSuggestions({});
+      // Remove acceptedSuggestions, rejectedSuggestions, and all Accept/Reject logic
+      // Add a single button to apply all suggestions
     } catch (error) {
       console.error('Error generating CV suggestions:', error);
       setError('Failed to generate CV suggestions');
@@ -875,106 +877,8 @@ export default function CareerExplorer({ onGenerateLearningPath, jobs, setJobs, 
     }
   };
 
-  const handleAcceptSuggestion = (type: string, data: any) => {
-    setAcceptedSuggestions((prev: AcceptedSuggestions) => ({
-      ...prev,
-      [type]: data
-    }));
-  };
-
-  const handleRejectSuggestion = (type: string) => {
-    setAcceptedSuggestions((prev: AcceptedSuggestions) => {
-      const newSuggestions = { ...prev };
-      delete newSuggestions[type];
-      return newSuggestions;
-    });
-  };
-
-  const handleApplyAllSuggestions = async () => {
-    try {
-      setLoading(true);
-      setError('');
-
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      // Prepare updates based on accepted suggestions
-      const updates: any = {};
-
-      if (acceptedSuggestions.summary) {
-        updates.summary = acceptedSuggestions.summary;
-      }
-
-      if (acceptedSuggestions.skills) {
-        // Merge current skills with highlighted skills
-        const currentSkills = profile?.skills || [];
-        const newSkills = [...new Set([...currentSkills, ...acceptedSuggestions.skills])];
-        updates.skills = newSkills;
-
-        // Also update user_skills table
-        await supabase.from('user_skills').delete().eq('user_id', user.id);
-        if (newSkills.length > 0) {
-          await supabase
-            .from('user_skills')
-            .insert(newSkills.map(skill => ({ user_id: user.id, skill })));
-        }
-      }
-
-      if (acceptedSuggestions.experienceImprovements) {
-        // This is more complex. We need to find and replace the improved descriptions.
-        // This assumes a simple 1-to-1 mapping based on the original description.
-        const improvedExp = acceptedSuggestions.experienceImprovements;
-        updates.experience = profile?.experience.map((exp: ExperienceItem) => {
-          const improvement = improvedExp.find(imp => imp.original === exp.description);
-          if (improvement) {
-            return { ...exp, description: improvement.improved };
-          }
-          return exp;
-        });
-      }
-
-      // Apply updates to profile
-      if (Object.keys(updates).length > 0) {
-        const { error: updateError } = await supabase
-          .from('profiles')
-          .update(updates)
-          .eq('id', user.id);
-
-        if (updateError) throw updateError;
-      }
-
-      // Reload user data to reflect changes in all components
-      await loadUserData();
-      
-      // Reset suggestions state
-      setShowSuggestions(false);
-      setCvSuggestions(null);
-      setAcceptedSuggestions({});
-      setSelectedJob(null);
-      
-      // Show success message
-      setError('');
-      
-      // Create a success notification
-      const successDiv = document.createElement('div');
-      successDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
-      successDiv.textContent = 'CV optimizations have been successfully applied to your profile!';
-      document.body.appendChild(successDiv);
-      
-      // Remove notification after 3 seconds
-      setTimeout(() => {
-        if (document.body.contains(successDiv)) {
-          document.body.removeChild(successDiv);
-        }
-      }, 3000);
-      
-    } catch (error) {
-      console.error('Error applying suggestions:', error);
-      setError('Failed to apply CV optimizations');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Remove acceptedSuggestions, rejectedSuggestions, and all Accept/Reject logic
+  // Add a single button to apply all suggestions
 
   const handleUpdateCV = async (updatedData: any) => {
     try {
@@ -1070,10 +974,108 @@ export default function CareerExplorer({ onGenerateLearningPath, jobs, setJobs, 
             education: profile?.education || [],
             languages: profile?.languages || []
           }}
-          onAcceptSuggestion={handleAcceptSuggestion}
-          onRejectSuggestion={handleRejectSuggestion}
-          onApplyAllSuggestions={handleApplyAllSuggestions}
         />
+
+        <div className="mt-6 flex justify-end">
+          <Button
+            onClick={async () => {
+              setLoading(true);
+              setError('');
+              try {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) return;
+                const ai = cvSuggestions;
+                const updates: any = {};
+                // Summary
+                if (ai.summary) updates.summary = ai.summary;
+                // Skills
+                if (ai.highlightedSkills) {
+                  const currentSkills = profile?.skills || [];
+                  const newSkills = [...new Set([...currentSkills, ...ai.highlightedSkills])];
+                  updates.skills = newSkills;
+                  // Update user_skills table
+                  await supabase.from('user_skills').delete().eq('user_id', user.id);
+                  if (newSkills.length > 0) {
+                    await supabase
+                      .from('user_skills')
+                      .insert(newSkills.map(skill => ({ user_id: user.id, skill })));
+                  }
+                }
+                // Experience
+                if (ai.experienceImprovements && Array.isArray(ai.experienceImprovements)) {
+                  const improvedExp = ai.experienceImprovements;
+                  const normalize = (str: string) => str?.toLowerCase().replace(/\s+/g, ' ').trim();
+                  const newExperience = (profile?.experience || []).map((exp: ExperienceItem) => {
+                    // Try exact match
+                    let improvement = improvedExp.find((imp: any) =>
+                      imp.original && normalize(imp.original) === normalize(exp.description)
+                    );
+                    // Try substring match
+                    if (!improvement) {
+                      improvement = improvedExp.find((imp: any) =>
+                        imp.original && (
+                          normalize(exp.description).includes(normalize(imp.original)) ||
+                          normalize(imp.original).includes(normalize(exp.description))
+                        )
+                      );
+                    }
+                    if (improvement) {
+                      return { ...exp, description: improvement.improved };
+                    }
+                    return exp;
+                  });
+                  updates.experience = newExperience;
+                  // Also update cv_parsed_data if present
+                  if (profile?.cv_parsed_data) {
+                    updates.cv_parsed_data = {
+                      ...profile.cv_parsed_data,
+                      experience: newExperience,
+                      // Also update summary in cv_parsed_data
+                      summary: ai.summary || profile.cv_parsed_data.summary
+                    };
+                  }
+                } else if (ai.summary && profile?.cv_parsed_data) {
+                  // If only summary is updated, also update cv_parsed_data.summary
+                  updates.cv_parsed_data = {
+                    ...profile.cv_parsed_data,
+                    summary: ai.summary
+                  };
+                }
+                // Do NOT update additionalSections/sections
+                if (Object.keys(updates).length > 0) {
+                  const { error: updateError } = await supabase
+                    .from('profiles')
+                    .update(updates)
+                    .eq('id', user.id);
+                  if (updateError) throw updateError;
+                }
+                await loadUserData();
+                setShowSuggestions(false);
+                setCvSuggestions(null);
+                setSelectedJob(null);
+                // Show success message
+                const successDiv = document.createElement('div');
+                successDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+                successDiv.textContent = 'CV optimizations have been successfully applied to your profile!';
+                document.body.appendChild(successDiv);
+                setTimeout(() => {
+                  if (document.body.contains(successDiv)) {
+                    document.body.removeChild(successDiv);
+                  }
+                }, 3000);
+              } catch (error) {
+                console.error('Error applying suggestions:', error);
+                setError('Failed to apply CV optimizations');
+              } finally {
+                setLoading(false);
+              }
+            }}
+            disabled={loading}
+            className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-semibold"
+          >
+            {loading ? 'Applying...' : 'Apply All AI Suggestions'}
+          </Button>
+        </div>
       </div>
     );
   }
@@ -1516,8 +1518,17 @@ export default function CareerExplorer({ onGenerateLearningPath, jobs, setJobs, 
                       size="sm"
                       disabled={loading}
                     >
-                      <Brain className="w-4 h-4 mr-2" />
-                      Optimize CV
+                      {loading ? (
+                        <>
+                          <div className="w-4 h-4 mr-2 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                          Optimizing...
+                        </>
+                      ) : (
+                        <>
+                          <Brain className="w-4 h-4 mr-2" />
+                          Optimize CV
+                        </>
+                      )}
                     </Button>
 
                     {/* Generate Learning Path Button */}

@@ -51,6 +51,7 @@ export default function MentorshipHub() {
   const [interviewMessages, setInterviewMessages] = useState<InterviewMessage[]>([]);
   const [currentMessage, setCurrentMessage] = useState('');
   const [isInterviewing, setIsInterviewing] = useState(false);
+  const [isInterviewResponseLoading, setIsInterviewResponseLoading] = useState(false);
 
   const [mentorshipTopic, setMentorshipTopic] = useState('');
   const [aiMessage, setAiMessage] = useState('');
@@ -403,29 +404,32 @@ export default function MentorshipHub() {
     if (!currentMessage.trim() || !activeInterview) return;
 
     try {
-      const updatedMessages = [
+      const updatedMessages: InterviewMessage[] = [
         ...interviewMessages,
-        { role: 'user', content: currentMessage }
+        { role: 'user' as 'user', content: currentMessage }
       ];
       setInterviewMessages(updatedMessages);
       setCurrentMessage('');
+      setIsInterviewResponseLoading(true);
 
       const response = await generateInterviewResponse(
         activeInterview.job_role,
         currentMessage,
         updatedMessages.map(msg => ({
-          role: msg.role === 'user' ? 'user' : 'assistant',
+          role: msg.role, // already 'user' or 'interviewer'
           content: msg.content
         }))
       );
 
       setInterviewMessages([
         ...updatedMessages,
-        { role: 'interviewer', content: response }
+        { role: 'interviewer' as 'interviewer', content: response }
       ]);
+      setIsInterviewResponseLoading(false);
     } catch (error) {
       console.error('Interview response error:', error);
       setError('Failed to process interview response. Please try again.');
+      setIsInterviewResponseLoading(false);
     }
   };
 
@@ -610,6 +614,12 @@ export default function MentorshipHub() {
                       </div>
                     </div>
                   ))}
+                  {isInterviewResponseLoading && (
+                    <div className="flex items-center mt-2">
+                      <div className="w-4 h-4 mr-2 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                      <span className="text-gray-500">Interviewer is typing...</span>
+                    </div>
+                  )}
                 </div>
 
                 <form onSubmit={handleSendInterviewMessage} className="border-t p-4">

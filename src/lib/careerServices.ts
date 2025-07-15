@@ -998,19 +998,15 @@ export async function generateCVSuggestions(
   }
 
   try {
-    const response = await axios.post(``,{type : "generateCVSuggestions",targetJob:targetJob,cvData:cvData})
+    const apiBase = import.meta.env.VITE_BACKEND_API || 'http://localhost:5002/api/v1';
+    const response = await axios.post(`${apiBase}/openai/skillsurger`,{type : "generateCVSuggestions",targetJob:targetJob,cvData:cvData})
     if (!response.data.success) {
       return fallbackSuggestion;
     }
 
     try {
-      const content = response.data.data;
-      
-      // Extract JSON from markdown if needed
-      const cleanedContent = extractJsonFromMarkdown(content);
-      
-      const parsed = JSON.parse(cleanedContent);
-      
+      const parsed = response.data.data;
+            
       return {
         summary: parsed.summary || fallbackSuggestion.summary,
         highlightedSkills: Array.isArray(parsed.highlightedSkills) ? parsed.highlightedSkills : fallbackSuggestion.highlightedSkills,

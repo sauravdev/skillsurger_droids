@@ -32,80 +32,43 @@ interface CVSuggestionManagerProps {
     location?: string;
     languages?: string[];
   };
-  onAcceptSuggestion: (type: string, data: any) => void;
-  onRejectSuggestion: (type: string) => void;
-  onApplyAllSuggestions: () => void;
 }
 
 export default function CVSuggestionManager({
   suggestions,
-  currentData,
-  onAcceptSuggestion,
-  onRejectSuggestion,
-  onApplyAllSuggestions
+  currentData
 }: CVSuggestionManagerProps) {
-  const [acceptedSuggestions, setAcceptedSuggestions] = useState<Set<string>>(new Set());
-  const [rejectedSuggestions, setRejectedSuggestions] = useState<Set<string>>(new Set());
-  const [isApplying, setIsApplying] = useState(false);
+  // Remove all Accept/Reject state and logic
   const [isDownloading, setIsDownloading] = useState(false);
-
-  const handleAccept = (type: string, data: any) => {
-    setAcceptedSuggestions(prev => new Set([...prev, type]));
-    setRejectedSuggestions(prev => {
-      const newSet = new Set(prev);
-      newSet.delete(type);
-      return newSet;
-    });
-    onAcceptSuggestion(type, data);
-  };
-
-  const handleReject = (type: string) => {
-    setRejectedSuggestions(prev => new Set([...prev, type]));
-    setAcceptedSuggestions(prev => {
-      const newSet = new Set(prev);
-      newSet.delete(type);
-      return newSet;
-    });
-    onRejectSuggestion(type);
-  };
-
-  const handleApplyAll = async () => {
-    setIsApplying(true);
-    try {
-      await onApplyAllSuggestions();
-    } finally {
-      setIsApplying(false);
-    }
-  };
 
   const generateOptimizedCVData = () => {
     let optimizedData = { ...currentData };
-
-    // Apply accepted suggestions
-    if (acceptedSuggestions.has('summary')) {
-      optimizedData.summary = suggestions.summary;
-    }
-
-    if (acceptedSuggestions.has('skills')) {
-      // Merge current skills with highlighted skills
-      const allSkills = [...new Set([...currentData.skills, ...suggestions.highlightedSkills])];
-      optimizedData.skills = allSkills;
-    }
-
-    if (acceptedSuggestions.has('experience') && suggestions.experienceImprovements.length > 0) {
-      // Apply experience improvements
-      optimizedData.experience = currentData.experience.map((exp, index) => {
-        const improvement = suggestions.experienceImprovements[index];
+    // Always apply all suggestions for preview
+    optimizedData.summary = suggestions.summary;
+    // Merge current skills with highlighted skills
+    const allSkills = [...new Set([...currentData.skills, ...suggestions.highlightedSkills])];
+    optimizedData.skills = allSkills;
+    // Apply experience improvements
+    if (suggestions.experienceImprovements.length > 0) {
+      const normalize = (str: string) => str?.toLowerCase().replace(/\s+/g, ' ').trim();
+      optimizedData.experience = currentData.experience.map((exp) => {
+        let improvement = suggestions.experienceImprovements.find((imp: any) =>
+          imp.original && normalize(imp.original) === normalize(exp.description)
+        );
+        if (!improvement) {
+          improvement = suggestions.experienceImprovements.find((imp: any) =>
+            imp.original && (
+              normalize(exp.description).includes(normalize(imp.original)) ||
+              normalize(imp.original).includes(normalize(exp.description))
+            )
+          );
+        }
         if (improvement) {
-          return {
-            ...exp,
-            description: improvement.improved
-          };
+          return { ...exp, description: improvement.improved };
         }
         return exp;
       });
     }
-
     return optimizedData;
   };
 
@@ -228,12 +191,17 @@ export default function CVSuggestionManager({
           ` : ''}
 
           <!-- Additional Sections from AI Suggestions -->
-          ${acceptedSuggestions.has('sections') ? suggestions.additionalSections.map(section => `
+          ${suggestions.additionalSections.length > 0 ? `
             <div style="margin-bottom: 32px;">
-              <h2 style="font-size: 20px; font-weight: 600; color: #1f2937; margin: 0 0 12px 0; padding-bottom: 8px; border-bottom: 1px solid #e5e7eb;">${section.title}</h2>
-              <p style="color: #374151; margin: 0; text-align: justify;">${section.content}</p>
+              <h2 style="font-size: 20px; font-weight: 600; color: #1f2937; margin: 0 0 12px 0; padding-bottom: 8px; border-bottom: 1px solid #e5e7eb;">Additional Sections</h2>
+              ${suggestions.additionalSections.map(section => `
+                <div style="margin-bottom: 16px;">
+                  <h3 style="font-size: 16px; font-weight: 600; color: #1f2937; margin: 0;">${section.title}</h3>
+                  <p style="color: #374151; margin: 0; text-align: justify; font-size: 14px;">${section.content}</p>
+                </div>
+              `).join('')}
             </div>
-          `).join('') : ''}
+          ` : ''}
         </div>
       `;
 
@@ -287,22 +255,10 @@ export default function CVSuggestionManager({
   };
 
   const getStatusIcon = (type: string) => {
-    if (acceptedSuggestions.has(type)) {
-      return <Check className="w-5 h-5 text-green-600" />;
-    }
-    if (rejectedSuggestions.has(type)) {
-      return <X className="w-5 h-5 text-red-600" />;
-    }
     return <Sparkles className="w-5 h-5 text-blue-600" />;
   };
 
   const getStatusColor = (type: string) => {
-    if (acceptedSuggestions.has(type)) {
-      return 'border-green-200 bg-green-50';
-    }
-    if (rejectedSuggestions.has(type)) {
-      return 'border-red-200 bg-red-50';
-    }
     return 'border-blue-200 bg-blue-50';
   };
 
@@ -315,24 +271,13 @@ export default function CVSuggestionManager({
         </h3>
         <div className="flex items-center space-x-2">
           <Button
-            onClick={handleApplyAll}
-            disabled={acceptedSuggestions.size === 0 || isApplying}
+            onClick={handleDownloadOptimizedCV}
+            disabled={isDownloading}
             className="flex items-center"
           >
-            <RefreshCw className={`w-4 h-4 mr-2 ${isApplying ? 'animate-spin' : ''}`} />
-            {isApplying ? 'Applying Changes...' : 'Apply All Accepted Changes'}
+            <Download className={`w-4 h-4 mr-2 ${isDownloading ? 'animate-spin' : ''}`} />
+            {isDownloading ? 'Generating...' : 'Download Optimized CV'}
           </Button>
-          {acceptedSuggestions.size > 0 && (
-            <Button
-              onClick={handleDownloadOptimizedCV}
-              disabled={isDownloading}
-              variant="outline"
-              className="flex items-center bg-green-50 border-green-300 text-green-700 hover:bg-green-100"
-            >
-              <Download className={`w-4 h-4 mr-2 ${isDownloading ? 'animate-spin' : ''}`} />
-              {isDownloading ? 'Generating...' : 'Download Optimized CV'}
-            </Button>
-          )}
         </div>
       </div>
 
@@ -343,27 +288,6 @@ export default function CVSuggestionManager({
             {getStatusIcon('summary')}
             <h4 className="font-medium text-gray-900 ml-2">Optimized Professional Summary</h4>
           </div>
-          {!acceptedSuggestions.has('summary') && !rejectedSuggestions.has('summary') && (
-            <div className="flex space-x-2">
-              <Button
-                size="sm"
-                onClick={() => handleAccept('summary', suggestions.summary)}
-                className="bg-green-600 hover:bg-green-700"
-              >
-                <Check className="w-4 h-4 mr-1" />
-                Accept
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => handleReject('summary')}
-                className="border-red-300 text-red-600 hover:bg-red-50"
-              >
-                <X className="w-4 h-4 mr-1" />
-                Reject
-              </Button>
-            </div>
-          )}
         </div>
 
         <div className="space-y-4">
@@ -381,11 +305,7 @@ export default function CVSuggestionManager({
           </div>
         </div>
 
-        {acceptedSuggestions.has('summary') && (
-          <div className="mt-4 p-3 bg-green-100 rounded-lg">
-            <p className="text-green-800 text-sm font-medium">✓ Summary optimization accepted and will be applied</p>
-          </div>
-        )}
+        {/* No acceptance/rejection for summary */}
       </div>
 
       {/* Skills Optimization */}
@@ -395,27 +315,6 @@ export default function CVSuggestionManager({
             {getStatusIcon('skills')}
             <h4 className="font-medium text-gray-900 ml-2">Key Skills to Highlight</h4>
           </div>
-          {!acceptedSuggestions.has('skills') && !rejectedSuggestions.has('skills') && (
-            <div className="flex space-x-2">
-              <Button
-                size="sm"
-                onClick={() => handleAccept('skills', suggestions.highlightedSkills)}
-                className="bg-green-600 hover:bg-green-700"
-              >
-                <Check className="w-4 h-4 mr-1" />
-                Accept
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => handleReject('skills')}
-                className="border-red-300 text-red-600 hover:bg-red-50"
-              >
-                <X className="w-4 h-4 mr-1" />
-                Reject
-              </Button>
-            </div>
-          )}
         </div>
 
         <div className="space-y-4">
@@ -441,11 +340,7 @@ export default function CVSuggestionManager({
           </div>
         </div>
 
-        {acceptedSuggestions.has('skills') && (
-          <div className="mt-4 p-3 bg-green-100 rounded-lg">
-            <p className="text-green-800 text-sm font-medium">✓ Skills optimization accepted and will be applied</p>
-          </div>
-        )}
+        {/* No acceptance/rejection for skills */}
       </div>
 
       {/* Experience Improvements */}
@@ -456,27 +351,6 @@ export default function CVSuggestionManager({
               {getStatusIcon('experience')}
               <h4 className="font-medium text-gray-900 ml-2">Experience Improvements</h4>
             </div>
-            {!acceptedSuggestions.has('experience') && !rejectedSuggestions.has('experience') && (
-              <div className="flex space-x-2">
-                <Button
-                  size="sm"
-                  onClick={() => handleAccept('experience', suggestions.experienceImprovements)}
-                  className="bg-green-600 hover:bg-green-700"
-                >
-                  <Check className="w-4 h-4 mr-1" />
-                  Accept All
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleReject('experience')}
-                  className="border-red-300 text-red-600 hover:bg-red-50"
-                >
-                  <X className="w-4 h-4 mr-1" />
-                  Reject All
-                </Button>
-              </div>
-            )}
           </div>
 
           <div className="space-y-4">
@@ -498,11 +372,7 @@ export default function CVSuggestionManager({
             ))}
           </div>
 
-          {acceptedSuggestions.has('experience') && (
-            <div className="mt-4 p-3 bg-green-100 rounded-lg">
-              <p className="text-green-800 text-sm font-medium">✓ Experience improvements accepted and will be applied</p>
-            </div>
-          )}
+          {/* No acceptance/rejection for experience */}
         </div>
       )}
 
@@ -514,27 +384,6 @@ export default function CVSuggestionManager({
               {getStatusIcon('sections')}
               <h4 className="font-medium text-gray-900 ml-2">Suggested Additional Sections</h4>
             </div>
-            {!acceptedSuggestions.has('sections') && !rejectedSuggestions.has('sections') && (
-              <div className="flex space-x-2">
-                <Button
-                  size="sm"
-                  onClick={() => handleAccept('sections', suggestions.additionalSections)}
-                  className="bg-green-600 hover:bg-green-700"
-                >
-                  <Check className="w-4 h-4 mr-1" />
-                  Accept All
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleReject('sections')}
-                  className="border-red-300 text-red-600 hover:bg-red-50"
-                >
-                  <X className="w-4 h-4 mr-1" />
-                  Reject All
-                </Button>
-              </div>
-            )}
           </div>
 
           <div className="space-y-4">
@@ -546,56 +395,12 @@ export default function CVSuggestionManager({
             ))}
           </div>
 
-          {acceptedSuggestions.has('sections') && (
-            <div className="mt-4 p-3 bg-green-100 rounded-lg">
-              <p className="text-green-800 text-sm font-medium">✓ Additional sections accepted and will be applied</p>
-            </div>
-          )}
+          {/* No acceptance/rejection for sections */}
         </div>
       )}
 
       {/* Summary of Changes */}
-      {acceptedSuggestions.size > 0 && (
-        <div className="border-2 border-green-200 rounded-lg p-6 bg-green-50">
-          <h4 className="font-medium text-green-900 mb-3 flex items-center">
-            <Check className="w-5 h-5 mr-2" />
-            Ready to Apply Changes
-          </h4>
-          <div className="space-y-2">
-            {acceptedSuggestions.has('summary') && (
-              <p className="text-green-800 text-sm">• Professional summary will be updated</p>
-            )}
-            {acceptedSuggestions.has('skills') && (
-              <p className="text-green-800 text-sm">• Skills section will be optimized</p>
-            )}
-            {acceptedSuggestions.has('experience') && (
-              <p className="text-green-800 text-sm">• Experience descriptions will be enhanced</p>
-            )}
-            {acceptedSuggestions.has('sections') && (
-              <p className="text-green-800 text-sm">• Additional sections will be added</p>
-            )}
-          </div>
-          <div className="mt-4 flex space-x-2">
-            <Button
-              onClick={handleApplyAll}
-              disabled={isApplying}
-              className="flex-1 bg-green-600 hover:bg-green-700"
-            >
-              <RefreshCw className={`w-4 h-4 mr-2 ${isApplying ? 'animate-spin' : ''}`} />
-              {isApplying ? 'Applying Changes to Profile...' : 'Apply All Accepted Changes to Profile'}
-            </Button>
-            <Button
-              onClick={handleDownloadOptimizedCV}
-              disabled={isDownloading}
-              variant="outline"
-              className="bg-white border-green-300 text-green-700 hover:bg-green-50"
-            >
-              <Download className={`w-4 h-4 mr-2 ${isDownloading ? 'animate-spin' : ''}`} />
-              {isDownloading ? 'Generating...' : 'Download Optimized CV'}
-            </Button>
-          </div>
-        </div>
-      )}
+      {/* No summary of changes section as acceptance/rejection is removed */}
     </div>
   );
 }
