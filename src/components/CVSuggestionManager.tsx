@@ -44,10 +44,10 @@ export default function CVSuggestionManager({
   const generateOptimizedCVData = () => {
     let optimizedData = { ...currentData };
     // Always apply all suggestions for preview
-    optimizedData.summary = suggestions.summary;
-    // Merge current skills with highlighted skills
-    const allSkills = [...new Set([...currentData.skills, ...suggestions.highlightedSkills])];
-    optimizedData.skills = allSkills;
+      optimizedData.summary = suggestions.summary;
+      // Merge current skills with highlighted skills
+      const allSkills = [...new Set([...currentData.skills, ...suggestions.highlightedSkills])];
+      optimizedData.skills = allSkills;
     // Apply experience improvements
     if (suggestions.experienceImprovements.length > 0) {
       const normalize = (str: string) => str?.toLowerCase().replace(/\s+/g, ' ').trim();
@@ -274,10 +274,10 @@ export default function CVSuggestionManager({
             onClick={handleDownloadOptimizedCV}
             disabled={isDownloading}
             className="flex items-center"
-          >
-            <Download className={`w-4 h-4 mr-2 ${isDownloading ? 'animate-spin' : ''}`} />
-            {isDownloading ? 'Generating...' : 'Download Optimized CV'}
-          </Button>
+            >
+              <Download className={`w-4 h-4 mr-2 ${isDownloading ? 'animate-spin' : ''}`} />
+              {isDownloading ? 'Generating...' : 'Download Optimized CV'}
+            </Button>
         </div>
       </div>
 

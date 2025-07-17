@@ -1525,8 +1525,8 @@ export default function CareerExplorer({ onGenerateLearningPath, jobs, setJobs, 
                         </>
                       ) : (
                         <>
-                          <Brain className="w-4 h-4 mr-2" />
-                          Optimize CV
+                      <Brain className="w-4 h-4 mr-2" />
+                      Optimize CV
                         </>
                       )}
                     </Button>

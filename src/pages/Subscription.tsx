@@ -1,5 +1,6 @@
 import React from 'react';
 import { useUser } from '../context/UserContext';
+import { CheckCircle, XCircle, Zap, Star } from 'lucide-react';
 
 function calculateExpiry(subscription: any) {
   if (!subscription) return null;
@@ -25,65 +26,97 @@ function calculateExpiry(subscription: any) {
   return expiry;
 }
 
+const PLAN_COLORS: Record<string, string> = {
+  trial: 'bg-yellow-100 text-yellow-800',
+  pro: 'bg-blue-100 text-blue-800',
+  premium: 'bg-purple-100 text-purple-800',
+  default: 'bg-gray-100 text-gray-800',
+};
+
 const Subscription: React.FC = () => {
   const { subscription, loading } = useUser();
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        <span className="ml-2">Loading subscription...</span>
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+        <span className="ml-3 text-lg font-medium text-blue-700">Loading subscription...</span>
       </div>
     );
   }
 
   if (!subscription) {
     return (
-      <div className="bg-white p-8 rounded-lg shadow-md text-center">
-        <h2 className="text-2xl font-bold mb-4">No Subscription Found</h2>
-        <p className="text-gray-600">You do not have an active subscription. Please visit the pricing page to purchase a plan.</p>
+      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+        <XCircle className="w-14 h-14 text-red-400 mb-4" />
+        <h2 className="text-3xl font-bold mb-2">No Subscription Found</h2>
+        <p className="text-gray-600 mb-6 text-lg">You do not have an active subscription. Please visit the pricing page to purchase a plan.</p>
+        <a
+          href="/pricing"
+          className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-lg shadow transition text-lg"
+        >
+          View Plans
+        </a>
       </div>
     );
   }
 
   const expiry = calculateExpiry(subscription);
+  const tier = (subscription.subscription_tier || '').toLowerCase();
+  const planColor = PLAN_COLORS[tier.includes('trial') ? 'trial' : tier.includes('pro') ? 'pro' : tier.includes('premium') ? 'premium' : 'default'];
+  const isActive = subscription.subscription_status === 'active';
 
   return (
-    <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-lg mx-auto">
-      <h2 className="text-2xl font-bold mb-2 text-center">Your Subscription</h2>
-      <p className="text-gray-500 text-center mb-6">View your current plan and subscription status below.</p>
-      <div className="mb-4 flex justify-between">
-        <span className="font-medium text-gray-700">Plan:</span>
-        <span className="text-blue-600 font-semibold">{
-          subscription.subscription_tier
-            ? subscription.subscription_tier.charAt(0).toUpperCase() + subscription.subscription_tier.slice(1).toLowerCase()
-            : ''
-        }</span>
-      </div>
-      <div className="mb-4 flex justify-between">
-        <span className="font-medium text-gray-700">Status:</span>
-        <span className={subscription.subscription_status === "active" ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'}>
-          {subscription.subscription_status.charAt(0).toUpperCase() + subscription.subscription_status.slice(1).toLowerCase()}
-        </span>
-      </div>
-      <div className="mb-4 flex justify-between">
-        <span className="font-medium text-gray-700">Started On:</span>
-        <span>{new Date(subscription.created_at).toLocaleDateString()}</span>
-      </div>
-      {/* <div className="mb-4 flex justify-between">
-        <span className="font-medium text-gray-700">Expires On:</span>
-        <span>{expiry ? expiry.toLocaleDateString() : 'N/A'}</span>
-      </div> */}
-      {subscription.subscription_status !== "active" && (
-        <div className="mt-6 text-center">
-          <span className="text-red-600 font-semibold">Your subscription is not active.</span>
+    <div className="flex flex-col items-center min-h-[70vh] bg-gradient-to-br from-blue-50 via-white to-purple-50 py-12 px-2">
+      <div className="w-full max-w-3xl md:w-[70vw] bg-white/90 rounded-2xl shadow-xl border border-blue-100 p-10 relative flex flex-col items-center">
+        {/* Icon/Illustration */}
+        <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-gradient-to-tr from-blue-500 to-purple-500 rounded-full p-4 shadow-lg">
+          <Zap className="w-10 h-10 text-white" />
         </div>
-      )}
-      {subscription.subscription_tier === "trial" && (
-        <div className="mt-6 text-center">
-          <span className="text-yellow-600 font-semibold">Your 7-day Trial is live</span>
+        {/* Plan Badge */}
+        <span className={`px-4 py-1 rounded-full text-sm font-semibold mb-4 mt-6 ${planColor} shadow-sm uppercase tracking-wide`}>{subscription.subscription_tier}</span>
+        <h2 className="text-3xl md:text-4xl font-extrabold mb-2 text-center text-blue-900">Your Subscription</h2>
+        <p className="text-gray-500 text-center mb-8 text-lg">View your current plan and subscription status below.</p>
+        <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          <div className="flex flex-col gap-2 bg-blue-50/60 rounded-lg p-5 border border-blue-100">
+            <span className="font-medium text-gray-700 flex items-center">Plan <Star className="w-4 h-4 ml-2 text-yellow-500" /></span>
+            <span className="text-blue-700 font-bold text-lg capitalize">{subscription.subscription_tier}</span>
+          </div>
+          <div className="flex flex-col gap-2 bg-blue-50/60 rounded-lg p-5 border border-blue-100">
+            <span className="font-medium text-gray-700 flex items-center">Status {isActive ? <CheckCircle className="w-4 h-4 ml-2 text-green-500" /> : <XCircle className="w-4 h-4 ml-2 text-red-500" />}</span>
+            <span className={isActive ? 'text-green-600 font-bold text-lg' : 'text-red-600 font-bold text-lg'}>
+              {subscription.subscription_status.charAt(0).toUpperCase() + subscription.subscription_status.slice(1).toLowerCase()}
+            </span>
+          </div>
+          <div className="flex flex-col gap-2 bg-gray-50 rounded-lg p-5 border border-gray-100">
+            <span className="font-medium text-gray-700">Started On</span>
+            <span className="text-gray-800 font-semibold">{new Date(subscription.created_at).toLocaleDateString()}</span>
+          </div>
+          <div className="flex flex-col gap-2 bg-gray-50 rounded-lg p-5 border border-gray-100">
+            <span className="font-medium text-gray-700">Expires On</span>
+            <span className="text-gray-800 font-semibold">{expiry ? expiry.toLocaleDateString() : 'N/A'}</span>
+          </div>
         </div>
-      )}
+        {subscription.subscription_status !== "active" && (
+          <div className="mt-2 text-center">
+            <span className="text-red-600 font-semibold text-lg">Your subscription is not active.</span>
+          </div>
+        )}
+        {tier.includes('trial') && (
+          <div className="mt-2 text-center">
+            <span className="text-yellow-600 font-semibold text-lg">Your 7-day Trial is live</span>
+          </div>
+        )}
+        {/* Upgrade Plan Button */}
+        <div className="mt-10 flex justify-center w-full">
+          <a
+            href="/pricing"
+            className="inline-block bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold px-8 py-4 rounded-xl shadow-lg text-lg transition transform hover:-translate-y-1 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-400"
+          >
+            Upgrade Plan
+          </a>
+        </div>
+      </div>
     </div>
   );
 };
