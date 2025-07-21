@@ -133,6 +133,9 @@ const Pricing = () => {
                   {plan.cta}
                 </Button>
               </Link>
+              {plan.name === "Free Trial" && (
+                <p className="text-xs text-gray-500 mt-2 text-center">No CC required</p>
+              )}
             </div>
           ))}
         </div>

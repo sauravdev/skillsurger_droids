@@ -273,20 +273,22 @@ export default function LandingPage() {
               intelligence.
             </p>
 
-            <div className="flex items-center justify-center space-x-4 mb-12">
-              <Link to="/signup">
-                <Button
-                  size="lg"
-                  className="group bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-4 text-lg"
-                >
-                  Start Free 7-Day Trial
-                  <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                </Button>
-              </Link>
+            <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-4 mb-12">
+              <div className="flex flex-col items-center w-full sm:w-auto">
+                <Link to="/signup" className="w-full">
+                  <Button
+                    size="lg"
+                    className="group bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-4 text-lg w-full sm:w-auto"
+                  >
+                    Start Free 7-Day Trial
+                    <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                  </Button>
+                </Link>
+              </div>
               <Button
                 variant="outline"
                 size="lg"
-                className="px-8 py-4 text-lg border-2"
+                className="px-8 py-4 text-lg border-2 w-full sm:w-auto"
                 onClick={() => setShowDemoModal(true)}
               >
                 Watch Demo
@@ -540,6 +542,9 @@ export default function LandingPage() {
                     {plan.cta}
                   </Button>
                 </Link>
+                {plan.name === "Free Trial" && (
+                  <p className="text-xs text-gray-500 mt-2 text-center">No CC required</p>
+                )}
               </div>
             ))}
           </div>
