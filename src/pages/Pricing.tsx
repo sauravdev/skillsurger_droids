@@ -43,7 +43,7 @@ const pricingPlans = [
     cta: "Get Started",
     popular: true,
     color: "blue",
-    url: "https://test.checkout.dodopayments.com/buy/pdt_JLSo4zewc0ftJnmIgXPGh?quantity=1",
+    url: "https://checkout.dodopayments.com/buy/pdt_VksHXCMm4d8t5TZMiUKfY?quantity=1&redirect_url=https://skillsurger.com%2Fdashboard",
   },
   {
     name: "Yearly Pro",
@@ -64,7 +64,7 @@ const pricingPlans = [
     cta: "Save 17%",
     popular: false,
     color: "green",
-    url: "https://test.checkout.dodopayments.com/buy/pdt_yOoATGzjBE3S6dR5c45PY?quantity=1",
+    url: "https://checkout.dodopayments.com/buy/pdt_zFZMrKwafzRr12jun9Lfj?quantity=1&redirect_url=https://skillsurger.com%2Fdashboard",
   },
 ];
 
