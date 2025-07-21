@@ -134,7 +134,10 @@ const Pricing = () => {
                 </Button>
               </Link>
               {plan.name === "Free Trial" && (
-                <p className="text-xs text-gray-500 mt-2 text-center">No CC required</p>
+                <div className="flex items-center justify-center text-sm text-gray-600 mt-2 font-medium">
+                  <Shield className="w-4 h-4 mr-1.5 text-green-500" />
+                  No credit card required
+                </div>
               )}
             </div>
           ))}

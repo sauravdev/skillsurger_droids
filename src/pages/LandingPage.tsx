@@ -118,7 +118,7 @@ const testimonials = [
 ];
 
 const stats = [
-  { number: "50,000+", label: "Careers Transformed" },
+  { number: "5,000+", label: "Careers Transformed" },
   { number: "98%", label: "Success Rate" },
   { number: "24/7", label: "AI Agent Support" },
   { number: "500+", label: "Companies Hiring" },
@@ -273,7 +273,7 @@ export default function LandingPage() {
               intelligence.
             </p>
 
-            <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-4 mb-12">
+            <div className="flex flex-col sm:flex-row items-center sm:items-baseline justify-center space-y-4 sm:space-y-0 sm:space-x-4 mb-12">
               <div className="flex flex-col items-center w-full sm:w-auto">
                 <Link to="/signup" className="w-full">
                   <Button
@@ -284,6 +284,10 @@ export default function LandingPage() {
                     <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
                   </Button>
                 </Link>
+                <div className="flex items-center text-sm text-gray-600 mt-2 font-medium">
+                  <Shield className="w-4 h-4 mr-1.5 text-green-500" />
+                  No credit card required
+                </div>
               </div>
               <Button
                 variant="outline"
@@ -543,7 +547,10 @@ export default function LandingPage() {
                   </Button>
                 </Link>
                 {plan.name === "Free Trial" && (
-                  <p className="text-xs text-gray-500 mt-2 text-center">No CC required</p>
+                  <div className="flex items-center justify-center text-sm text-gray-600 mt-2 font-medium">
+                    <Shield className="w-4 h-4 mr-1.5 text-green-500" />
+                    No credit card required
+                  </div>
                 )}
               </div>
             ))}
