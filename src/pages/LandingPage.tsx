@@ -25,6 +25,7 @@ import {
   Rocket,
   Check,
   X,
+  BookOpen,
 } from "lucide-react";
 import Button from "../components/Button";
 import { Link } from "react-router-dom";
@@ -259,11 +260,7 @@ export default function LandingPage() {
             </div>
 
             <h1 className="text-6xl font-bold text-gray-900 mb-6 leading-tight">
-              Your Personal
-              <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                {" "}
-                AI Career Agent
-              </span>
+              AI Career Agent for Job Seekers & Professionals
             </h1>
 
             <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto leading-relaxed">
@@ -370,12 +367,162 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* How It Works Section */}
+      {/* AI Resume Builder Section */}
       <section className="py-20 bg-white">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              How Your AI Career Agent Works
+              AI Resume Builder: Beat ATS Filters Instantly
+            </h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              Create ATS-optimized resumes that pass through applicant tracking systems and land you interviews.
+            </p>
+          </div>
+          <div className="grid md:grid-cols-2 gap-12 items-center">
+            <div>
+              <h3 className="text-2xl font-bold mb-4">How Our AI Resume Builder Works</h3>
+              <ul className="space-y-4 text-lg">
+                <li className="flex items-start">
+                  <Check className="w-6 h-6 text-green-500 mr-3 mt-1 flex-shrink-0" />
+                  <span>Upload your existing CV or start from scratch</span>
+                </li>
+                <li className="flex items-start">
+                  <Check className="w-6 h-6 text-green-500 mr-3 mt-1 flex-shrink-0" />
+                  <span>AI analyzes job descriptions and injects relevant keywords</span>
+                </li>
+                <li className="flex items-start">
+                  <Check className="w-6 h-6 text-green-500 mr-3 mt-1 flex-shrink-0" />
+                  <span>Get instant ATS compliance scoring and optimization suggestions</span>
+                </li>
+                <li className="flex items-start">
+                  <Check className="w-6 h-6 text-green-500 mr-3 mt-1 flex-shrink-0" />
+                  <span>Download professionally formatted PDFs ready for submission</span>
+                </li>
+              </ul>
+            </div>
+            <div className="bg-gradient-to-br from-blue-50 to-purple-50 p-8 rounded-2xl">
+              <div className="text-center">
+                <FileText className="w-16 h-16 text-blue-600 mx-auto mb-4" />
+                <h4 className="text-xl font-semibold mb-2">ATS Optimization & Keyword Injection</h4>
+                <p className="text-gray-600">Our AI ensures your resume passes through 95% of ATS systems with targeted keyword optimization.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Job Matching Section */}
+      <section className="py-20 bg-gray-50">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+              Job Matching: Find Roles Tailored to You
+            </h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              AI-powered job discovery with real-time matching to opportunities that fit your skills and goals.
+            </p>
+          </div>
+          <div className="grid md:grid-cols-3 gap-8">
+            <div className="text-center p-6">
+              <Search className="w-12 h-12 text-blue-600 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold mb-2">Smart Job Discovery</h3>
+              <p className="text-gray-600">AI analyzes your profile and finds jobs that match your skills, experience, and career goals.</p>
+            </div>
+            <div className="text-center p-6">
+              <Target className="w-12 h-12 text-green-600 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold mb-2">Personalized Recommendations</h3>
+              <p className="text-gray-600">Get job suggestions ranked by fit, salary potential, and growth opportunities.</p>
+            </div>
+            <div className="text-center p-6">
+              <TrendingUp className="w-12 h-12 text-purple-600 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold mb-2">Real-time Updates</h3>
+              <p className="text-gray-600">Receive instant notifications when new matching jobs are posted.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Mock Interviews Section */}
+      <section className="py-20 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+              Mock Interviews With Instant AI Feedback
+            </h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              Practice with AI-powered mock interviews and receive detailed feedback to improve your performance.
+            </p>
+          </div>
+          <div className="grid md:grid-cols-2 gap-12 items-center">
+            <div className="bg-gradient-to-br from-green-50 to-blue-50 p-8 rounded-2xl">
+              <div className="text-center">
+                <Video className="w-16 h-16 text-green-600 mx-auto mb-4" />
+                <h4 className="text-xl font-semibold mb-2">Practice Top Interview Questions by Role</h4>
+                <p className="text-gray-600">Get role-specific questions and practice with our AI interviewer.</p>
+              </div>
+            </div>
+            <div>
+              <h3 className="text-2xl font-bold mb-4">AI Feedback on Speech, Confidence & Clarity</h3>
+              <ul className="space-y-4 text-lg">
+                <li className="flex items-start">
+                  <Check className="w-6 h-6 text-green-500 mr-3 mt-1 flex-shrink-0" />
+                  <span>Instant feedback on your communication style</span>
+                </li>
+                <li className="flex items-start">
+                  <Check className="w-6 h-6 text-green-500 mr-3 mt-1 flex-shrink-0" />
+                  <span>Confidence and body language analysis</span>
+                </li>
+                <li className="flex items-start">
+                  <Check className="w-6 h-6 text-green-500 mr-3 mt-1 flex-shrink-0" />
+                  <span>Content quality and STAR method coaching</span>
+                </li>
+                <li className="flex items-start">
+                  <Check className="w-6 h-6 text-green-500 mr-3 mt-1 flex-shrink-0" />
+                  <span>Track progress and improve with replays</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Learning Paths Section */}
+      <section className="py-20 bg-gray-50">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+              Upskill Faster With Personalized Learning Paths
+            </h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              Custom learning roadmaps with verified courses and resources tailored to your career objectives.
+            </p>
+          </div>
+          <div className="grid md:grid-cols-3 gap-8">
+            <div className="text-center p-6">
+              <GraduationCap className="w-12 h-12 text-blue-600 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold mb-2">Personalized Roadmaps</h3>
+              <p className="text-gray-600">AI creates custom learning paths based on your current skills and career goals.</p>
+            </div>
+            <div className="text-center p-6">
+              <BookOpen className="w-12 h-12 text-green-600 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold mb-2">Verified Resources</h3>
+              <p className="text-gray-600">Curated courses from top platforms like Coursera, Udemy, and industry experts.</p>
+            </div>
+            <div className="text-center p-6">
+              <BarChart3 className="w-12 h-12 text-purple-600 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold mb-2">Progress Tracking</h3>
+              <p className="text-gray-600">Monitor your learning progress and see how skills translate to job opportunities.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* How Skillsurger Works Section */}
+      <section className="py-20 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+              How Skillsurger Works
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
               Our intelligent system analyzes your profile and provides
@@ -438,7 +585,7 @@ export default function LandingPage() {
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              Success Stories from Our Community
+              Testimonials From Our Users
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
               Join thousands of professionals who have transformed their careers
@@ -478,6 +625,76 @@ export default function LandingPage() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ Section */}
+      <section className="py-20 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+              FAQs About AI Career Coaching
+            </h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              Get answers to the most common questions about our AI-powered career platform.
+            </p>
+          </div>
+
+          <div className="max-w-4xl mx-auto space-y-8">
+            <div className="bg-gray-50 rounded-lg p-8">
+              <h3 className="text-xl font-semibold text-gray-900 mb-4">
+                What is Skillsurger?
+              </h3>
+              <p className="text-gray-700 leading-relaxed">
+                Skillsurger is an AI-powered personal career coach that helps you match to the right jobs, build optimized resumes, practice mock interviews, and upskill smartly.
+              </p>
+            </div>
+
+            <div className="bg-gray-50 rounded-lg p-8">
+              <h3 className="text-xl font-semibold text-gray-900 mb-4">
+                How is it different from other job sites?
+              </h3>
+              <p className="text-gray-700 leading-relaxed">
+                Unlike job boards, Skillsurger personalizes every step using AI—from resume tailoring to mock interview feedback—saving hours and increasing success rates.
+              </p>
+            </div>
+
+            <div className="bg-gray-50 rounded-lg p-8">
+              <h3 className="text-xl font-semibold text-gray-900 mb-4">
+                Is there a free trial?
+              </h3>
+              <p className="text-gray-700 leading-relaxed">
+                Yes! You can try Skillsurger free for 7 days. No credit card required.
+              </p>
+            </div>
+
+            <div className="bg-gray-50 rounded-lg p-8">
+              <h3 className="text-xl font-semibold text-gray-900 mb-4">
+                How does the AI resume builder work?
+              </h3>
+              <p className="text-gray-700 leading-relaxed">
+                Our AI analyzes job descriptions, injects relevant keywords, and ensures your resume passes through 95% of ATS systems. You can upload existing CVs or start from scratch.
+              </p>
+            </div>
+
+            <div className="bg-gray-50 rounded-lg p-8">
+              <h3 className="text-xl font-semibold text-gray-900 mb-4">
+                What kind of interview feedback do I get?
+              </h3>
+              <p className="text-gray-700 leading-relaxed">
+                Our AI provides instant feedback on your communication style, confidence, content quality, and STAR method structure. You can practice unlimited mock interviews with role-specific questions.
+              </p>
+            </div>
+
+            <div className="bg-gray-50 rounded-lg p-8">
+              <h3 className="text-xl font-semibold text-gray-900 mb-4">
+                How accurate is the job matching?
+              </h3>
+              <p className="text-gray-700 leading-relaxed">
+                Our AI analyzes your skills, experience, and career goals to find jobs that match your profile. We rank suggestions by fit, salary potential, and growth opportunities.
+              </p>
+            </div>
           </div>
         </div>
       </section>

@@ -44,6 +44,45 @@ export default function Header() {
           <span className="text-xl font-bold">Skillsurger</span>
         </Link>
         
+        <nav className="hidden md:flex space-x-8">
+          <Link
+            to="/"
+            className="text-gray-700 hover:text-blue-600 transition-colors duration-200"
+          >
+            Home
+          </Link>
+          <Link
+            to="/ai-resume-builder"
+            className="text-gray-700 hover:text-blue-600 transition-colors duration-200"
+          >
+            AI Resume Builder
+          </Link>
+          <Link
+            to="/mock-interview"
+            className="text-gray-700 hover:text-blue-600 transition-colors duration-200"
+          >
+            Mock Interviews
+          </Link>
+          <Link
+            to="/pricing"
+            className="text-gray-700 hover:text-blue-600 transition-colors duration-200"
+          >
+            Pricing
+          </Link>
+          <Link
+            to="/about"
+            className="text-gray-700 hover:text-blue-600 transition-colors duration-200"
+          >
+            About
+          </Link>
+          <Link
+            to="/blog"
+            className="text-gray-700 hover:text-blue-600 transition-colors duration-200"
+          >
+            Blog
+          </Link>
+        </nav>
+
         <div className="flex items-center space-x-4">
           {user ? (
             <Link to="/dashboard">

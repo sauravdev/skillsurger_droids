@@ -16,6 +16,9 @@ import OnboardingCheck from './components/OnboardingCheck';
 import { UserProvider } from './context/UserContext';
 import Pricing from './pages/Pricing';
 import Subscription from './pages/Subscription';
+import AIResumeBuilder from "./pages/AIResumeBuilder";
+import MockInterview from "./pages/MockInterview";
+import BlogPost from "./pages/BlogPost";
 
 function App() {
   return (
@@ -53,6 +56,9 @@ function App() {
                 }
               />
               <Route path="/auth/callback/google" element={<GoogleAuthCallback />} />
+              <Route path="/ai-resume-builder" element={<AIResumeBuilder />} />
+              <Route path="/mock-interview" element={<MockInterview />} />
+              <Route path="/blog/:slug" element={<BlogPost />} />
             </Routes>
           </main>
         </div>

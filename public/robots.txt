@@ -1,21 +1,5 @@
 User-agent: *
-Allow: /
-
-# Sitemap
-Sitemap: https://skillsurger.com/sitemap.xml
-
-# Crawl-delay
-Crawl-delay: 1
-
-# Disallow admin areas
 Disallow: /admin/
-Disallow: /dashboard/
-Disallow: /api/
-
-# Allow important pages
 Allow: /
-Allow: /about
-Allow: /blog
-Allow: /contact
-Allow: /signup
-Allow: /login
+
+Sitemap: https://skillsurger.com/sitemap.xml
