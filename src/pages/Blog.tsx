@@ -9,60 +9,110 @@ const Blog = () => {
       title: "Best AI Résumé Builder Tools to Beat ATS Filters in Minutes",
       excerpt: "Getting past Applicant Tracking Systems (ATS) has become the single biggest hurdle between talented job-seekers and human recruiters. An estimated 75% of applications are rejected by bots before a person ever reads them.",
       category: "Resume Building",
-      readTime: "8 min read",
+      readTime: "12 min read",
       date: "January 15, 2025",
       image: "https://images.unsplash.com/photo-1586281380349-632531db7ed4?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
       slug: "ai-resume-builder-tools"
     },
     {
       id: 2,
-      title: "Top 50 AI Interview Questions & Answers to Ace Your Next Engineer Role",
+      title: "Top AI Interview Questions & Answers to Ace Your Next Engineer Role",
       excerpt: "Recruiters now screen AI engineers with deeper technical drills and behavioral puzzles—often under tight time-limits on Zoom. The right AI interview questions can mean the difference between awkward silence and a confident, structured answer.",
       category: "Interview Prep",
-      readTime: "12 min read",
+      readTime: "15 min read",
       date: "January 12, 2025",
       image: "https://images.unsplash.com/photo-1552664730-d307ca884978?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
       slug: "ai-interview-questions"
     },
     {
       id: 3,
+      title: "About-Me Section Mastery: Write a 30-Second Hook That Grabs Recruiters",
+      excerpt: "When recruiters skim hundreds of CVs, they decide in as little as 6 seconds whether to keep reading. The first line that catches their eye? Your About Me in résumé summary. Craft it well and you own the narrative.",
+      category: "Resume Building",
+      readTime: "8 min read",
+      date: "January 10, 2025",
+      image: "https://images.unsplash.com/photo-1559136555-9303baea8ebd?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+      slug: "about-me-in-resume"
+    },
+    {
+      id: 4,
       title: "Is a Resume Coach Worth It? Pricing, ROI & Top AI Tools Compared",
       excerpt: "Job seekers are facing more rejections and longer hiring cycles than ever before. The right resume coach—especially if AI-powered—can mean the difference between weeks of silence and a fast-track offer.",
       category: "Career Advice",
       readTime: "10 min read",
-      date: "January 10, 2025",
-      image: "https://images.unsplash.com/photo-1559136555-9303baea8ebd?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+      date: "January 8, 2025",
+      image: "https://images.unsplash.com/photo-1521791136064-7986c2920216?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
       slug: "resume-coach-ai-tools"
     },
     {
-      id: 4,
+      id: 5,
+      title: "Immediate-Hire Jobs: 20 Industries Where You Can Start This Week",
+      excerpt: "If you need a paycheck fast, you're not alone. Search volume for 'immediate hire jobs' is booming as job seekers chase roles that pay quickly, skip long interviews, and get you on the schedule within days.",
+      category: "Job Search",
+      readTime: "11 min read",
+      date: "January 5, 2025",
+      image: "https://images.unsplash.com/photo-1517077304055-6e89abbf09b0?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+      slug: "immediate-hire-jobs"
+    },
+    {
+      id: 6,
       title: "How to Find High-Paying Local Jobs in Under 10 Minutes",
       excerpt: "Are you tired of endless job-board scrolling, only to see duplicates and dead ends? The search for local jobs—those within your commute sweet spot and pay target—often turns into hours wasted chasing outdated listings.",
       category: "Job Search",
-      readTime: "7 min read",
-      date: "January 8, 2025",
-      image: "https://images.unsplash.com/photo-1521791136064-7986c2920216?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+      readTime: "9 min read",
+      date: "January 3, 2025",
+      image: "https://images.unsplash.com/photo-1551434678-e076c223a692?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
       slug: "local-jobs"
     },
     {
-      id: 5,
-      title: "200 Must-Know Technical Interview Questions (With Code Walkthroughs)",
+      id: 7,
+      title: "Internships Near Me: A 4-Week Action Plan for Students",
+      excerpt: "Searching 'internships near me' is a student ritual every semester—but most applicants struggle with tight deadlines, unpaid roles, and the endless guessing game of where to even start.",
+      category: "Career Development",
+      readTime: "13 min read",
+      date: "January 1, 2025",
+      image: "https://images.unsplash.com/photo-1523240794102-9ff414b91d55?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+      slug: "internships-near-me"
+    },
+    {
+      id: 8,
+      title: "AI-Powered Career Options Matrix: 25 Paths You Haven't Considered",
+      excerpt: "With automation and AI reshaping the job market, the range of viable career options is wider—and more surprising—than ever. If you're stuck in analysis paralysis, tired of the same old lists, or worried about investing in the 'wrong' skill.",
+      category: "Career Development",
+      readTime: "14 min read",
+      date: "December 28, 2024",
+      image: "https://images.unsplash.com/photo-1552664730-d307ca884978?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+      slug: "career-options"
+    },
+    {
+      id: 9,
+      title: "Interview Skills Upgrade: STAR-Plus-CAR Framework & Video Hacks",
+      excerpt: "Strong interview skills aren't just about what you know—they're about how clearly, concisely, and confidently you say it. With more recruiters screening candidates on Zoom, answering with structure, body language, and impact is more vital than ever.",
+      category: "Interview Prep",
+      readTime: "12 min read",
+      date: "December 25, 2024",
+      image: "https://images.unsplash.com/photo-1552664730-d307ca884978?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+      slug: "interview-skills"
+    },
+    {
+      id: 10,
+      title: "Must-Know Technical Interview Questions (With Code Walkthroughs)",
       excerpt: "Every tech job-seeker faces the same hurdle: a wall of technical interview questions drawn from Python, SQL, machine learning, and more. But with the flood of online lists, how do you know which questions matter?",
       category: "Technical Interviews",
-      readTime: "15 min read",
-      date: "January 5, 2025",
+      readTime: "18 min read",
+      date: "December 22, 2024",
       image: "https://images.unsplash.com/photo-1517077304055-6e89abbf09b0?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
       slug: "technical-interview-questions"
     },
     {
-      id: 6,
-      title: "AI-Powered Career Options Matrix: 25 Paths You Haven't Considered",
-      excerpt: "With automation and AI reshaping the job market, the range of viable career options is wider—and more surprising—than ever. If you're stuck in analysis paralysis, tired of the same old lists, or worried about investing in the 'wrong' skill.",
+      id: 11,
+      title: "Entry-Level IT Jobs: Certification Roadmap & Salary Ladder",
+      excerpt: "Breaking into tech feels like a catch-22: you need experience to get hired, but you need a job to get experience. The best entry-level IT jobs now require just months of prep with the right certs, résumé template, and smart job search tactics.",
       category: "Career Development",
       readTime: "11 min read",
-      date: "January 3, 2025",
+      date: "December 20, 2024",
       image: "https://images.unsplash.com/photo-1551434678-e076c223a692?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
-      slug: "career-options"
+      slug: "entry-level-it-jobs"
     }
   ];
 
