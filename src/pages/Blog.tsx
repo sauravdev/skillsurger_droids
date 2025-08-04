@@ -11,7 +11,7 @@ const Blog = () => {
       category: "Resume Building",
       readTime: "12 min read",
       date: "January 15, 2025",
-      image: "https://images.unsplash.com/photo-1586281380349-632531db7ed4?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+      image: "/best_ai_resume_builder_tools_to_beat.png",
       slug: "ai-resume-builder-tools"
     },
     {
@@ -21,7 +21,7 @@ const Blog = () => {
       category: "Interview Prep",
       readTime: "15 min read",
       date: "January 12, 2025",
-      image: "https://images.unsplash.com/photo-1552664730-d307ca884978?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+      image: "/top_ai_interview_questions_answers_to_ace.png",
       slug: "ai-interview-questions"
     },
     {
@@ -31,7 +31,7 @@ const Blog = () => {
       category: "Resume Building",
       readTime: "8 min read",
       date: "January 10, 2025",
-      image: "https://images.unsplash.com/photo-1559136555-9303baea8ebd?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+      image: "/about_me_section_mastery.png",
       slug: "about-me-in-resume"
     },
     {
@@ -41,7 +41,7 @@ const Blog = () => {
       category: "Career Advice",
       readTime: "10 min read",
       date: "January 8, 2025",
-      image: "https://images.unsplash.com/photo-1521791136064-7986c2920216?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+      image: "/is_a_resume_coach_worth_it.png",
       slug: "resume-coach-ai-tools"
     },
     {
@@ -51,7 +51,7 @@ const Blog = () => {
       category: "Job Search",
       readTime: "11 min read",
       date: "January 5, 2025",
-      image: "https://images.unsplash.com/photo-1517077304055-6e89abbf09b0?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+      image: "/immediate-hire-jobs.png",
       slug: "immediate-hire-jobs"
     },
     {
@@ -61,7 +61,7 @@ const Blog = () => {
       category: "Job Search",
       readTime: "9 min read",
       date: "January 3, 2025",
-      image: "https://images.unsplash.com/photo-1551434678-e076c223a692?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+      image: "/how_to_find_high_paying_local_jobs.png",
       slug: "local-jobs"
     },
     {
@@ -71,7 +71,7 @@ const Blog = () => {
       category: "Career Development",
       readTime: "13 min read",
       date: "January 1, 2025",
-      image: "https://images.unsplash.com/photo-1523240794102-9ff414b91d55?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+      image: "/internship_near_me.png",
       slug: "internships-near-me"
     },
     {

@@ -14,7 +14,7 @@ const BlogPost = () => {
       readTime: "12 min read",
       date: "January 15, 2025",
       author: "Skillsurger Team",
-      image: "https://images.unsplash.com/photo-1586281380349-632531db7ed4?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+      image: "/best_ai_resume_builder_tools_to_beat.png",
       content: `
         <p>Getting past Applicant Tracking Systems (ATS) has become the single biggest hurdle between talented job-seekers and human recruiters. An estimated <strong>75% of applications are rejected by bots</strong> before a person ever reads them. That's why choosing the right <strong>AI résumé builder</strong> isn't just convenient—it's mission-critical.</p>
 
@@ -42,7 +42,7 @@ const BlogPost = () => {
       readTime: "15 min read",
       date: "January 12, 2025",
       author: "Skillsurger Team",
-      image: "https://images.unsplash.com/photo-1552664730-d307ca884978?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+      image: "/top_ai_interview_questions_answers_to_ace.png",
       content: `
         <p>Recruiters now screen AI engineers with deeper technical drills and behavioral puzzles—often under tight time-limits on Zoom. The right <strong>AI interview questions</strong> can mean the difference between awkward silence and a confident, structured answer that lands an offer.</p>
 
@@ -74,7 +74,7 @@ const BlogPost = () => {
       readTime: "8 min read",
       date: "January 10, 2025",
       author: "Skillsurger Team",
-      image: "https://images.unsplash.com/photo-1559136555-9303baea8ebd?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+      image: "/about_me_section_mastery.png",
       content: `
         <p>When recruiters skim hundreds of CVs, they decide in as little as <strong>6 seconds</strong> whether to keep reading. The first line that catches their eye? Your <strong>About Me in résumé</strong> summary. Craft it well and you own the narrative; botch it and even perfect bullet points won't save you.</p>
 
@@ -105,7 +105,7 @@ const BlogPost = () => {
       readTime: "10 min read",
       date: "January 8, 2025",
       author: "Skillsurger Team",
-      image: "https://images.unsplash.com/photo-1521791136064-7986c2920216?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+      image: "/is_a_resume_coach_worth_it.png",
       content: `
         <p>Job seekers are facing more rejections and longer hiring cycles than ever before. The right <strong>resume coach</strong>—especially if AI-powered—can mean the difference between weeks of silence and a fast-track offer.</p>
 
@@ -137,7 +137,7 @@ const BlogPost = () => {
       readTime: "11 min read",
       date: "January 5, 2025",
       author: "Skillsurger Team",
-      image: "https://images.unsplash.com/photo-1517077304055-6e89abbf09b0?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+      image: "/immediate-hire-jobs.png",
       content: `
         <p>If you need a paycheck <strong>fast</strong>, you're not alone. Search volume for "immediate hire jobs" is booming as job seekers chase roles that pay quickly, skip long interviews, and get you on the schedule within days.</p>
 
@@ -171,7 +171,7 @@ const BlogPost = () => {
       readTime: "9 min read",
       date: "January 3, 2025",
       author: "Skillsurger Team",
-      image: "https://images.unsplash.com/photo-1551434678-e076c223a692?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+      image: "/how_to_find_high_paying_local_jobs.png",
       content: `
         <p>Are you tired of endless job-board scrolling, only to see duplicates and dead ends? The search for <strong>local jobs</strong>—those within your commute sweet spot and pay target—often turns into hours wasted chasing outdated listings or mismatched roles.</p>
 
@@ -208,7 +208,7 @@ const BlogPost = () => {
       readTime: "13 min read",
       date: "January 1, 2025",
       author: "Skillsurger Team",
-      image: "https://images.unsplash.com/photo-1523240794102-9ff414b91d55?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+      image: "/internship_near_me.png",
       content: `
         <p>Searching "internships near me" is a student ritual every semester—but most applicants struggle with tight deadlines, unpaid roles, and the endless guessing game of where to even start. This step-by-step 4-week action plan combines the best platforms and student-friendly AI tools to help you find, apply, and ace a <strong>paid</strong> local internship.</p>
 
@@ -545,7 +545,7 @@ const BlogPost = () => {
               <img
                 src={post.image}
                 alt={post.title}
-                className="w-full h-64 md:h-96 object-cover rounded-xl"
+                className="w-full h-100 w-70 object-cover rounded-xl"
               />
             </div>
 
