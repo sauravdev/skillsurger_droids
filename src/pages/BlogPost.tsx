@@ -2,6 +2,7 @@ import React from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Calendar, Clock, ArrowLeft, User, Share2, BookOpen } from 'lucide-react';
 import Button from '../components/Button';
+import { generatedBlogs } from '../content/blogs.generated';
 
 const BlogPost = () => {
   const { slug } = useParams();
@@ -831,7 +832,8 @@ const BlogPost = () => {
     }
   };
 
-  const post = blogPosts[slug as keyof typeof blogPosts];
+  const generated = generatedBlogs.find((p) => p.slug === slug);
+  const post = generated || (blogPosts[slug as keyof typeof blogPosts] as any);
 
   if (!post) {
     return (

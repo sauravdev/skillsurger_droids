@@ -1,9 +1,21 @@
 import React from 'react';
 import { Calendar, Clock, ArrowRight, Search, Filter } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { generatedBlogs } from '../content/blogs.generated';
 
 const Blog = () => {
-  const blogPosts = [
+  const generatedCards = generatedBlogs.map((p, index) => ({
+    id: 1000 + index,
+    title: p.title,
+    excerpt: p.excerpt,
+    category: p.category,
+    readTime: p.readTime,
+    date: p.date,
+    image: p.image,
+    slug: p.slug,
+  }));
+
+  const staticPosts = [
     {
       id: 1,
       title: "Best AI Résumé Builder Tools to Beat ATS Filters in Minutes",
@@ -114,6 +126,11 @@ const Blog = () => {
       image: "https://images.unsplash.com/photo-1551434678-e076c223a692?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
       slug: "entry-level-it-jobs"
     }
+  ];
+
+  const blogPosts = [
+    ...generatedCards,
+    ...staticPosts,
   ];
 
   const categories = [
