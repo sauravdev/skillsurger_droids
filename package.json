@@ -5,8 +5,11 @@
   "type": "module",
   "scripts": {
     "generate:blogs": "node scripts/generate-blogs.js",
+    "add-internal-links": "node scripts/add-internal-links.js",
     "dev": "vite",
     "build": "vite build",
+    "build:ssr": "vite build --config vite.config.ssr.ts",
+    "serve:ssr": "node server.js",
     "lint": "eslint .",
     "preview": "vite preview"
   },
@@ -17,6 +20,7 @@
     "clsx": "^2.1.0",
     "date-fns": "^4.1.0",
     "dayjs": "^1.11.13",
+    "express": "^4.18.2",
     "html2canvas": "^1.4.1",
     "jspdf": "^2.5.1",
     "lucide-react": "^0.344.0",
