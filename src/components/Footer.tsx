@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Brain, Mail, Phone, MapPin } from 'lucide-react';
+import ProductHuntUpvote from './ProductHuntUpvote';
 
 export default function Footer() {
   return (
@@ -77,7 +78,15 @@ export default function Footer() {
         </div>
 
         <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-          <p>&copy; {new Date().getFullYear()} Skillsurger. All rights reserved.</p>
+          <div className="flex flex-col items-center space-y-4">
+            <p>&copy; {new Date().getFullYear()} Skillsurger. All rights reserved.</p>
+            
+            {/* ProductHunt Upvote */}
+            <div className="flex items-center space-x-2">
+              <span className="text-sm">Support us on</span>
+              <ProductHuntUpvote showText={true} />
+            </div>
+          </div>
         </div>
       </div>
     </footer>

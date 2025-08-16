@@ -29,7 +29,7 @@ import {
 } from "lucide-react";
 import Button from "../components/Button";
 import { Link } from "react-router-dom";
-import Footer from "../components/Footer";
+
 import { useState } from "react";
 
 const features = [
@@ -1020,7 +1020,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <Footer />
     </div>
   );
 }

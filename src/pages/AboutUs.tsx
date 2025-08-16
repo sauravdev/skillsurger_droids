@@ -1,5 +1,5 @@
 import { Brain, Target, Users, Globe, Award } from 'lucide-react';
-import Footer from '../components/Footer';
+
 
 const values = [
   {
@@ -138,7 +138,6 @@ export default function AboutUs() {
         </div>
       </section>
 
-      <Footer />
     </div>
   );
 }

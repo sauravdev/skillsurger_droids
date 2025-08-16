@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Mail, Phone, MapPin, Send } from 'lucide-react';
 import Button from '../components/Button';
-import Footer from '../components/Footer';
+
 
 export default function ContactUs() {
   const [formData, setFormData] = useState({
@@ -183,7 +183,6 @@ export default function ContactUs() {
           </div>
         </div>
       </div>
-      <Footer />
     </div>
   );
 }

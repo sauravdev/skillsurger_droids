@@ -19,11 +19,17 @@ import Subscription from './pages/Subscription';
 import AIResumeBuilder from "./pages/AIResumeBuilder";
 import MockInterview from "./pages/MockInterview";
 import BlogPost from "./pages/BlogPost";
+import WhatsAppChat from './components/WhatsAppChat';
+import Footer from './components/Footer';
+import AnalyticsTracking from './components/AnalyticsTracking';
 
 function App() {
   return (
     <Router>
       <UserProvider>
+        {/* Analytics Tracking */}
+        <AnalyticsTracking />
+        
         <div className="min-h-screen bg-gray-50">
           <Header />
           <main>
@@ -61,6 +67,15 @@ function App() {
               <Route path="/blog/:slug" element={<BlogPost />} />
             </Routes>
           </main>
+          
+          {/* WhatsApp Chat - Fixed position on all pages */}
+          <WhatsAppChat 
+            phoneNumber="+917310768702"
+            message="Hi! I'm interested in Skillsurger's career services."
+          />
+          
+          {/* Footer */}
+          <Footer />
         </div>
       </UserProvider>
     </Router>
