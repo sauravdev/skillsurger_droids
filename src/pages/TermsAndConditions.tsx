@@ -1,4 +1,4 @@
-import Footer from '../components/Footer';
+
 
 export default function TermsAndConditions() {
   return (
@@ -82,7 +82,6 @@ export default function TermsAndConditions() {
           </div>
         </div>
       </div>
-      <Footer />
     </div>
   );
 }

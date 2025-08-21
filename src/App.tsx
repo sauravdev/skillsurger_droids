@@ -12,7 +12,6 @@ import ContactUs from './pages/ContactUs';
 import AboutUs from './pages/AboutUs';
 import Blog from './pages/Blog';
 import ProtectedRoute from './components/ProtectedRoute';
-import OnboardingCheck from './components/OnboardingCheck';
 import { UserProvider } from './context/UserContext';
 import Pricing from './pages/Pricing';
 import Subscription from './pages/Subscription';

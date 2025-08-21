@@ -928,7 +928,7 @@ export default function CareerExplorer({ onGenerateLearningPath, jobs, setJobs, 
 
   if (!userSkills.length && !userInterests.length && !profile?.current_role) {
     return (
-      <div className="bg-white rounded-lg shadow-lg p-8">
+      <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 lg:p-8 w-full max-w-full overflow-x-hidden">
         <div className="text-center">
           <Briefcase className="w-12 h-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-semibold mb-2">Complete Your Profile First</h3>
@@ -951,7 +951,7 @@ export default function CareerExplorer({ onGenerateLearningPath, jobs, setJobs, 
 
   if (showSuggestions && cvSuggestions) {
     return (
-      <div className="bg-white rounded-lg shadow-lg p-8">
+      <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 lg:p-8 w-full max-w-full overflow-x-hidden">
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
@@ -1082,7 +1082,7 @@ export default function CareerExplorer({ onGenerateLearningPath, jobs, setJobs, 
 
   if (showCVEditor && profile) {
     return (
-      <div className="bg-white rounded-lg shadow-lg p-8">
+      <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 lg:p-8 w-full max-w-full overflow-x-hidden">
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold">CV Editor</h2>
@@ -1111,7 +1111,7 @@ export default function CareerExplorer({ onGenerateLearningPath, jobs, setJobs, 
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-lg p-8">
+    <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 lg:p-8 w-full max-w-full overflow-x-hidden">
       <div className="flex flex-col space-y-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0 mb-8">
         <h2 className="text-2xl font-bold">Career Explorer</h2>
         <div className="flex flex-col space-y-3 sm:flex-row sm:space-y-0 sm:space-x-4">
@@ -1154,7 +1154,7 @@ export default function CareerExplorer({ onGenerateLearningPath, jobs, setJobs, 
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Your Interests
                 </label>
-                <div className="flex space-x-2 mb-3">
+                <div className="flex flex-col sm:flex-row gap-2 mb-3">
                   <input
                     type="text"
                     value={customInterestInput}
@@ -1167,7 +1167,7 @@ export default function CareerExplorer({ onGenerateLearningPath, jobs, setJobs, 
                     type="button"
                     onClick={handleAddCustomInterest}
                     size="sm"
-                    className="bg-purple-600 hover:bg-purple-700"
+                    className="bg-purple-600 hover:bg-purple-700 w-full sm:w-auto"
                   >
                     <Plus className="w-4 h-4" />
                   </Button>
@@ -1277,7 +1277,7 @@ export default function CareerExplorer({ onGenerateLearningPath, jobs, setJobs, 
       {profile && (
         <div className="mb-6 p-4 bg-gray-50 rounded-lg">
           <h3 className="text-sm font-medium text-gray-700 mb-2">Your Profile Summary</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-sm">
             <div>
               <span className="text-gray-500">Experience:</span>
               <span className="ml-1 font-medium">{profile.years_of_experience || 0} years</span>
@@ -1315,14 +1315,14 @@ export default function CareerExplorer({ onGenerateLearningPath, jobs, setJobs, 
 
       {careerOptions.length > 0 && (
         <div className="space-y-6 mb-8">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <h3 className="text-lg font-semibold">Latest Personalized Career Paths</h3>
-            <div className="flex items-center space-x-2">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
               <span className="text-sm text-gray-500">{careerOptions.length} careers</span>
               {renderDeleteButton('all-careers', handleDeleteAllCareers, 'all careers')}
             </div>
           </div>
-          <div className="grid gap-6 md:grid-cols-2">
+          <div className="grid gap-6 lg:grid-cols-2">
             {careerOptions.map((option, index) => (
               <div key={index} className="border rounded-lg p-6 hover:shadow-md transition-shadow">
                 <div className="flex items-start justify-between mb-4">
@@ -1345,7 +1345,7 @@ export default function CareerExplorer({ onGenerateLearningPath, jobs, setJobs, 
                     <p className="text-sm font-medium text-gray-500">Potential Companies</p>
                     <p className="text-gray-700">{option.potentialCompanies.join(', ')}</p>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <p className="text-sm font-medium text-gray-500">Average Salary</p>
                       <p className="text-gray-700">{option.averageSalary}</p>
@@ -1381,11 +1381,11 @@ export default function CareerExplorer({ onGenerateLearningPath, jobs, setJobs, 
 
       {jobs.length > 0 && (
         <div className="space-y-6 mb-8">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <h3 className="text-lg font-semibold">
               Latest Job Opportunities {selectedCareer && `for ${selectedCareer}`}
             </h3>
-            <div className="flex items-center space-x-2">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
               <span className="text-sm text-gray-500">{jobs.length} jobs found</span>
               <Button
                 variant="outline"
@@ -1398,20 +1398,20 @@ export default function CareerExplorer({ onGenerateLearningPath, jobs, setJobs, 
           </div>
           <div className="space-y-4">
             {jobs.map((job, index) => (
-              <div key={index} className="border rounded-lg p-6 hover:shadow-md transition-shadow">
+              <div key={index} className="border rounded-lg p-4 sm:p-6 hover:shadow-md transition-shadow overflow-hidden">
                 <div className="text-gray-700 mb-4">
-                  <div className="flex items-center mb-2">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-2">
                     {job.companyLogo && (
-                      <img src={job.companyLogo} alt={job.company} className="w-12 h-12 rounded-full mr-3 border" />
+                      <img src={job.companyLogo} alt={job.company} className="w-12 h-12 rounded-full border flex-shrink-0" />
                     )}
-                    <div>
-                      <h4 className="text-xl font-semibold flex items-center">
-                        {job.title}
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-lg sm:text-xl font-semibold flex flex-col sm:flex-row sm:items-center gap-2">
+                        <span className="break-words">{job.title}</span>
                         {job.seniority && (
-                          <span className="ml-2 px-2 py-0.5 bg-yellow-100 text-yellow-800 rounded text-xs font-medium">{job.seniority}</span>
+                          <span className="px-2 py-0.5 bg-yellow-100 text-yellow-800 rounded text-xs font-medium self-start sm:self-auto">{job.seniority}</span>
                         )}
                       </h4>
-                      <a href={job.companyUrl} target="_blank" rel="noopener noreferrer" className="text-blue-700 hover:underline text-sm font-medium">
+                      <a href={job.companyUrl} target="_blank" rel="noopener noreferrer" className="text-blue-700 hover:underline text-sm font-medium break-all">
                         {job.company}
                       </a>
                     </div>
@@ -1437,51 +1437,52 @@ export default function CareerExplorer({ onGenerateLearningPath, jobs, setJobs, 
                     )}
                   </div> */}
                   <div className="mb-2 text-gray-600">
-                    <span className="font-medium">Location:</span> {job.location}
+                    <span className="font-medium">Location:</span> <span className="break-words">{job.location}</span>
                   </div>
                   <div className="mb-2 text-gray-600">
-                    <span className="font-medium">Employment Type:</span> {job.type}
+                    <span className="font-medium">Employment Type:</span> <span className="break-words">{job.type}</span>
                   </div>
                   <div className="mb-2 text-gray-600">
-                    <span className="font-medium">Posted:</span> {job.postedDate ? new Date(job.postedDate).toLocaleDateString() : 'N/A'}
+                    <span className="font-medium">Posted:</span> <span className="break-words">{job.postedDate ? new Date(job.postedDate).toLocaleDateString() : 'N/A'}</span>
                   </div>
                   <div className="mb-2 text-gray-600">
-                    <span className="font-medium">Salary:</span> {job.salary || 'Not specified'}
+                    <span className="font-medium">Salary:</span> <span className="break-words">{job.salary || 'Not specified'}</span>
                   </div>
                   <div className="mb-2 text-gray-600">
-                    <span className="font-medium">Company Slogan:</span> {job.organizationSlogan}
+                    <span className="font-medium">Company Slogan:</span> <span className="break-words">{job.organizationSlogan}</span>
                   </div>
                   <div className="mb-2 text-gray-600">
-                    <span className="font-medium">Description:</span> {cleanTruncatedDescription(job.description)}
+                    <span className="font-medium">Description:</span> <span className="break-words">{cleanTruncatedDescription(job.description)}</span>
                   </div>
                   {job.requirements && job.requirements.length > 0 && (
                     <div className="mb-2">
                       <span className="font-medium text-gray-600">Specialties:</span>
                       <ul className="list-disc list-inside text-gray-700 ml-4">
                         {job.requirements.map((req, i) => (
-                          <li key={i}>{req}</li>
+                          <li key={i} className="break-words">{req}</li>
                         ))}
                       </ul>
                     </div>
                   )}
                   {job.recruiterName && (
                     <div className="mb-2 text-gray-600">
-                      <span className="font-medium">Recruiter:</span> {job.recruiterName} {job.recruiterTitle && `(${job.recruiterTitle})`}
+                      <span className="font-medium">Recruiter:</span> <span className="break-words">{job.recruiterName} {job.recruiterTitle && `(${job.recruiterTitle})`}</span>
                       {job.recruiterUrl && (
-                        <a href={job.recruiterUrl} target="_blank" rel="noopener noreferrer" className="ml-2 text-blue-700 hover:underline">Profile</a>
+                        <a href={job.recruiterUrl} target="_blank" rel="noopener noreferrer" className="ml-2 text-blue-700 hover:underline break-all">Profile</a>
                       )}
                     </div>
                   )}
                 </div>
-                <div className="flex items-center justify-between">
-                  <p className="text-lg font-semibold">{job.salary}</p>
-                  <div className="flex items-center space-x-2">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <p className="text-lg font-semibold break-words">{job.salary}</p>
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full sm:w-auto">
                     {/* Save Job Button */}
                     <Button
                       onClick={() => saveJob(job)}
                       variant="outline"
                       size="sm"
                       disabled={isJobSaved(job) || savingJob === `${job.title}-${job.company}`}
+                      className="w-full sm:w-auto"
                     >
                       {isJobSaved(job) ? (
                         <>
@@ -1504,7 +1505,7 @@ export default function CareerExplorer({ onGenerateLearningPath, jobs, setJobs, 
                     {/* Apply Now Button */}
                     <Button
                       onClick={() => window.open(generateJobApplicationUrl(job), '_blank')}
-                      className="bg-green-600 hover:bg-green-700"
+                      className="bg-green-600 hover:bg-green-700 w-full sm:w-auto"
                       size="sm"
                     >
                       <ExternalLink className="w-4 h-4 mr-2" />
@@ -1517,6 +1518,7 @@ export default function CareerExplorer({ onGenerateLearningPath, jobs, setJobs, 
                       variant="outline"
                       size="sm"
                       disabled={loading}
+                      className="w-full sm:w-auto"
                     >
                       {loading ? (
                         <>
@@ -1536,7 +1538,7 @@ export default function CareerExplorer({ onGenerateLearningPath, jobs, setJobs, 
                       onClick={() => onGenerateLearningPath(job)}
                       variant="outline"
                       size="sm"
-                      className="bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100"
+                      className="bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100 w-full sm:w-auto"
                     >
                       <BookOpen className="w-4 h-4 mr-2" />
                       Create Learning Path

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Briefcase, MapPin, Clock, DollarSign, Send } from 'lucide-react';
 import Button from '../components/Button';
-import Footer from '../components/Footer';
+
 
 const departments = [
   'Engineering',
@@ -350,7 +350,6 @@ export default function Careers() {
         </div>
       </section>
 
-      <Footer />
     </div>
   );
 }

@@ -536,10 +536,10 @@ export default function MentorshipHub() {
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-lg p-8">
-      <div className="flex items-center justify-between mb-8">
+    <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 lg:p-8 w-full max-w-full overflow-x-hidden">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
         <h2 className="text-2xl font-bold">Mentorship Hub</h2>
-        <div className="flex space-x-4">
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
           <Button
             variant={activeTab === 'mock-interviews' ? 'primary' : 'outline'}
             onClick={() => setActiveTab('mock-interviews')}
@@ -574,15 +574,15 @@ export default function MentorshipHub() {
         <div className="space-y-8">
           {isInterviewing ? (
             <div className="space-y-6">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                  <h3 className="text-lg font-semibold">{activeInterview?.job_role}</h3>
+                  <h3 className="text-lg font-semibold break-words">{activeInterview?.job_role}</h3>
                   <p className="text-sm text-gray-500">Mock Interview Session</p>
                 </div>
                 <Button
                   variant="outline"
                   onClick={handleEndInterview}
-                  className="text-red-600 hover:bg-red-50"
+                  className="text-red-600 hover:bg-red-50 w-full sm:w-auto"
                 >
                   End Interview
                 </Button>
@@ -623,7 +623,7 @@ export default function MentorshipHub() {
                 </div>
 
                 <form onSubmit={handleSendInterviewMessage} className="border-t p-4">
-                  <div className="flex space-x-2">
+                  <div className="flex flex-col sm:flex-row gap-2">
                     <input
                       type="text"
                       value={currentMessage}
@@ -631,7 +631,7 @@ export default function MentorshipHub() {
                       placeholder="Type your response..."
                       className="flex-1 rounded-lg border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
-                    <Button type="submit" disabled={!currentMessage.trim()}>
+                    <Button type="submit" disabled={!currentMessage.trim()} className="w-full sm:w-auto">
                       Send
                     </Button>
                   </div>
@@ -676,10 +676,10 @@ export default function MentorshipHub() {
               </div>
 
               <div>
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
                   <h3 className="text-lg font-semibold">Your Interviews</h3>
                   {mockInterviews.length > 0 && (
-                    <div className="flex items-center space-x-2">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
                       <span className="text-sm text-gray-500">{mockInterviews.length} interviews</span>
                       {renderDeleteButton('all-interviews', handleDeleteAllInterviews, 'all interviews')}
                     </div>
@@ -692,18 +692,19 @@ export default function MentorshipHub() {
                         key={interview.id}
                         className="border rounded-lg p-4"
                       >
-                        <div className="flex items-center justify-between mb-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
                           <div>
-                            <p className="font-medium">{interview.job_role}</p>
+                            <p className="font-medium break-words">{interview.job_role}</p>
                             <p className="text-sm text-gray-500">
                               {new Date(interview.scheduled_at).toLocaleString()}
                             </p>
                           </div>
-                          <div className="flex space-x-2">
+                          <div className="flex flex-col sm:flex-row gap-2">
                             {interview.status === 'scheduled' ? (
                               <Button
                                 variant="outline"
                                 onClick={() => startInterview(interview)}
+                                className="w-full sm:w-auto"
                               >
                                 Start Interview
                               </Button>
@@ -749,7 +750,7 @@ export default function MentorshipHub() {
                                 </div>
                               </div>
                             )}
-                            <div className="grid grid-cols-3 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                               <div className="text-center">
                                 <p className="text-sm text-gray-500">Technical Score</p>
                                 <p className="text-2xl font-bold text-blue-600">
@@ -808,10 +809,10 @@ export default function MentorshipHub() {
               </div>
 
               <div>
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
                   <h3 className="text-lg font-semibold">Previous AI Mentorship Sessions</h3>
                   {aiSessions.length > 0 && (
-                    <div className="flex items-center space-x-2">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
                       <span className="text-sm text-gray-500">{aiSessions.length} sessions</span>
                       {renderDeleteButton('all-ai-sessions', handleDeleteAllAISessions, 'all sessions')}
                     </div>
@@ -821,18 +822,19 @@ export default function MentorshipHub() {
                   <div className="space-y-4">
                     {aiSessions.map(session => (
                       <div key={session.id} className="border rounded-lg p-4">
-                        <div className="flex items-center justify-between mb-2">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-2">
                           <div>
-                            <h4 className="font-medium">{session.topic}</h4>
+                            <h4 className="font-medium break-words">{session.topic}</h4>
                             <p className="text-sm text-gray-500">
                               {new Date(session.created_at).toLocaleString()} • {session.conversation.length} messages
                             </p>
                           </div>
-                          <div className="flex space-x-2">
+                          <div className="flex flex-col sm:flex-row gap-2">
                             <Button
                               variant="outline"
                               size="sm"
                               onClick={() => setActiveSessionId(session.id)}
+                              className="w-full sm:w-auto"
                             >
                               Continue Chat
                             </Button>
@@ -856,11 +858,12 @@ export default function MentorshipHub() {
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <h3 className="text-lg font-semibold">AI Mentorship Session</h3>
                 <Button
                   variant="outline"
                   onClick={() => setActiveSessionId(null)}
+                  className="w-full sm:w-auto"
                 >
                   Back to Sessions
                 </Button>
@@ -892,7 +895,7 @@ export default function MentorshipHub() {
                   className="border rounded-lg p-6 space-y-4"
                 >
                   <div>
-                    <h4 className="font-semibold">{mentor.specialization}</h4>
+                    <h4 className="font-semibold break-words">{mentor.specialization}</h4>
                     <p className="text-sm text-gray-500">
                       {mentor.experience_years} years of experience
                     </p>

@@ -761,7 +761,7 @@ export default function ProfileSection() {
     if (!hasData) return null;
 
     return (
-      <div className="flex items-center space-x-2">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
         {!isConfirming ? (
           <Button
             onClick={() => handleDeleteData(dataType)}
@@ -773,7 +773,7 @@ export default function ProfileSection() {
             Delete {label}
           </Button>
         ) : (
-          <div className="flex items-center space-x-2">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
             <span className="text-sm text-red-600">Confirm delete?</span>
             <Button
               onClick={() => handleDeleteData(dataType)}
@@ -806,16 +806,17 @@ export default function ProfileSection() {
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-lg p-8">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold">Profile</h2>
+    <div className="w-full max-w-full overflow-x-hidden">
+      <div className="bg-white rounded-lg shadow-lg p-4 sm:p-8 overflow-hidden w-full">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <h2 className="text-xl sm:text-2xl font-bold">Profile</h2>
         {!isEditing ? (
           <Button onClick={() => setIsEditing(true)} variant="outline" size="sm">
             <Edit2 className="w-4 h-4 mr-2" />
             Edit Profile
           </Button>
         ) : (
-          <div className="flex space-x-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <Button 
               onClick={() => {
                 setIsEditing(false);
@@ -852,7 +853,7 @@ export default function ProfileSection() {
             <AlertTriangle className="w-5 h-5 text-yellow-600 mr-2 flex-shrink-0 mt-0.5" />
             <div>
               <h4 className="font-medium text-yellow-800">Data Management</h4>
-              <p className="text-sm text-yellow-700 mt-1">
+              <p className="text-sm text-yellow-700 mt-1 break-words">
                 You can delete specific sections of your profile data using the delete buttons below. 
                 <strong> Deletions are permanent and cannot be undone.</strong>
               </p>
@@ -866,7 +867,7 @@ export default function ProfileSection() {
           {/* Basic Information */}
           <div className="border-b pb-6">
             <h3 className="text-lg font-semibold mb-4">Basic Information</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700">Full Name</label>
                 <input
@@ -928,7 +929,7 @@ export default function ProfileSection() {
                   placeholder="e.g., New York, Remote, San Francisco"
                 />
               </div>
-              <div className="col-span-2">
+              <div className="col-span-1 lg:col-span-2">
                 <label className="block text-sm font-medium text-gray-700">LinkedIn URL</label>
                 <input
                   type="url"
@@ -983,7 +984,7 @@ export default function ProfileSection() {
                   Basic Information
                 </h3>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-gray-500">Full Name</p>
                   <p className="text-gray-900">{profile.full_name || 'Not set'}</p>
@@ -1068,12 +1069,12 @@ export default function ProfileSection() {
 
             {/* CV and Summary Section - All parsed data goes here */}
             <div className="border-b pb-6">
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
                 <h3 className="text-lg font-semibold flex items-center">
                   <FileText className="w-5 h-5 mr-2 text-blue-600" />
                   CV & Summary
                 </h3>
-                <div className="flex items-center space-x-2">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
                   {renderDeleteButton('cv', 'CV', !!profile.cv_url)}
                   <div className="relative">
                     <input
@@ -1090,7 +1091,7 @@ export default function ProfileSection() {
                     </Button>
                   </div>
                   {profile.cv_url && (
-                    <div className="flex space-x-2">
+                    <div className="flex flex-col sm:flex-row gap-2">
                       <a
                         href={profile.cv_url}
                         target="_blank"
@@ -1201,7 +1202,7 @@ export default function ProfileSection() {
             {/* Experience Section - Only show if data exists */}
             {profile.experience?.length > 0 && (
               <div className="border-b pb-6">
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
                   <h3 className="text-lg font-semibold flex items-center">
                     <Briefcase className="w-5 h-5 mr-2 text-blue-600" />
                     Professional Experience (from CV)
@@ -1210,14 +1211,14 @@ export default function ProfileSection() {
                 <div className="space-y-4">
                   {profile.experience.map((exp, index) => (
                     <div key={index} className="border-l-2 border-blue-200 pl-4 bg-gray-50 p-4 rounded-r-lg">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <h4 className="font-medium text-gray-900">{exp.title}</h4>
-                          <p className="text-gray-600">{exp.company}</p>
-                        </div>
-                        <span className="text-sm text-gray-500">{exp.duration}</span>
-                      </div>
-                      <p className="mt-2 text-gray-600">{exp.description}</p>
+                                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-medium text-gray-900 break-words">{exp.title}</h4>
+                    <p className="text-gray-600 break-words">{exp.company}</p>
+                  </div>
+                  <span className="text-sm text-gray-500 flex-shrink-0">{exp.duration}</span>
+                </div>
+                      <p className="mt-2 text-gray-600 break-words">{exp.description}</p>
                     </div>
                   ))}
                 </div>
@@ -1227,7 +1228,7 @@ export default function ProfileSection() {
             {/* Projects Section - Only show if data exists */}
             {profile.projects?.length > 0 && (
               <div className="border-b pb-6">
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
                   <h3 className="text-lg font-semibold flex items-center">
                     <Brain className="w-5 h-5 mr-2 text-blue-600" />
                     Projects (from CV)
@@ -1236,8 +1237,8 @@ export default function ProfileSection() {
                 <div className="space-y-4">
                   {profile.projects.map((project, index) => (
                     <div key={index} className="bg-gray-50 rounded-lg p-4">
-                      <h4 className="font-medium text-gray-900">{project.name}</h4>
-                      <p className="mt-2 text-gray-600">{project.description}</p>
+                      <h4 className="font-medium text-gray-900 break-words">{project.name}</h4>
+                      <p className="mt-2 text-gray-600 break-words">{project.description}</p>
                       {project.technologies && (
                         <div className="mt-2 flex flex-wrap gap-2">
                           {project.technologies.map((tech, techIndex) => (
@@ -1256,7 +1257,7 @@ export default function ProfileSection() {
             {/* Education Section - Only show if data exists */}
             {profile.education?.length > 0 && (
               <div>
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
                   <h3 className="text-lg font-semibold flex items-center">
                     <GraduationCap className="w-5 h-5 mr-2 text-blue-600" />
                     Education (from CV)
@@ -1265,13 +1266,13 @@ export default function ProfileSection() {
                 <div className="space-y-4">
                   {profile.education.map((edu, index) => (
                     <div key={index} className="border-l-2 border-blue-200 pl-4 bg-gray-50 p-4 rounded-r-lg">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <h4 className="font-medium text-gray-900">{edu.degree}</h4>
-                          <p className="text-gray-600">{edu.institution}</p>
-                        </div>
-                        <span className="text-sm text-gray-500">{edu.year}</span>
+                                          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-medium text-gray-900 break-words">{edu.degree}</h4>
+                        <p className="text-gray-600 break-words">{edu.institution}</p>
                       </div>
+                      <span className="text-sm text-gray-500 flex-shrink-0">{edu.year}</span>
+                    </div>
                     </div>
                   ))}
                 </div>
@@ -1280,6 +1281,7 @@ export default function ProfileSection() {
           </div>
         )
       )}
+      </div>
     </div>
   );
 }
