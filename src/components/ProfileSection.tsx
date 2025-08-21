@@ -455,43 +455,51 @@ export default function ProfileSection() {
       tempDiv.style.padding = '40px';
       tempDiv.style.fontFamily = 'Arial, sans-serif';
 
-      // Generate CV HTML content
+      // Generate CV HTML content with modern design
       tempDiv.innerHTML = `
         <div style="max-width: 800px; margin: 0 auto; background: white; padding: 40px; font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
           <!-- Header -->
           <div style="text-align: center; margin-bottom: 40px; border-bottom: 2px solid #2563eb; padding-bottom: 20px;">
-            <h1 style="font-size: 32px; font-weight: bold; color: #1f2937; margin: 0 0 8px 0;">${cvData.fullName}</h1>
-            <p style="font-size: 18px; color: #6b7280; margin: 0 0 12px 0;">${cvData.title}</p>
-            <div style="display: flex; justify-content: center; gap: 20px; font-size: 14px; color: #6b7280; flex-wrap: wrap;">
-              ${cvData.email ? `<span>${cvData.email}</span>` : ''}
-              ${cvData.phone ? `<span>•</span><span>${cvData.phone}</span>` : ''}
-              ${cvData.location ? `<span>•</span><span>${cvData.location}</span>` : ''}
+            <h1 style="font-size: 36px; font-weight: bold; color: #1f2937; margin: 0 0 8px 0;">${cvData.fullName}</h1>
+            <p style="font-size: 20px; color: #2563eb; font-weight: 600; margin: 0 0 12px 0;">${cvData.title}</p>
+            <div style="display: flex; justify-content: center; gap: 24px; font-size: 14px; color: #6b7280; flex-wrap: wrap; margin-top: 16px;">
+              ${cvData.email ? `<div style="display: flex; align-items: center;"><span style="margin-right: 8px;">📧</span><span>${cvData.email}</span></div>` : ''}
+              ${cvData.phone ? `<div style="display: flex; align-items: center;"><span style="margin-right: 8px;">📞</span><span>${cvData.phone}</span></div>` : ''}
+              ${cvData.location ? `<div style="display: flex; align-items: center;"><span style="margin-right: 8px;">📍</span><span>${cvData.location}</span></div>` : ''}
             </div>
           </div>
 
           <!-- Professional Summary -->
           ${cvData.summary ? `
           <div style="margin-bottom: 32px;">
-            <h2 style="font-size: 20px; font-weight: 600; color: #1f2937; margin: 0 0 12px 0; padding-bottom: 8px; border-bottom: 1px solid #e5e7eb;">Professional Summary</h2>
-            <p style="color: #374151; margin: 0; text-align: justify;">${cvData.summary}</p>
+            <h2 style="font-size: 24px; font-weight: bold; color: #1f2937; margin: 0 0 16px 0; display: flex; align-items: center;">
+              <div style="width: 32px; height: 4px; background: #2563eb; margin-right: 12px;"></div>
+              Professional Summary
+            </h2>
+            <p style="color: #374151; margin: 0; text-align: justify; font-size: 16px; line-height: 1.6;">${cvData.summary}</p>
           </div>
           ` : ''}
 
           <!-- Professional Experience -->
           ${cvData.experience.length > 0 ? `
           <div style="margin-bottom: 32px;">
-            <h2 style="font-size: 20px; font-weight: 600; color: #1f2937; margin: 0 0 12px 0; padding-bottom: 8px; border-bottom: 1px solid #e5e7eb;">Professional Experience</h2>
+            <h2 style="font-size: 24px; font-weight: bold; color: #1f2937; margin: 0 0 24px 0; display: flex; align-items: center;">
+              <div style="width: 32px; height: 4px; background: #2563eb; margin-right: 12px;"></div>
+              Professional Experience
+            </h2>
             <div style="margin-left: 0;">
               ${cvData.experience.map(exp => `
-                <div style="margin-bottom: 24px;">
-                  <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
-                    <div>
-                      <h3 style="font-size: 16px; font-weight: 600; color: #1f2937; margin: 0;">${exp.title}</h3>
-                      <p style="color: #6b7280; margin: 0; font-size: 14px;">${exp.company}</p>
+                <div style="margin-bottom: 24px; border-left: 4px solid #dbeafe; padding-left: 24px;">
+                  <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                    <div style="flex: 1; padding-right: 24px;">
+                      <h3 style="font-size: 18px; font-weight: 600; color: #1f2937; margin: 0 0 4px 0;">${exp.title}</h3>
+                      <p style="color: #2563eb; font-weight: 500; margin: 0; font-size: 14px;">${exp.company}</p>
                     </div>
-                    <span style="color: #6b7280; font-size: 14px; white-space: nowrap;">${exp.duration}</span>
+                    <div style="flex-shrink: 0; width: 128px; text-align: right;">
+                      <span style="color: #6b7280; font-weight: 500; background: #f3f4f6; padding: 6px 12px; border-radius: 20px; font-size: 11px; border: 1px solid #e5e7eb; display: inline-block;">${exp.duration}</span>
+                    </div>
                   </div>
-                  <p style="color: #374151; margin: 0; text-align: justify; font-size: 14px;">${exp.description}</p>
+                  <p style="color: #374151; margin: 0; text-align: justify; font-size: 13px; line-height: 1.6;">${exp.description}</p>
                 </div>
               `).join('')}
             </div>
@@ -501,13 +509,21 @@ export default function ProfileSection() {
           <!-- Projects -->
           ${cvData.projects && cvData.projects.length > 0 ? `
           <div style="margin-bottom: 32px;">
-            <h2 style="font-size: 20px; font-weight: 600; color: #1f2937; margin: 0 0 12px 0; padding-bottom: 8px; border-bottom: 1px solid #e5e7eb;">Projects</h2>
+            <h2 style="font-size: 24px; font-weight: bold; color: #1f2937; margin: 0 0 24px 0; display: flex; align-items: center;">
+              <div style="width: 32px; height: 4px; background: #2563eb; margin-right: 12px;"></div>
+              Projects
+            </h2>
             <div>
               ${cvData.projects.map(project => `
-                <div style="margin-bottom: 24px;">
-                  <h3 style="font-size: 16px; font-weight: 600; color: #1f2937; margin: 0;">${project.name}</h3>
-                  <p style="color: #6b7280; margin: 0; font-size: 14px;">${project.description}</p>
-                  <p style="color: #6b7280; margin: 0; font-size: 14px;">Technologies: ${project.technologies.join(', ')}</p>
+                <div style="margin-bottom: 24px; background: #f9fafb; padding: 24px; border-radius: 8px;">
+                  <h3 style="font-size: 18px; font-weight: 600; color: #1f2937; margin: 0 0 12px 0;">${project.name}</h3>
+                  <p style="color: #374151; margin: 0 0 12px 0; font-size: 14px; line-height: 1.6;">${project.description}</p>
+                  <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                    <span style="font-size: 12px; font-weight: 500; color: #6b7280;">Technologies:</span>
+                    ${project.technologies.map(tech => `
+                      <span style="background: #dbeafe; color: #1d4ed8; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 500;">${tech}</span>
+                    `).join('')}
+                  </div>
                 </div>
               `).join('')}
             </div>
@@ -517,15 +533,20 @@ export default function ProfileSection() {
           <!-- Education -->
           ${cvData.education && cvData.education.length > 0 ? `
           <div style="margin-bottom: 32px;">
-            <h2 style="font-size: 20px; font-weight: 600; color: #1f2937; margin: 0 0 12px 0; padding-bottom: 8px; border-bottom: 1px solid #e5e7eb;">Education</h2>
+            <h2 style="font-size: 24px; font-weight: bold; color: #1f2937; margin: 0 0 24px 0; display: flex; align-items: center;">
+              <div style="width: 32px; height: 4px; background: #2563eb; margin-right: 12px;"></div>
+              Education
+            </h2>
             <div>
               ${cvData.education.map(edu => `
-                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 16px;">
-                  <div>
-                    <h3 style="font-size: 16px; font-weight: 600; color: #1f2937; margin: 0;">${edu.degree}</h3>
-                    <p style="color: #6b7280; margin: 0; font-size: 14px;">${edu.institution}</p>
+                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 16px; background: #f9fafb; padding: 16px; border-radius: 8px;">
+                  <div style="flex: 1; padding-right: 24px;">
+                    <h3 style="font-size: 18px; font-weight: 600; color: #1f2937; margin: 0 0 4px 0;">${edu.degree}</h3>
+                    <p style="color: #2563eb; font-weight: 500; margin: 0; font-size: 14px;">${edu.institution}</p>
                   </div>
-                  <span style="color: #6b7280; font-size: 14px;">${edu.year}</span>
+                  <div style="flex-shrink: 0; width: 128px; text-align: right;">
+                    <span style="color: #6b7280; font-weight: 500; background: white; padding: 6px 12px; border-radius: 20px; font-size: 11px; border: 1px solid #e5e7eb; display: inline-block;">${edu.year}</span>
+                  </div>
                 </div>
               `).join('')}
             </div>
@@ -535,10 +556,13 @@ export default function ProfileSection() {
           <!-- Skills -->
           ${cvData.skills.length > 0 ? `
           <div style="margin-bottom: 32px;">
-            <h2 style="font-size: 20px; font-weight: 600; color: #1f2937; margin: 0 0 12px 0; padding-bottom: 8px; border-bottom: 1px solid #e5e7eb;">Skills</h2>
-            <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+            <h2 style="font-size: 24px; font-weight: bold; color: #1f2937; margin: 0 0 24px 0; display: flex; align-items: center;">
+              <div style="width: 32px; height: 4px; background: #2563eb; margin-right: 12px;"></div>
+              Skills
+            </h2>
+            <div style="display: flex; flex-wrap: wrap; gap: 12px;">
               ${cvData.skills.map(skill => `
-                <span style="background: #f3f4f6; color: #374151; padding: 6px 12px; border-radius: 20px; font-size: 14px; border: 1px solid #e5e7eb;">${skill}</span>
+                <span style="background: #f3f4f6; color: #374151; padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: 500; border: 1px solid #e5e7eb;">${skill}</span>
               `).join('')}
             </div>
           </div>
@@ -547,7 +571,10 @@ export default function ProfileSection() {
           <!-- Languages -->
           ${cvData.languages && cvData.languages.length > 0 ? `
           <div style="margin-bottom: 32px;">
-            <h2 style="font-size: 20px; font-weight: 600; color: #1f2937; margin: 0 0 12px 0; padding-bottom: 8px; border-bottom: 1px solid #e5e7eb;">Languages</h2>
+            <h2 style="font-size: 24px; font-weight: bold; color: #1f2937; margin: 0 0 24px 0; display: flex; align-items: center;">
+              <div style="width: 32px; height: 4px; background: #2563eb; margin-right: 12px;"></div>
+              Languages
+            </h2>
             <div style="display: flex; flex-wrap: wrap; gap: 8px;">
               ${cvData.languages.map(language => `
                 <span style="background: #dbeafe; color: #1d4ed8; padding: 6px 12px; border-radius: 20px; font-size: 14px; border: 1px solid #bfdbfe;">${language}</span>
