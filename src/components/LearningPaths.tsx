@@ -365,6 +365,16 @@ export default function LearningPaths({ job }: LearningPathsProps) {
         selectedJob.requirements
       );
 
+      // Remove duplicates from the generated plan
+      const uniquePlan = plan.filter((resource, index, arr) => {
+        return arr.findIndex(r => 
+          r.url === resource.url || 
+          r.title.toLowerCase() === resource.title.toLowerCase()
+        ) === index;
+      });
+
+      console.log(`Removed ${plan.length - uniquePlan.length} duplicate resources from learning plan.`);
+
       // Save the new path to the database
       const { data: savedPath, error: saveError } = await supabase
         .from('learning_paths')
@@ -373,7 +383,7 @@ export default function LearningPaths({ job }: LearningPathsProps) {
           career_path: selectedJob.title, // Use job title as career path for now
           job_title: selectedJob.title,
           skills_to_learn: selectedJob.requirements, // Use job requirements for skills to learn
-          resources: plan,
+          resources: uniquePlan,
           progress: 0,
         })
         .select()

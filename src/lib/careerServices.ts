@@ -999,7 +999,53 @@ export async function generateCVSuggestions(
 
   try {
     const apiBase = import.meta.env.VITE_BACKEND_API || 'http://localhost:5002/api/v1';
-    const response = await axios.post(`${apiBase}/openai/skillsurger`,{type : "generateCVSuggestions",targetJob:targetJob,cvData:cvData})
+    const response = await axios.post(`${apiBase}/openai/skillsurger`, {
+      type: "generateCVSuggestions",
+      targetJob: targetJob,
+      cvData: cvData,
+      prompt: `You are an expert career coach and CV optimization specialist. Analyze the provided CV data and target job description to generate comprehensive, actionable improvements.
+
+TARGET JOB: ${targetJob.title} at ${targetJob.company}
+JOB DESCRIPTION: ${targetJob.description}
+REQUIREMENTS: ${Array.isArray(targetJob.requirements) ? targetJob.requirements.join(', ') : targetJob.requirements}
+
+CURRENT CV DATA:
+- Name: ${cvData.personalInfo?.fullName || 'Not provided'}
+- Current Role: ${cvData.professional?.currentRole || 'Not provided'}
+- Experience: ${cvData.professional?.yearsOfExperience || 0} years
+- Skills: ${Array.isArray(cvData.skills) ? cvData.skills.join(', ') : 'Not provided'}
+- Experience Entries: ${Array.isArray(cvData.experience) ? cvData.experience.length : 0} positions
+- Education: ${Array.isArray(cvData.education) ? cvData.education.length : 0} entries
+
+INSTRUCTIONS:
+1. Generate a compelling professional summary (2-3 sentences) that aligns with the target role
+2. Identify 5-8 key skills from the job requirements that should be highlighted
+3. For each existing experience entry, provide improved descriptions that:
+   - Use action verbs and quantifiable results
+   - Align with the target job's key responsibilities
+   - Include relevant technologies and methodologies
+   - Show impact and achievements
+4. Suggest 2-3 additional sections that would strengthen the CV for this specific role
+5. Ensure all suggestions are specific, actionable, and tailored to the target position
+
+Return your response as a JSON object with the following structure:
+{
+  "summary": "Improved professional summary",
+  "highlightedSkills": ["skill1", "skill2", "skill3"],
+  "experienceImprovements": [
+    {
+      "original": "Original experience description",
+      "improved": "Enhanced description with metrics and impact"
+    }
+  ],
+  "additionalSections": [
+    {
+      "title": "Section Title",
+      "content": "Detailed content for this section"
+    }
+  ]
+}`
+    })
     if (!response.data.success) {
       return fallbackSuggestion;
     }

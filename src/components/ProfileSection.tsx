@@ -303,38 +303,33 @@ export default function ProfileSection() {
 
       if (updateError) throw updateError;
 
-      // Update skills
+      // Update skills - merge user skills with CV skills
+      let allSkills: string[] = [];
+      
+      // Add user-entered skills
       if (formData.skills.trim()) {
-        const skillsArray = formData.skills.split(',').map(s => s.trim()).filter(Boolean);
-        
-        // Delete existing skills
-        await supabase.from('user_skills').delete().eq('user_id', user.id);
-        
-        // Insert new skills
-        if (skillsArray.length > 0) {
-          const { error: skillsError } = await supabase
-            .from('user_skills')
-            .insert(skillsArray.map(skill => ({ user_id: user.id, skill })));
-          
-          if (skillsError) throw skillsError;
-        }
+        const userSkillsArray = formData.skills.split(',').map(s => s.trim()).filter(Boolean);
+        allSkills = [...allSkills, ...userSkillsArray];
       }
-
-      // If CV was parsed and had skills, merge them with user skills
+      
+      // Add CV parsed skills
       if (parsedCvData?.skills && parsedCvData.skills.length > 0) {
-        const existingSkills = formData.skills.split(',').map(s => s.trim()).filter(Boolean);
-        const allSkills = [...new Set([...existingSkills, ...parsedCvData.skills])];
+        allSkills = [...allSkills, ...parsedCvData.skills];
+      }
         
-        // Delete existing skills and insert merged skills
+      // Remove duplicates and update database
+      const uniqueSkills = [...new Set(allSkills)];
+      
+      // Delete existing skills
         await supabase.from('user_skills').delete().eq('user_id', user.id);
         
-        if (allSkills.length > 0) {
+      // Insert new skills
+      if (uniqueSkills.length > 0) {
           const { error: skillsError } = await supabase
             .from('user_skills')
-            .insert(allSkills.map(skill => ({ user_id: user.id, skill })));
+          .insert(uniqueSkills.map(skill => ({ user_id: user.id, skill })));
           
           if (skillsError) throw skillsError;
-        }
       }
 
       await loadProfile();
@@ -430,183 +425,40 @@ export default function ProfileSection() {
     if (!profile) return;
 
     try {
-      // Create CV data with all parsed information including projects
-      const cvData = {
-        fullName: profile.cv_parsed_data?.full_name || profile.full_name || '',
-        title: profile.cv_parsed_data?.current_role || profile.current_role || '',
-        email: profile.cv_parsed_data?.email || profile.email || '',
-        phone: profile.cv_parsed_data?.phone || profile.phone || '',
-        location: [profile.cv_parsed_data?.city || profile.city, profile.cv_parsed_data?.state || profile.state, profile.cv_parsed_data?.country || profile.country].filter(Boolean).join(', '),
-        summary: profile.cv_parsed_data?.summary || profile.summary || '',
-        experience: profile.cv_parsed_data?.experience || profile.experience || [],
-        projects: profile.cv_parsed_data?.projects || profile.projects || [],
-        education: profile.cv_parsed_data?.education || profile.education || [],
-        skills: profile.cv_parsed_data?.skills || profile.skills || [],
-        languages: profile.cv_parsed_data?.languages || profile.languages || []
-      };
+      setDownloading(true);
+      
+      // Find the CV preview element
+      const cvPreviewElement = document.getElementById('cv-preview');
+      if (!cvPreviewElement) {
+        throw new Error('CV preview element not found');
+      }
 
-      // Create a temporary CV preview element
-      const tempDiv = document.createElement('div');
-      tempDiv.id = 'temp-cv-download';
-      tempDiv.style.position = 'absolute';
-      tempDiv.style.left = '-9999px';
-      tempDiv.style.width = '800px';
-      tempDiv.style.backgroundColor = 'white';
-      tempDiv.style.padding = '40px';
-      tempDiv.style.fontFamily = 'Arial, sans-serif';
-
-      // Generate CV HTML content with modern design
-      tempDiv.innerHTML = `
-        <div style="max-width: 800px; margin: 0 auto; background: white; padding: 40px; font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-          <!-- Header -->
-          <div style="text-align: center; margin-bottom: 40px; border-bottom: 2px solid #2563eb; padding-bottom: 20px;">
-            <h1 style="font-size: 36px; font-weight: bold; color: #1f2937; margin: 0 0 8px 0;">${cvData.fullName}</h1>
-            <p style="font-size: 20px; color: #2563eb; font-weight: 600; margin: 0 0 12px 0;">${cvData.title}</p>
-            <div style="display: flex; justify-content: center; gap: 24px; font-size: 14px; color: #6b7280; flex-wrap: wrap; margin-top: 16px;">
-              ${cvData.email ? `<div style="display: flex; align-items: center;"><span style="margin-right: 8px;">📧</span><span>${cvData.email}</span></div>` : ''}
-              ${cvData.phone ? `<div style="display: flex; align-items: center;"><span style="margin-right: 8px;">📞</span><span>${cvData.phone}</span></div>` : ''}
-              ${cvData.location ? `<div style="display: flex; align-items: center;"><span style="margin-right: 8px;">📍</span><span>${cvData.location}</span></div>` : ''}
-            </div>
-          </div>
-
-          <!-- Professional Summary -->
-          ${cvData.summary ? `
-          <div style="margin-bottom: 32px;">
-            <h2 style="font-size: 24px; font-weight: bold; color: #1f2937; margin: 0 0 16px 0; display: flex; align-items: center;">
-              <div style="width: 32px; height: 4px; background: #2563eb; margin-right: 12px;"></div>
-              Professional Summary
-            </h2>
-            <p style="color: #374151; margin: 0; text-align: justify; font-size: 16px; line-height: 1.6;">${cvData.summary}</p>
-          </div>
-          ` : ''}
-
-          <!-- Professional Experience -->
-          ${cvData.experience.length > 0 ? `
-          <div style="margin-bottom: 32px;">
-            <h2 style="font-size: 24px; font-weight: bold; color: #1f2937; margin: 0 0 24px 0; display: flex; align-items: center;">
-              <div style="width: 32px; height: 4px; background: #2563eb; margin-right: 12px;"></div>
-              Professional Experience
-            </h2>
-            <div style="margin-left: 0;">
-              ${cvData.experience.map(exp => `
-                <div style="margin-bottom: 24px; border-left: 4px solid #dbeafe; padding-left: 24px;">
-                  <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
-                    <div style="flex: 1; padding-right: 24px;">
-                      <h3 style="font-size: 18px; font-weight: 600; color: #1f2937; margin: 0 0 4px 0;">${exp.title}</h3>
-                      <p style="color: #2563eb; font-weight: 500; margin: 0; font-size: 14px;">${exp.company}</p>
-                    </div>
-                    <div style="flex-shrink: 0; width: 128px; text-align: right;">
-                      <span style="color: #6b7280; font-weight: 500; background: #f3f4f6; padding: 6px 12px; border-radius: 20px; font-size: 11px; border: 1px solid #e5e7eb; display: inline-block;">${exp.duration}</span>
-                    </div>
-                  </div>
-                  <p style="color: #374151; margin: 0; text-align: justify; font-size: 13px; line-height: 1.6;">${exp.description}</p>
-                </div>
-              `).join('')}
-            </div>
-          </div>
-          ` : ''}
-
-          <!-- Projects -->
-          ${cvData.projects && cvData.projects.length > 0 ? `
-          <div style="margin-bottom: 32px;">
-            <h2 style="font-size: 24px; font-weight: bold; color: #1f2937; margin: 0 0 24px 0; display: flex; align-items: center;">
-              <div style="width: 32px; height: 4px; background: #2563eb; margin-right: 12px;"></div>
-              Projects
-            </h2>
-            <div>
-              ${cvData.projects.map(project => `
-                <div style="margin-bottom: 24px; background: #f9fafb; padding: 24px; border-radius: 8px;">
-                  <h3 style="font-size: 18px; font-weight: 600; color: #1f2937; margin: 0 0 12px 0;">${project.name}</h3>
-                  <p style="color: #374151; margin: 0 0 12px 0; font-size: 14px; line-height: 1.6;">${project.description}</p>
-                  <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-                    <span style="font-size: 12px; font-weight: 500; color: #6b7280;">Technologies:</span>
-                    ${project.technologies.map(tech => `
-                      <span style="background: #dbeafe; color: #1d4ed8; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 500;">${tech}</span>
-                    `).join('')}
-                  </div>
-                </div>
-              `).join('')}
-            </div>
-          </div>
-          ` : ''}
-
-          <!-- Education -->
-          ${cvData.education && cvData.education.length > 0 ? `
-          <div style="margin-bottom: 32px;">
-            <h2 style="font-size: 24px; font-weight: bold; color: #1f2937; margin: 0 0 24px 0; display: flex; align-items: center;">
-              <div style="width: 32px; height: 4px; background: #2563eb; margin-right: 12px;"></div>
-              Education
-            </h2>
-            <div>
-              ${cvData.education.map(edu => `
-                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 16px; background: #f9fafb; padding: 16px; border-radius: 8px;">
-                  <div style="flex: 1; padding-right: 24px;">
-                    <h3 style="font-size: 18px; font-weight: 600; color: #1f2937; margin: 0 0 4px 0;">${edu.degree}</h3>
-                    <p style="color: #2563eb; font-weight: 500; margin: 0; font-size: 14px;">${edu.institution}</p>
-                  </div>
-                  <div style="flex-shrink: 0; width: 128px; text-align: right;">
-                    <span style="color: #6b7280; font-weight: 500; background: white; padding: 6px 12px; border-radius: 20px; font-size: 11px; border: 1px solid #e5e7eb; display: inline-block;">${edu.year}</span>
-                  </div>
-                </div>
-              `).join('')}
-            </div>
-          </div>
-          ` : ''}
-
-          <!-- Skills -->
-          ${cvData.skills.length > 0 ? `
-          <div style="margin-bottom: 32px;">
-            <h2 style="font-size: 24px; font-weight: bold; color: #1f2937; margin: 0 0 24px 0; display: flex; align-items: center;">
-              <div style="width: 32px; height: 4px; background: #2563eb; margin-right: 12px;"></div>
-              Skills
-            </h2>
-            <div style="display: flex; flex-wrap: wrap; gap: 12px;">
-              ${cvData.skills.map(skill => `
-                <span style="background: #f3f4f6; color: #374151; padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: 500; border: 1px solid #e5e7eb;">${skill}</span>
-              `).join('')}
-            </div>
-          </div>
-          ` : ''}
-
-          <!-- Languages -->
-          ${cvData.languages && cvData.languages.length > 0 ? `
-          <div style="margin-bottom: 32px;">
-            <h2 style="font-size: 24px; font-weight: bold; color: #1f2937; margin: 0 0 24px 0; display: flex; align-items: center;">
-              <div style="width: 32px; height: 4px; background: #2563eb; margin-right: 12px;"></div>
-              Languages
-            </h2>
-            <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-              ${cvData.languages.map(language => `
-                <span style="background: #dbeafe; color: #1d4ed8; padding: 6px 12px; border-radius: 20px; font-size: 14px; border: 1px solid #bfdbfe;">${language}</span>
-              `).join('')}
-            </div>
-          </div>
-          ` : ''}
-        </div>
-      `;
-
-      document.body.appendChild(tempDiv);
-
-      // Generate PDF using html2canvas and jsPDF
-      const { default: html2canvas } = await import('html2canvas');
-      const { default: jsPDF } = await import('jspdf');
-
-      const canvas = await html2canvas(tempDiv, {
-        scale: 2,
-        logging: false,
+      // Use html2canvas to capture the actual rendered CV preview
+      const canvas = await html2canvas(cvPreviewElement, {
+        scale: 3,
         useCORS: true,
-        backgroundColor: '#ffffff'
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        width: cvPreviewElement.scrollWidth,
+        height: cvPreviewElement.scrollHeight,
+        scrollX: 0,
+        scrollY: 0,
+        logging: false,
+        letterRendering: true,
+        foreignObjectRendering: true,
+        imageTimeout: 0,
+        removeContainer: true,
+        ignoreElements: (element) => {
+          return element.classList.contains('no-print');
+        }
       });
 
+      // Create PDF
       const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4'
-      });
+      const pdf = new jsPDF('p', 'mm', 'a4');
 
       const imgWidth = 210; // A4 width in mm
-      const pageHeight = 297; // A4 height in mm
+      const pageHeight = 295; // A4 height in mm
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
       let heightLeft = imgHeight;
 
@@ -622,16 +474,16 @@ export default function ProfileSection() {
         heightLeft -= pageHeight;
       }
 
-      // Clean up
-      document.body.removeChild(tempDiv);
-
       // Download the PDF
-      const filename = `${cvData.fullName.replace(/\s+/g, '_')}_CV.pdf`;
-      pdf.save(filename);
+      const fullName = profile.cv_parsed_data?.full_name || profile.full_name || 'CV';
+      const fileName = `${fullName.replace(/\s+/g, '_')}_CV.pdf`;
+      pdf.save(fileName);
 
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error generating CV PDF:', error);
-      setError(error.message || 'Failed to generate CV PDF');
+      setError('Failed to generate CV PDF');
+    } finally {
+      setDownloading(false);
     }
   };
 
@@ -1193,8 +1045,12 @@ export default function ProfileSection() {
                     experience: profile.cv_parsed_data?.experience || profile.experience || [],
                     projects: profile.cv_parsed_data?.projects || profile.projects || [],
                     education: profile.cv_parsed_data?.education || profile.education || [],
-                    skills: profile.cv_parsed_data?.skills || profile.skills || [],
-                    languages: profile.cv_parsed_data?.languages || profile.languages || []
+                    skills: userSkills.map(s => s.skill).concat(profile.cv_parsed_data?.skills || profile.skills || []).filter((skill, index, arr) => arr.indexOf(skill) === index),
+                    languages: profile.cv_parsed_data?.languages || profile.languages || [],
+                    certifications: profile.cv_parsed_data?.certifications || [],
+                    awards: profile.cv_parsed_data?.awards || [],
+                    publications: profile.cv_parsed_data?.publications || [],
+                    volunteerWork: profile.cv_parsed_data?.volunteerWork || []
                   }}
                   onSave={async (data) => {
                     try {
@@ -1226,85 +1082,7 @@ export default function ProfileSection() {
               )}
             </div>
 
-            {/* Experience Section - Only show if data exists */}
-            {profile.experience?.length > 0 && (
-              <div className="border-b pb-6">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-                  <h3 className="text-lg font-semibold flex items-center">
-                    <Briefcase className="w-5 h-5 mr-2 text-blue-600" />
-                    Professional Experience (from CV)
-                  </h3>
-                </div>
-                <div className="space-y-4">
-                  {profile.experience.map((exp, index) => (
-                    <div key={index} className="border-l-2 border-blue-200 pl-4 bg-gray-50 p-4 rounded-r-lg">
-                                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
-                  <div className="flex-1 min-w-0">
-                    <h4 className="font-medium text-gray-900 break-words">{exp.title}</h4>
-                    <p className="text-gray-600 break-words">{exp.company}</p>
-                  </div>
-                  <span className="text-sm text-gray-500 flex-shrink-0">{exp.duration}</span>
-                </div>
-                      <p className="mt-2 text-gray-600 break-words">{exp.description}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
 
-            {/* Projects Section - Only show if data exists */}
-            {profile.projects?.length > 0 && (
-              <div className="border-b pb-6">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-                  <h3 className="text-lg font-semibold flex items-center">
-                    <Brain className="w-5 h-5 mr-2 text-blue-600" />
-                    Projects (from CV)
-                  </h3>
-                </div>
-                <div className="space-y-4">
-                  {profile.projects.map((project, index) => (
-                    <div key={index} className="bg-gray-50 rounded-lg p-4">
-                      <h4 className="font-medium text-gray-900 break-words">{project.name}</h4>
-                      <p className="mt-2 text-gray-600 break-words">{project.description}</p>
-                      {project.technologies && (
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          {project.technologies.map((tech, techIndex) => (
-                            <span key={techIndex} className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">
-                              {tech}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Education Section - Only show if data exists */}
-            {profile.education?.length > 0 && (
-              <div>
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-                  <h3 className="text-lg font-semibold flex items-center">
-                    <GraduationCap className="w-5 h-5 mr-2 text-blue-600" />
-                    Education (from CV)
-                  </h3>
-                </div>
-                <div className="space-y-4">
-                  {profile.education.map((edu, index) => (
-                    <div key={index} className="border-l-2 border-blue-200 pl-4 bg-gray-50 p-4 rounded-r-lg">
-                                          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-medium text-gray-900 break-words">{edu.degree}</h4>
-                        <p className="text-gray-600 break-words">{edu.institution}</p>
-                      </div>
-                      <span className="text-sm text-gray-500 flex-shrink-0">{edu.year}</span>
-                    </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         )
       )}

@@ -1,7 +1,6 @@
 // Enhanced learning resource generation with verified links
-import { openai, isOpenAIConfigured } from './openaiConfig';
-import { extractJsonFromMarkdown } from './utils';
-import { verifyLink, generateFallbackUrl, getPlatformInfo, type LinkVerificationResult } from './linkVerification';
+import { isOpenAIConfigured } from './openaiConfig';
+import { verifyLink, generateFallbackUrl, getPlatformInfo } from './linkVerification';
 import axios from 'axios';
 
 export interface VerifiedResource {
@@ -403,9 +402,19 @@ export async function generateVerifiedLearningResources(
     
     const resources = parsedJson.resources;
 
+    // Remove duplicates based on URL and title before verification
+    const uniqueResources = resources.filter((resource: any, index: number, arr: any[]) => {
+      return arr.findIndex(r => 
+        r.url === resource.url || 
+        r.title.toLowerCase() === resource.title.toLowerCase()
+      ) === index;
+    });
+
+    console.log(`Removed ${resources.length - uniqueResources.length} duplicate resources.`);
+
     // Asynchronously verify and enrich each resource
     const verifiedResources = await Promise.all(
-      resources.map(async (resource: any) => {
+      uniqueResources.map(async (resource: any) => {
         const { isValid } = await verifyLink(resource.url);
         const platformInfo = getPlatformInfo(resource.url);
 
@@ -420,8 +429,16 @@ export async function generateVerifiedLearningResources(
       })
     );
 
-    console.log(`Generated and verified ${verifiedResources.length} resources for ${jobTitle}.`);
-    return verifiedResources;
+    // Final deduplication after verification to catch any remaining duplicates
+    const finalResources = verifiedResources.filter((resource, index, arr) => {
+      return arr.findIndex(r => 
+        r.url === resource.url || 
+        r.title.toLowerCase() === resource.title.toLowerCase()
+      ) === index;
+    });
+
+    console.log(`Generated and verified ${finalResources.length} unique resources for ${jobTitle}.`);
+    return finalResources;
 
   } catch (error) {
     console.error('Error in generateVerifiedLearningResources:', error);

@@ -76,184 +76,38 @@ export default function CVSuggestionManager({
     try {
       setIsDownloading(true);
 
-      // Generate optimized CV data
-      const optimizedData = generateOptimizedCVData();
+      // Find the CV preview element
+      const cvPreviewElement = document.getElementById('cv-preview');
+      if (!cvPreviewElement) {
+        throw new Error('CV preview element not found');
+      }
 
-      // Create a temporary CV preview element
-      const tempDiv = document.createElement('div');
-      tempDiv.id = 'temp-cv-preview';
-      tempDiv.style.position = 'absolute';
-      tempDiv.style.left = '-9999px';
-      tempDiv.style.width = '800px';
-      tempDiv.style.backgroundColor = 'white';
-      tempDiv.style.padding = '40px';
-      tempDiv.style.fontFamily = 'Arial, sans-serif';
-
-      // Generate CV HTML content with modern design
-      tempDiv.innerHTML = `
-        <div style="max-width: 800px; margin: 0 auto; background: white; padding: 40px; font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-          <!-- Header -->
-          <div style="text-align: center; margin-bottom: 40px; border-bottom: 2px solid #2563eb; padding-bottom: 20px;">
-            <h1 style="font-size: 36px; font-weight: bold; color: #1f2937; margin: 0 0 8px 0;">${optimizedData.fullName || 'Professional Name'}</h1>
-            <p style="font-size: 20px; color: #2563eb; font-weight: 600; margin: 0 0 12px 0;">${currentData.experience[0]?.title || 'Professional Title'}</p>
-            <div style="display: flex; justify-content: center; gap: 24px; font-size: 14px; color: #6b7280; flex-wrap: wrap; margin-top: 16px;">
-              ${optimizedData.email ? `<div style="display: flex; align-items: center;"><span style="margin-right: 8px;">📧</span><span>${optimizedData.email}</span></div>` : ''}
-              ${optimizedData.phone ? `<div style="display: flex; align-items: center;"><span style="margin-right: 8px;">📞</span><span>${optimizedData.phone}</span></div>` : ''}
-              ${optimizedData.location ? `<div style="display: flex; align-items: center;"><span style="margin-right: 8px;">📍</span><span>${optimizedData.location}</span></div>` : ''}
-            </div>
-          </div>
-
-          <!-- Professional Summary -->
-          ${optimizedData.summary ? `
-          <div style="margin-bottom: 32px;">
-            <h2 style="font-size: 24px; font-weight: bold; color: #1f2937; margin: 0 0 16px 0; display: flex; align-items: center;">
-              <div style="width: 32px; height: 4px; background: #2563eb; margin-right: 12px;"></div>
-              Professional Summary
-            </h2>
-            <p style="color: #374151; margin: 0; text-align: justify; font-size: 16px; line-height: 1.6;">${optimizedData.summary}</p>
-          </div>
-          ` : ''}
-
-          <!-- Professional Experience -->
-          ${optimizedData.experience.length > 0 ? `
-          <div style="margin-bottom: 32px;">
-            <h2 style="font-size: 24px; font-weight: bold; color: #1f2937; margin: 0 0 24px 0; display: flex; align-items: center;">
-              <div style="width: 32px; height: 4px; background: #2563eb; margin-right: 12px;"></div>
-              Professional Experience
-            </h2>
-            <div style="margin-left: 0;">
-              ${optimizedData.experience.map((exp: any) => `
-                <div style="margin-bottom: 24px; border-left: 4px solid #dbeafe; padding-left: 24px;">
-                  <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
-                    <div style="flex: 1; padding-right: 24px;">
-                      <h3 style="font-size: 18px; font-weight: 600; color: #1f2937; margin: 0 0 4px 0;">${exp.title}</h3>
-                      <p style="color: #2563eb; font-weight: 500; margin: 0; font-size: 14px;">${exp.company}</p>
-                    </div>
-                    <div style="flex-shrink: 0; width: 128px; text-align: right;">
-                      <span style="color: #6b7280; font-weight: 500; background: #f3f4f6; padding: 6px 12px; border-radius: 20px; font-size: 11px; border: 1px solid #e5e7eb; display: inline-block;">${exp.duration}</span>
-                    </div>
-                  </div>
-                  <p style="color: #374151; margin: 0; text-align: justify; font-size: 13px; line-height: 1.6;">${exp.description}</p>
-                </div>
-              `).join('')}
-            </div>
-          </div>
-          ` : ''}
-
-          <!-- Projects -->
-          ${optimizedData.projects && optimizedData.projects.length > 0 ? `
-          <div style="margin-bottom: 32px;">
-            <h2 style="font-size: 24px; font-weight: bold; color: #1f2937; margin: 0 0 24px 0; display: flex; align-items: center;">
-              <div style="width: 32px; height: 4px; background: #2563eb; margin-right: 12px;"></div>
-              Projects
-            </h2>
-            <div>
-              ${optimizedData.projects.map((project: any) => `
-                <div style="margin-bottom: 24px; background: #f9fafb; padding: 24px; border-radius: 8px;">
-                  <h3 style="font-size: 18px; font-weight: 600; color: #1f2937; margin: 0 0 12px 0;">${project.name}</h3>
-                  <p style="color: #374151; margin: 0 0 12px 0; font-size: 14px; line-height: 1.6;">${project.description}</p>
-                  <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-                    <span style="font-size: 12px; font-weight: 500; color: #6b7280;">Technologies:</span>
-                    ${project.technologies.map((tech: any) => `
-                      <span style="background: #dbeafe; color: #1d4ed8; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 500;">${tech}</span>
-                    `).join('')}
-                  </div>
-                </div>
-              `).join('')}
-            </div>
-          </div>
-          ` : ''}
-
-          <!-- Education -->
-          ${optimizedData.education && optimizedData.education.length > 0 ? `
-          <div style="margin-bottom: 32px;">
-            <h2 style="font-size: 24px; font-weight: bold; color: #1f2937; margin: 0 0 24px 0; display: flex; align-items: center;">
-              <div style="width: 32px; height: 4px; background: #2563eb; margin-right: 12px;"></div>
-              Education
-            </h2>
-            <div>
-              ${optimizedData.education.map((edu: any) => `
-                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 16px; background: #f9fafb; padding: 16px; border-radius: 8px;">
-                  <div style="flex: 1; padding-right: 24px;">
-                    <h3 style="font-size: 18px; font-weight: 600; color: #1f2937; margin: 0 0 4px 0;">${edu.degree}</h3>
-                    <p style="color: #2563eb; font-weight: 500; margin: 0; font-size: 14px;">${edu.institution}</p>
-                  </div>
-                  <div style="flex-shrink: 0; width: 128px; text-align: right;">
-                    <span style="color: #6b7280; font-weight: 500; background: white; padding: 6px 12px; border-radius: 20px; font-size: 11px; border: 1px solid #e5e7eb; display: inline-block;">${edu.year}</span>
-                  </div>
-                </div>
-              `).join('')}
-            </div>
-          </div>
-          ` : ''}
-
-          <!-- Skills -->
-          ${optimizedData.skills.length > 0 ? `
-          <div style="margin-bottom: 32px;">
-            <h2 style="font-size: 24px; font-weight: bold; color: #1f2937; margin: 0 0 24px 0; display: flex; align-items: center;">
-              <div style="width: 32px; height: 4px; background: #2563eb; margin-right: 12px;"></div>
-              Skills
-            </h2>
-            <div style="display: flex; flex-wrap: wrap; gap: 12px;">
-              ${optimizedData.skills.map((skill: any) => `
-                <span style="background: #f3f4f6; color: #374151; padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: 500; border: 1px solid #e5e7eb;">${skill}</span>
-              `).join('')}
-            </div>
-          </div>
-          ` : ''}
-
-          <!-- Languages -->
-          ${optimizedData.languages && optimizedData.languages.length > 0 ? `
-          <div style="margin-bottom: 32px;">
-            <h2 style="font-size: 24px; font-weight: bold; color: #1f2937; margin: 0 0 24px 0; display: flex; align-items: center;">
-              <div style="width: 32px; height: 4px; background: #2563eb; margin-right: 12px;"></div>
-              Languages
-            </h2>
-            <div style="display: flex; flex-wrap: wrap; gap: 12px;">
-              ${optimizedData.languages.map((language: any) => `
-                <span style="background: #dbeafe; color: #1d4ed8; padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: 500; border: 1px solid #bfdbfe;">${language}</span>
-              `).join('')}
-            </div>
-          </div>
-          ` : ''}
-
-          <!-- Additional Sections from AI Suggestions -->
-          ${suggestions.additionalSections.length > 0 ? `
-            <div style="margin-bottom: 32px;">
-              <h2 style="font-size: 24px; font-weight: bold; color: #1f2937; margin: 0 0 24px 0; display: flex; align-items: center;">
-                <div style="width: 32px; height: 4px; background: #2563eb; margin-right: 12px;"></div>
-                Additional Sections
-              </h2>
-              ${suggestions.additionalSections.map((section: any) => `
-                <div style="margin-bottom: 16px;">
-                  <h3 style="font-size: 18px; font-weight: 600; color: #1f2937; margin: 0;">${section.title}</h3>
-                  <p style="color: #374151; margin: 0; text-align: justify; font-size: 14px; line-height: 1.6;">${section.content}</p>
-                </div>
-              `).join('')}
-            </div>
-          ` : ''}
-        </div>
-      `;
-
-      document.body.appendChild(tempDiv);
-
-      // Generate PDF
-      const canvas = await html2canvas(tempDiv, {
-        scale: 2,
-        logging: false,
+      // Use html2canvas to capture the actual rendered CV preview
+      const canvas = await html2canvas(cvPreviewElement, {
+        scale: 3,
         useCORS: true,
-        backgroundColor: '#ffffff'
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        width: cvPreviewElement.scrollWidth,
+        height: cvPreviewElement.scrollHeight,
+        scrollX: 0,
+        scrollY: 0,
+        logging: false,
+        letterRendering: true,
+        foreignObjectRendering: true,
+        imageTimeout: 0,
+        removeContainer: true,
+        ignoreElements: (element) => {
+          return element.classList.contains('no-print');
+        }
       });
 
+      // Create PDF
       const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4'
-      });
-
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      
       const imgWidth = 210; // A4 width in mm
-      const pageHeight = 297; // A4 height in mm
+      const pageHeight = 295; // A4 height in mm
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
       let heightLeft = imgHeight;
 
@@ -269,16 +123,13 @@ export default function CVSuggestionManager({
         heightLeft -= pageHeight;
       }
 
-      // Clean up
-      document.body.removeChild(tempDiv);
-
       // Download the PDF
-      const fileName = `${optimizedData.fullName?.replace(/\s+/g, '_') || 'Optimized'}_CV.pdf`;
+      const fullName = currentData.fullName || 'CV';
+      const fileName = `${fullName.replace(/\s+/g, '_')}_Optimized_CV.pdf`;
       pdf.save(fileName);
 
     } catch (error) {
-      console.error('Error generating optimized CV:', error);
-      alert('Failed to generate optimized CV. Please try again.');
+      console.error('Error generating optimized CV PDF:', error);
     } finally {
       setIsDownloading(false);
     }

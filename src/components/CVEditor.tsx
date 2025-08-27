@@ -16,6 +16,7 @@ interface CVData {
     company: string;
     duration: string;
     description: string;
+    technologies?: string[];
   }>;
   projects: Array<{
     name: string;
@@ -29,6 +30,27 @@ interface CVData {
   }>;
   skills: string[];
   languages: string[];
+  certifications?: Array<{
+    name: string;
+    issuer: string;
+    date: string;
+  }>;
+  awards?: Array<{
+    title: string;
+    issuer: string;
+    date: string;
+  }>;
+  publications?: Array<{
+    title: string;
+    journal: string;
+    date: string;
+  }>;
+  volunteerWork?: Array<{
+    organization: string;
+    role: string;
+    duration: string;
+    description: string;
+  }>;
 }
 
 interface Props {
@@ -251,6 +273,23 @@ export default function CVEditor({ initialData, onSave, hideSummaryInPreview }: 
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                     />
                   </div>
+                  <div className="mt-4">
+                    <label className="block text-sm font-medium text-gray-700">Technologies Used (comma-separated)</label>
+                    <input
+                      type="text"
+                      value={exp.technologies?.join(', ') || ''}
+                      onChange={(e) => {
+                        const newExp = [...data.experience];
+                        newExp[index] = { 
+                          ...exp, 
+                          technologies: e.target.value.split(',').map(t => t.trim()).filter(Boolean)
+                        };
+                        setData({ ...data, experience: newExp });
+                      }}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                      placeholder="e.g., React, Node.js, Python"
+                    />
+                  </div>
                 </div>
               ))}
             </div>
@@ -449,6 +488,170 @@ export default function CVEditor({ initialData, onSave, hideSummaryInPreview }: 
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
             />
           </div>
+
+          {/* Certifications */}
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <label className="block text-sm font-medium text-gray-700">Certifications</label>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setData({
+                  ...data,
+                  certifications: [
+                    ...(data.certifications || []),
+                    { name: '', issuer: '', date: '' }
+                  ]
+                })}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Certification
+              </Button>
+            </div>
+            <div className="space-y-4">
+              {(data.certifications || []).map((cert, index) => (
+                <div key={index} className="border rounded-lg p-4">
+                  <div className="flex justify-between mb-4">
+                    <h4 className="font-medium">Certification #{index + 1}</h4>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setData({
+                        ...data,
+                        certifications: (data.certifications || []).filter((_, i) => i !== index)
+                      })}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Certification Name</label>
+                      <input
+                        type="text"
+                        value={cert.name}
+                        onChange={(e) => {
+                          const newCerts = [...(data.certifications || [])];
+                          newCerts[index] = { ...cert, name: e.target.value };
+                          setData({ ...data, certifications: newCerts });
+                        }}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Issuer</label>
+                      <input
+                        type="text"
+                        value={cert.issuer}
+                        onChange={(e) => {
+                          const newCerts = [...(data.certifications || [])];
+                          newCerts[index] = { ...cert, issuer: e.target.value };
+                          setData({ ...data, certifications: newCerts });
+                        }}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Date</label>
+                      <input
+                        type="text"
+                        value={cert.date}
+                        onChange={(e) => {
+                          const newCerts = [...(data.certifications || [])];
+                          newCerts[index] = { ...cert, date: e.target.value };
+                          setData({ ...data, certifications: newCerts });
+                        }}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        placeholder="e.g., Jan 2023"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Awards */}
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <label className="block text-sm font-medium text-gray-700">Awards</label>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setData({
+                  ...data,
+                  awards: [
+                    ...(data.awards || []),
+                    { title: '', issuer: '', date: '' }
+                  ]
+                })}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Award
+              </Button>
+            </div>
+            <div className="space-y-4">
+              {(data.awards || []).map((award, index) => (
+                <div key={index} className="border rounded-lg p-4">
+                  <div className="flex justify-between mb-4">
+                    <h4 className="font-medium">Award #{index + 1}</h4>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setData({
+                        ...data,
+                        awards: (data.awards || []).filter((_, i) => i !== index)
+                      })}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Award Title</label>
+                      <input
+                        type="text"
+                        value={award.title}
+                        onChange={(e) => {
+                          const newAwards = [...(data.awards || [])];
+                          newAwards[index] = { ...award, title: e.target.value };
+                          setData({ ...data, awards: newAwards });
+                        }}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Issuer</label>
+                      <input
+                        type="text"
+                        value={award.issuer}
+                        onChange={(e) => {
+                          const newAwards = [...(data.awards || [])];
+                          newAwards[index] = { ...award, issuer: e.target.value };
+                          setData({ ...data, awards: newAwards });
+                        }}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Date</label>
+                      <input
+                        type="text"
+                        value={award.date}
+                        onChange={(e) => {
+                          const newAwards = [...(data.awards || [])];
+                          newAwards[index] = { ...award, date: e.target.value };
+                          setData({ ...data, awards: newAwards });
+                        }}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        placeholder="e.g., Jan 2023"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -470,7 +673,7 @@ export default function CVEditor({ initialData, onSave, hideSummaryInPreview }: 
         </div>
       </div>
 
-      <div id="cv-preview" className="bg-white p-8 shadow-lg rounded-lg max-w-4xl mx-auto">
+      <div id="cv-preview" className="bg-white p-8 shadow-lg rounded-lg max-w-4xl mx-auto" style={{ fontFamily: 'Arial, sans-serif', lineHeight: '1.6' }}>
         {/* Header */}
         <div className="text-center mb-10 pb-6 border-b-2 border-blue-600">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">{data.fullName}</h1>
@@ -530,13 +733,22 @@ export default function CVEditor({ initialData, onSave, hideSummaryInPreview }: 
                       <h3 className="text-xl font-semibold text-gray-900 mb-1">{exp.title}</h3>
                       <p className="text-blue-600 font-medium">{exp.company}</p>
                     </div>
-                    <div className="flex-shrink-0 w-32 text-right">
-                      <span className="text-gray-500 font-medium bg-gray-100 px-3 py-1.5 rounded-full text-xs inline-block">
+                    <div className="flex-shrink-0 text-right min-w-[140px] flex justify-end">
+                      <span className="text-gray-500 font-medium bg-gray-100 px-4 py-2 rounded-full text-xs inline-block text-center whitespace-nowrap">
                         {exp.duration}
                       </span>
                     </div>
                   </div>
                   <p className="text-gray-700 leading-relaxed text-sm">{exp.description}</p>
+                  {exp.technologies && exp.technologies.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {exp.technologies.map((tech, techIndex) => (
+                        <span key={techIndex} className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">
+                          {tech}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -588,8 +800,8 @@ export default function CVEditor({ initialData, onSave, hideSummaryInPreview }: 
                     <h3 className="text-xl font-semibold text-gray-900 mb-1">{edu.degree}</h3>
                     <p className="text-blue-600 font-medium">{edu.institution}</p>
                   </div>
-                  <div className="flex-shrink-0 w-32 text-right">
-                    <span className="text-gray-500 font-medium bg-white px-3 py-1.5 rounded-full text-xs border inline-block">
+                  <div className="flex-shrink-0 text-right min-w-[140px] flex justify-end">
+                    <span className="text-gray-500 font-medium bg-white px-4 py-2 rounded-full text-xs border inline-block text-center whitespace-nowrap">
                       {edu.year}
                     </span>
                   </div>
@@ -621,8 +833,8 @@ export default function CVEditor({ initialData, onSave, hideSummaryInPreview }: 
 
         {/* Languages */}
         {data.languages.length > 0 && (
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
+          <div className="mb-10">
+            <h2 className="text-2xl font-bold text-gray-900 mb-8 flex items-center">
               <div className="w-8 h-1 bg-blue-600 mr-3"></div>
               Languages
             </h2>
@@ -634,6 +846,56 @@ export default function CVEditor({ initialData, onSave, hideSummaryInPreview }: 
                 >
                   {language}
                 </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Certifications */}
+        {data.certifications && data.certifications.length > 0 && (
+          <div className="mb-10">
+            <h2 className="text-2xl font-bold text-gray-900 mb-8 flex items-center">
+              <div className="w-8 h-1 bg-blue-600 mr-3"></div>
+              Certifications
+            </h2>
+            <div className="space-y-4">
+              {data.certifications.map((cert, index) => (
+                <div key={index} className="flex justify-between items-start bg-gray-50 p-4 rounded-lg">
+                  <div className="flex-1 pr-6">
+                    <h3 className="text-xl font-semibold text-gray-900 mb-1">{cert.name}</h3>
+                    <p className="text-blue-600 font-medium">{cert.issuer}</p>
+                  </div>
+                  <div className="flex-shrink-0 text-right min-w-[140px] flex justify-end">
+                    <span className="text-gray-500 font-medium bg-white px-4 py-2 rounded-full text-xs border inline-block text-center whitespace-nowrap">
+                      {cert.date}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Awards */}
+        {data.awards && data.awards.length > 0 && (
+          <div className="mb-10">
+            <h2 className="text-2xl font-bold text-gray-900 mb-8 flex items-center">
+              <div className="w-8 h-1 bg-blue-600 mr-3"></div>
+              Awards
+            </h2>
+            <div className="space-y-4">
+              {data.awards.map((award, index) => (
+                <div key={index} className="flex justify-between items-start bg-gray-50 p-4 rounded-lg">
+                  <div className="flex-1 pr-6">
+                    <h3 className="text-xl font-semibold text-gray-900 mb-1">{award.title}</h3>
+                    <p className="text-blue-600 font-medium">{award.issuer}</p>
+                  </div>
+                  <div className="flex-shrink-0 text-right min-w-[140px] flex justify-end">
+                    <span className="text-gray-500 font-medium bg-white px-4 py-2 rounded-full text-xs border inline-block text-center whitespace-nowrap">
+                      {award.date}
+                    </span>
+                  </div>
+                </div>
               ))}
             </div>
           </div>
