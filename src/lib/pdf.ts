@@ -148,6 +148,11 @@ export interface ParsedCV {
   country?: string;
   current_role?: string;
   languages?: string[];
+  certifications?: Array<{
+    name: string;
+    issuer: string;
+    date: string;
+  }>;
 }
 
 // Enhanced text parsing functions
@@ -496,6 +501,59 @@ function extractCurrentRole(experiences: Array<{ title: string; duration: string
   return experiences.length > 0 ? experiences[0].title : '';
 }
 
+function extractCertifications(text: string): Array<{
+  name: string;
+  issuer: string;
+  date: string;
+}> {
+  const certifications: Array<{
+    name: string;
+    issuer: string;
+    date: string;
+  }> = [];
+  
+  // Look for certifications section
+  const certMatch = text.match(/(?:CERTIFICATIONS|CERTIFICATES|PROFESSIONAL CERTIFICATIONS|LICENSES)[\s\S]*?(?=\n(?:EDUCATION|EXPERIENCE|SKILLS|PROJECTS|[A-Z]{2,})|\n\n\n|$)/i);
+  if (!certMatch) return certifications;
+  
+  const certText = certMatch[0];
+  const lines = certText.split('\n').filter(line => line.trim());
+  
+  lines.forEach(line => {
+    // Look for certification patterns
+    const certPatterns = [
+      /^(.+?)\s*[-|]\s*(.+?)\s*[-|]\s*(\d{4}|\w+\s+\d{4})/i,
+      /^(.+?)\s*,\s*(.+?)\s*,\s*(\d{4}|\w+\s+\d{4})/i,
+      /^(.+?)\s*from\s+(.+?)\s*[-|]\s*(\d{4}|\w+\s+\d{4})/i
+    ];
+    
+    for (const pattern of certPatterns) {
+      const match = line.match(pattern);
+      if (match) {
+        const name = match[1].trim();
+        const issuer = match[2].trim();
+        const date = match[3].trim();
+        
+        // Skip if it looks like a header
+        if (name.toLowerCase().includes('certification') || 
+            name.toLowerCase().includes('certificate') ||
+            name.length > 100) {
+          continue;
+        }
+        
+        certifications.push({
+          name: name.substring(0, 100),
+          issuer: issuer.substring(0, 100),
+          date: date
+        });
+        break;
+      }
+    }
+  });
+  
+  return certifications.slice(0, 10); // Limit to 10 certifications
+}
+
 // Helper: Call OpenAI to analyze extracted CV text
 async function analyzeCVTextWithOpenAI(text: string): Promise<ParsedCV> {
   if (!isOpenAIConfigured()) {
@@ -531,7 +589,8 @@ async function analyzeCVTextWithOpenAI(text: string): Promise<ParsedCV> {
     projects: Array.isArray(parsed.projects) ? parsed.projects : [],
     skills: Array.isArray(parsed.skills) ? parsed.skills : [],
     education: Array.isArray(parsed.education) ? parsed.education : [],
-    languages: Array.isArray(parsed.languages) ? parsed.languages : []
+    languages: Array.isArray(parsed.languages) ? parsed.languages : [],
+    certifications: Array.isArray(parsed.certifications) ? parsed.certifications : []
   };
 }
 
@@ -571,6 +630,7 @@ export async function parseCV(file: File): Promise<ParsedCV> {
         const skills = extractSkills(pdfText);
         const experience = extractExperience(pdfText);
         const education = extractEducation(pdfText);
+        const certifications = extractCertifications(pdfText);
         const years_of_experience = calculateYearsOfExperience(experience);
         const summary = extractSummary(pdfText);
         const current_role = extractCurrentRole(experience);
@@ -589,7 +649,8 @@ export async function parseCV(file: File): Promise<ParsedCV> {
           projects: [], // Projects parsing can be added later if needed
           skills,
           education,
-          languages: [] // Languages parsing can be added later if needed
+          languages: [], // Languages parsing can be added later if needed
+          certifications
         };
 
         console.log('Fallback CV parsing completed successfully:', {

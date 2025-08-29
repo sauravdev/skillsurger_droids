@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FileText, Download, Plus, Trash2, Edit2, Save, X } from 'lucide-react';
+import { Download, Plus, Trash2, Edit2, Save, X } from 'lucide-react';
 import Button from './Button';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -51,6 +51,11 @@ interface CVData {
     duration: string;
     description: string;
   }>;
+  customSections?: Array<{
+    title: string;
+    content: string;
+    type: 'text' | 'list' | 'experience';
+  }>;
 }
 
 interface Props {
@@ -80,23 +85,62 @@ export default function CVEditor({ initialData, onSave, hideSummaryInPreview }: 
     try {
       setLoading(true);
       const cvElement = document.getElementById('cv-preview');
-      if (!cvElement) return;
+      if (!cvElement) {
+        console.error('CV preview element not found');
+        return;
+      }
+
+      // Wait a bit for any dynamic content to render
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      console.log('CV Element found:', cvElement);
+      console.log('CV Element dimensions:', {
+        width: cvElement.offsetWidth,
+        height: cvElement.offsetHeight,
+        scrollWidth: cvElement.scrollWidth,
+        scrollHeight: cvElement.scrollHeight
+      });
 
       const canvas = await html2canvas(cvElement, {
-        scale: 2,
-        logging: false,
-        useCORS: true
+        scale: 1.5, // Reduced scale for smaller file size
+        logging: true, // Enable logging to debug
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        width: cvElement.scrollWidth,
+        height: cvElement.scrollHeight,
+        scrollX: 0,
+        scrollY: 0,
+        imageTimeout: 0,
+        removeContainer: true,
+        ignoreElements: (element) => {
+          return element.classList.contains('no-print');
+        }
       });
 
-      const imgData = canvas.toDataURL('image/png');
+      console.log('Canvas created:', {
+        width: canvas.width,
+        height: canvas.height
+      });
+
+      // Create PDF with custom dimensions to fit all content
       const pdf = new jsPDF({
         orientation: 'portrait',
-        unit: 'px',
-        format: [canvas.width, canvas.height]
+        unit: 'mm',
+        format: [210, canvas.height * 210 / canvas.width] // Custom height to fit content
       });
-
-      pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
-      pdf.save(`${data.fullName.replace(/\s+/g, '_')}_CV.pdf`);
+      
+      // Convert to JPEG for smaller file size
+      const imgData = canvas.toDataURL('image/jpeg', 0.85);
+      
+      // Add image to PDF - full size to fit all content
+      pdf.addImage(imgData, 'JPEG', 0, 0, 210, canvas.height * 210 / canvas.width);
+      
+      // Save with optimized filename
+      const fileName = `${data.fullName.replace(/\s+/g, '_')}_CV.pdf`;
+      pdf.save(fileName);
+      
+      console.log('PDF saved successfully');
     } catch (error) {
       console.error('Error generating PDF:', error);
     } finally {
@@ -652,6 +696,110 @@ export default function CVEditor({ initialData, onSave, hideSummaryInPreview }: 
               ))}
             </div>
           </div>
+
+          {/* Custom Sections */}
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <label className="block text-sm font-medium text-gray-700">Custom Sections</label>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setData({
+                  ...data,
+                  customSections: [
+                    ...(data.customSections || []),
+                    { title: '', content: '', type: 'text' }
+                  ]
+                })}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Custom Section
+              </Button>
+            </div>
+            <div className="space-y-4">
+              {(data.customSections || []).map((section, index) => (
+                <div key={index} className="border rounded-lg p-4">
+                  <div className="flex justify-between mb-4">
+                    <h4 className="font-medium">Custom Section #{index + 1}</h4>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setData({
+                        ...data,
+                        customSections: (data.customSections || []).filter((_, i) => i !== index)
+                      })}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Section Title</label>
+                      <input
+                        type="text"
+                        value={section.title}
+                        onChange={(e) => {
+                          const newSections = [...(data.customSections || [])];
+                          newSections[index] = { ...section, title: e.target.value };
+                          setData({ ...data, customSections: newSections });
+                        }}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        placeholder="e.g., Publications, Volunteer Work"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Section Type</label>
+                      <select
+                        value={section.type}
+                        onChange={(e) => {
+                          const newSections = [...(data.customSections || [])];
+                          newSections[index] = { ...section, type: e.target.value as 'text' | 'list' | 'experience' };
+                          setData({ ...data, customSections: newSections });
+                        }}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                      >
+                        <option value="text">Text Content</option>
+                        <option value="list">List Items</option>
+                        <option value="experience">Experience Format</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="mt-4">
+                    <label className="block text-sm font-medium text-gray-700">Content</label>
+                    <textarea
+                      value={section.content}
+                      onChange={(e) => {
+                        const newSections = [...(data.customSections || [])];
+                        newSections[index] = { ...section, content: e.target.value };
+                        setData({ ...data, customSections: newSections });
+                      }}
+                      rows={4}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                      placeholder={
+                        section.type === 'text' 
+                          ? 'Enter your content here...'
+                          : section.type === 'list'
+                          ? 'Enter list items, one per line...'
+                          : 'Enter experience details...'
+                      }
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Bottom Action Buttons */}
+          <div className="flex items-center justify-end space-x-2 pt-6 border-t border-gray-200 mt-8">
+            <Button variant="outline" onClick={() => setIsEditing(false)}>
+              <X className="w-4 h-4 mr-2" />
+              Cancel
+            </Button>
+            <Button onClick={handleSave} disabled={loading}>
+              <Save className="w-4 h-4 mr-2" />
+              {loading ? 'Saving...' : 'Save Changes'}
+            </Button>
+          </div>
         </div>
       </div>
     );
@@ -708,7 +856,7 @@ export default function CVEditor({ initialData, onSave, hideSummaryInPreview }: 
         </div>
 
         {/* Summary */}
-        {data.summary && !hideSummaryInPreview && (
+        {data.summary && (
           <div className="mb-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center">
               <div className="w-8 h-1 bg-blue-600 mr-3"></div>
@@ -899,6 +1047,41 @@ export default function CVEditor({ initialData, onSave, hideSummaryInPreview }: 
               ))}
             </div>
           </div>
+        )}
+
+        {/* Custom Sections */}
+        {data.customSections && data.customSections.length > 0 && (
+          <>
+            {data.customSections.map((section, index) => (
+              <div key={index} className="mb-10">
+                <h2 className="text-2xl font-bold text-gray-900 mb-8 flex items-center">
+                  <div className="w-8 h-1 bg-blue-600 mr-3"></div>
+                  {section.title}
+                </h2>
+                <div className="space-y-4">
+                  {section.type === 'text' && (
+                    <div className="bg-gray-50 p-6 rounded-lg">
+                      <p className="text-gray-700 leading-relaxed whitespace-pre-line">{section.content}</p>
+                    </div>
+                  )}
+                  {section.type === 'list' && (
+                    <div className="bg-gray-50 p-6 rounded-lg">
+                      <ul className="list-disc list-inside space-y-2">
+                        {section.content.split('\n').filter(item => item.trim()).map((item, itemIndex) => (
+                          <li key={itemIndex} className="text-gray-700">{item.trim()}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {section.type === 'experience' && (
+                    <div className="bg-gray-50 p-6 rounded-lg">
+                      <p className="text-gray-700 leading-relaxed">{section.content}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </>
         )}
       </div>
     </div>

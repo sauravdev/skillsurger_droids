@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
-import { FileText, Download, Award, Briefcase, GraduationCap, Brain, Upload, MapPin, Building, Edit2, Save, X, Trash2, AlertTriangle, Sparkles } from 'lucide-react';
+import { FileText, Download, Award, Upload, Edit2, Save, X, Trash2, AlertTriangle, Sparkles } from 'lucide-react';
 import Button from './Button';
 import { supabase } from '../lib/supabase';
 import CVEditor from './CVEditor';
-import { uploadCV, parseCV, downloadCV } from '../lib/pdf';
+import { uploadCV, parseCV } from '../lib/pdf';
 import { useUser } from '../context/UserContext';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 
 interface ProfileData {
   id: string;
@@ -40,6 +42,16 @@ interface ProfileData {
   state?: string;
   country?: string;
   cv_parsed_data?: any;
+  certifications?: Array<{
+    name: string;
+    issuer: string;
+    date: string;
+  }>;
+  custom_sections?: Array<{
+    title: string;
+    content: string;
+    type: 'text' | 'list' | 'experience';
+  }>;
 }
 
 interface UserSkill {
@@ -71,9 +83,9 @@ export default function ProfileSection() {
     skills: '',
     cv: null as File | null
   });
-  const [isUploadingPendingResume, setIsUploadingPendingResume] = useState(false);
-  const [reanalyzing, setReanalyzing] = useState(false);
+
   const [reanalyzingAndSaving, setReanalyzingAndSaving] = useState(false);
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     loadProfile();
@@ -82,7 +94,6 @@ export default function ProfileSection() {
       const pendingResumeName = localStorage.getItem('pendingResumeName');
       if (pendingResumeData && pendingResumeName) {
         try {
-          setIsUploadingPendingResume(true);
           // Convert base64 back to File
           const base64Response = await fetch(pendingResumeData);
           const blob = await base64Response.blob();
@@ -91,7 +102,7 @@ export default function ProfileSection() {
           const { data: { user } } = await supabase.auth.getUser();
           if (!user) throw new Error('No user found');
           // Process and upload the resume
-          const parsedCV = await parseCV(file);
+          await parseCV(file);
           await uploadCV(file, user.id);
           // Optionally update profile with parsedCV data here if needed
           // Clear from localStorage after successful upload
@@ -118,8 +129,6 @@ export default function ProfileSection() {
               document.body.removeChild(errorDiv);
             }
           }, 3000);
-        } finally {
-          setIsUploadingPendingResume(false);
         }
       }
     };
@@ -286,6 +295,7 @@ export default function ProfileSection() {
         profileUpdate.experience = parsedCvData.experience;
         profileUpdate.projects = parsedCvData.projects;
         profileUpdate.education = parsedCvData.education;
+        profileUpdate.certifications = parsedCvData.certifications;
         profileUpdate.cv_parsed_data = parsedCvData;
         
         // Update email and location from CV if not already set
@@ -374,6 +384,7 @@ export default function ProfileSection() {
           experience: parsedData.experience,
           projects: parsedData.projects,
           education: parsedData.education,
+          certifications: parsedData.certifications,
           cv_parsed_data: parsedData,
           // Update email and location from CV if parsed
           ...(parsedData.city && { 
@@ -430,12 +441,24 @@ export default function ProfileSection() {
       // Find the CV preview element
       const cvPreviewElement = document.getElementById('cv-preview');
       if (!cvPreviewElement) {
+        console.error('CV preview element not found');
         throw new Error('CV preview element not found');
       }
 
+      // Wait a bit for any dynamic content to render
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      console.log('CV Element found:', cvPreviewElement);
+      console.log('CV Element dimensions:', {
+        width: cvPreviewElement.offsetWidth,
+        height: cvPreviewElement.offsetHeight,
+        scrollWidth: cvPreviewElement.scrollWidth,
+        scrollHeight: cvPreviewElement.scrollHeight
+      });
+
       // Use html2canvas to capture the actual rendered CV preview
       const canvas = await html2canvas(cvPreviewElement, {
-        scale: 3,
+        scale: 1.5, // Reduced scale for smaller file size
         useCORS: true,
         allowTaint: true,
         backgroundColor: '#ffffff',
@@ -443,9 +466,7 @@ export default function ProfileSection() {
         height: cvPreviewElement.scrollHeight,
         scrollX: 0,
         scrollY: 0,
-        logging: false,
-        letterRendering: true,
-        foreignObjectRendering: true,
+        logging: true, // Enable logging to debug
         imageTimeout: 0,
         removeContainer: true,
         ignoreElements: (element) => {
@@ -453,31 +474,30 @@ export default function ProfileSection() {
         }
       });
 
-      // Create PDF
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('p', 'mm', 'a4');
+      console.log('Canvas created:', {
+        width: canvas.width,
+        height: canvas.height
+      });
 
-      const imgWidth = 210; // A4 width in mm
-      const pageHeight = 295; // A4 height in mm
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      let heightLeft = imgHeight;
-
-      let position = 0;
-
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
-
-      while (heightLeft >= 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
-      }
+      // Create PDF with custom dimensions to fit all content
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: [210, canvas.height * 210 / canvas.width] // Custom height to fit content
+      });
+      
+      // Convert to JPEG for smaller file size
+      const imgData = canvas.toDataURL('image/jpeg', 0.85);
+      
+      // Add image to PDF - full size to fit all content
+      pdf.addImage(imgData, 'JPEG', 0, 0, 210, canvas.height * 210 / canvas.width);
 
       // Download the PDF
       const fullName = profile.cv_parsed_data?.full_name || profile.full_name || 'CV';
       const fileName = `${fullName.replace(/\s+/g, '_')}_CV.pdf`;
       pdf.save(fileName);
+      
+      console.log('PDF saved successfully');
 
     } catch (error) {
       console.error('Error generating CV PDF:', error);
@@ -487,76 +507,7 @@ export default function ProfileSection() {
     }
   };
 
-  const handleReanalyzeCV = async () => {
-    if (!profile?.cv_url) return;
-    try {
-      setReanalyzing(true);
-      setError('');
-      
-      // Check subscription for AI features
-      if (!checkSubscriptionForAI()) {
-        setReanalyzing(false);
-        return;
-      }
-      // Download the PDF file from the URL
-      const response = await fetch(profile.cv_url);
-      const blob = await response.blob();
-      const file = new File([blob], 'resume.pdf', { type: 'application/pdf' });
-      // Parse the CV using AI
-      const parsedData = await parseCV(file);
-      // Update the profile with the new parsed data
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('No user found');
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({
-          summary: parsedData.summary,
-          experience: parsedData.experience,
-          projects: parsedData.projects,
-          education: parsedData.education,
-          cv_parsed_data: parsedData,
-          ...(parsedData.city && { 
-            city: parsedData.city,
-            state: parsedData.state,
-            country: parsedData.country
-          })
-        })
-        .eq('id', user.id);
-      if (updateError) throw updateError;
-      // Merge CV skills with existing skills
-      if (parsedData.skills && parsedData.skills.length > 0) {
-        const { data: existingSkills } = await supabase
-          .from('user_skills')
-          .select('skill')
-          .eq('user_id', user.id);
-        const currentSkills = existingSkills?.map(s => s.skill) || [];
-        const allSkills = [...new Set([...currentSkills, ...parsedData.skills])];
-        await supabase.from('user_skills').delete().eq('user_id', user.id);
-        if (allSkills.length > 0) {
-          const { error: skillsError } = await supabase
-            .from('user_skills')
-            .insert(allSkills.map(skill => ({ user_id: user.id, skill })));
-          if (skillsError) throw skillsError;
-        }
-      }
-      await loadProfile();
-      // Show success message
-      const successDiv = document.createElement('div');
-      successDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
-      successDiv.textContent = 'Resume re-analyzed and profile updated!';
-      document.body.appendChild(successDiv);
-      setTimeout(() => {
-        if (document.body.contains(successDiv)) {
-          document.body.removeChild(successDiv);
-        }
-      }, 3000);
-    } catch (error) {
-      console.error('Error re-analyzing CV:', error);
-      setError('Failed to re-analyze resume. Please try again.');
-    } finally {
-      setReanalyzing(false);
-    }
-  };
+
 
   const handleReanalyzeAndSaveCV = async () => {
     if (!profile?.cv_url) return;
@@ -589,6 +540,7 @@ export default function ProfileSection() {
           experience: parsedData.experience,
           projects: parsedData.projects,
           education: parsedData.education,
+          certifications: parsedData.certifications,
           cv_parsed_data: parsedData,
           ...(parsedData.city && { 
             city: parsedData.city,
@@ -948,60 +900,75 @@ export default function ProfileSection() {
 
             {/* CV and Summary Section - All parsed data goes here */}
             <div className="border-b pb-6">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-                <h3 className="text-lg font-semibold flex items-center">
-                  <FileText className="w-5 h-5 mr-2 text-blue-600" />
-                  CV & Summary
-                </h3>
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
-                  {renderDeleteButton('cv', 'CV', !!profile.cv_url)}
-                  <div className="relative">
-                    <input
-                      type="file"
-                      id="cv-upload"
-                      accept=".pdf"
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                      onChange={handleReuploadCV}
-                      disabled={uploading}
-                    />
-                    <Button variant="outline" size="sm" disabled={uploading}>
-                      <Upload className="w-4 h-4 mr-2" />
-                      {uploading ? 'Uploading...' : 'Upload CV'}
-                    </Button>
+              {/* Header Section */}
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6 mb-6">
+                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                  <div className="flex items-center">
+                    <div className="bg-blue-100 p-3 rounded-lg mr-4">
+                      <FileText className="w-6 h-6 text-blue-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-900">CV & Summary</h3>
+                      <p className="text-sm text-gray-600 mt-1">Manage your resume and professional summary</p>
+                    </div>
                   </div>
-                  {profile.cv_url && (
-                    <div className="flex flex-col sm:flex-row gap-2">
+                  
+                  {/* Action Buttons */}
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    {renderDeleteButton('cv', 'CV', !!profile.cv_url)}
+                    <div className="relative">
+                      <input
+                        type="file"
+                        id="cv-upload"
+                        accept=".pdf"
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        onChange={handleReuploadCV}
+                        disabled={uploading}
+                      />
+                      <Button variant="outline" size="sm" disabled={uploading} className="min-w-[120px]">
+                        <Upload className="w-4 h-4 mr-2" />
+                        {uploading ? 'Uploading...' : 'Upload CV'}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* CV Actions Row */}
+                {profile.cv_url && (
+                  <div className="mt-4 pt-4 border-t border-blue-200">
+                    <div className="flex flex-col sm:flex-row gap-3">
                       <a
                         href={profile.cv_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                        className="inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors"
                       >
                         <FileText className="w-4 h-4 mr-2" />
-                        View CV
+                        View Original CV
                       </a>
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={handleDownloadCV}
-                        disabled={!profile || (!profile.cv_url && !profile.cv_parsed_data && !profile.full_name)}
+                        disabled={downloading || !profile || (!profile.cv_url && !profile.cv_parsed_data && !profile.full_name)}
+                        className="min-w-[140px]"
                       >
                         <Download className="w-4 h-4 mr-2" />
-                        Download
+                        {downloading ? 'Generating PDF...' : 'Download CV'}
                       </Button>
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={handleReanalyzeAndSaveCV}
                         disabled={reanalyzingAndSaving || uploading}
-                        className="flex items-center"
+                        className="flex items-center min-w-[200px] border-green-300 text-green-700 hover:bg-green-50"
                       >
                         <Sparkles className="w-4 h-4 mr-2 text-green-600" />
-                        {reanalyzingAndSaving ? 'Analyzing & Saving...' : 'Re-analyze and Save Resume with AI'}
+                        {reanalyzingAndSaving ? 'Analyzing...' : 'Re-analyze with AI'}
                       </Button>
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
               
               {/* Parsed CV Information */}
@@ -1047,10 +1014,11 @@ export default function ProfileSection() {
                     education: profile.cv_parsed_data?.education || profile.education || [],
                     skills: userSkills.map(s => s.skill).concat(profile.cv_parsed_data?.skills || profile.skills || []).filter((skill, index, arr) => arr.indexOf(skill) === index),
                     languages: profile.cv_parsed_data?.languages || profile.languages || [],
-                    certifications: profile.cv_parsed_data?.certifications || [],
+                    certifications: profile.certifications || profile.cv_parsed_data?.certifications || [],
                     awards: profile.cv_parsed_data?.awards || [],
                     publications: profile.cv_parsed_data?.publications || [],
-                    volunteerWork: profile.cv_parsed_data?.volunteerWork || []
+                    volunteerWork: profile.cv_parsed_data?.volunteerWork || [],
+                    customSections: profile.custom_sections || []
                   }}
                   onSave={async (data) => {
                     try {
@@ -1065,7 +1033,9 @@ export default function ProfileSection() {
                           experience: data.experience,
                           education: data.education,
                           skills: data.skills,
-                          languages: data.languages
+                          languages: data.languages,
+                          certifications: data.certifications,
+                          custom_sections: data.customSections
                         })
                         .eq('id', profile.id);
 

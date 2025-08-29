@@ -1003,7 +1003,7 @@ export async function generateCVSuggestions(
       type: "generateCVSuggestions",
       targetJob: targetJob,
       cvData: cvData,
-      prompt: `You are an expert career coach and CV optimization specialist. Analyze the provided CV data and target job description to generate comprehensive, actionable improvements.
+      prompt: `You are an expert career coach and CV optimization specialist. Analyze the provided CV data and target job description to generate ENHANCEMENTS that ADD VALUE to the existing CV without congesting or replacing content.
 
 TARGET JOB: ${targetJob.title} at ${targetJob.company}
 JOB DESCRIPTION: ${targetJob.description}
@@ -1017,31 +1017,31 @@ CURRENT CV DATA:
 - Experience Entries: ${Array.isArray(cvData.experience) ? cvData.experience.length : 0} positions
 - Education: ${Array.isArray(cvData.education) ? cvData.education.length : 0} entries
 
-INSTRUCTIONS:
-1. Generate a compelling professional summary (2-3 sentences) that aligns with the target role
-2. Identify 5-8 key skills from the job requirements that should be highlighted
-3. For each existing experience entry, provide improved descriptions that:
-   - Use action verbs and quantifiable results
-   - Align with the target job's key responsibilities
-   - Include relevant technologies and methodologies
-   - Show impact and achievements
-4. Suggest 2-3 additional sections that would strengthen the CV for this specific role
-5. Ensure all suggestions are specific, actionable, and tailored to the target position
+OPTIMIZATION STRATEGY - ADD ENHANCEMENTS, DON'T REPLACE:
+1. ENHANCE the existing professional summary by adding 1-2 strategic sentences that align with the target role (keep existing content)
+2. IDENTIFY 3-5 additional skills from job requirements that complement existing skills (don't replace current skills)
+3. For existing experience entries, provide ENHANCED versions that:
+   - Build upon the original description
+   - Add quantifiable metrics and impact statements
+   - Include relevant technologies mentioned in job requirements
+   - Maintain the original structure while adding value
+4. Suggest 1-2 NEW sections that would strengthen the CV for this specific role
+5. Focus on ADDING VALUE rather than replacing existing content
 
 Return your response as a JSON object with the following structure:
 {
-  "summary": "Improved professional summary",
-  "highlightedSkills": ["skill1", "skill2", "skill3"],
+  "summary": "Enhanced professional summary that builds on existing content",
+  "highlightedSkills": ["additional_skill1", "additional_skill2", "additional_skill3"],
   "experienceImprovements": [
     {
       "original": "Original experience description",
-      "improved": "Enhanced description with metrics and impact"
+      "improved": "Enhanced version that adds metrics and impact while preserving original content"
     }
   ],
   "additionalSections": [
     {
-      "title": "Section Title",
-      "content": "Detailed content for this section"
+      "title": "New Section Title",
+      "content": "Detailed content for this new section"
     }
   ]
 }`

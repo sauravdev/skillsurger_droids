@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Check, X, RefreshCw, Sparkles, FileText, User, Award, Briefcase, Download } from 'lucide-react';
+import { Sparkles, Download, Plus } from 'lucide-react';
 import Button from './Button';
 import { CVSuggestion } from '../lib/careerServices';
 import html2canvas from 'html2canvas';
@@ -31,46 +31,24 @@ interface CVSuggestionManagerProps {
     phone?: string;
     location?: string;
     languages?: string[];
+    customSections?: Array<{
+      title: string;
+      content: string;
+      type: 'text' | 'list' | 'experience';
+    }>;
   };
+  onAddCustomSection?: (section: { title: string; content: string; type: 'text' | 'list' | 'experience' }) => void;
 }
 
 export default function CVSuggestionManager({
   suggestions,
-  currentData
+  currentData,
+  onAddCustomSection
 }: CVSuggestionManagerProps) {
   // Remove all Accept/Reject state and logic
   const [isDownloading, setIsDownloading] = useState(false);
 
-  const generateOptimizedCVData = () => {
-    let optimizedData = { ...currentData };
-    // Always apply all suggestions for preview
-      optimizedData.summary = suggestions.summary;
-      // Merge current skills with highlighted skills
-      const allSkills = [...new Set([...currentData.skills, ...suggestions.highlightedSkills])];
-      optimizedData.skills = allSkills;
-    // Apply experience improvements
-    if (suggestions.experienceImprovements.length > 0) {
-      const normalize = (str: string) => str?.toLowerCase().replace(/\s+/g, ' ').trim();
-      optimizedData.experience = currentData.experience.map((exp) => {
-        let improvement = suggestions.experienceImprovements.find((imp: any) =>
-          imp.original && normalize(imp.original) === normalize(exp.description)
-        );
-        if (!improvement) {
-          improvement = suggestions.experienceImprovements.find((imp: any) =>
-            imp.original && (
-              normalize(exp.description).includes(normalize(imp.original)) ||
-              normalize(imp.original).includes(normalize(exp.description))
-            )
-          );
-        }
-        if (improvement) {
-          return { ...exp, description: improvement.improved };
-        }
-        return exp;
-      });
-    }
-    return optimizedData;
-  };
+
 
   const handleDownloadOptimizedCV = async () => {
     try {
@@ -79,12 +57,24 @@ export default function CVSuggestionManager({
       // Find the CV preview element
       const cvPreviewElement = document.getElementById('cv-preview');
       if (!cvPreviewElement) {
+        console.error('CV preview element not found');
         throw new Error('CV preview element not found');
       }
 
+      // Wait a bit for any dynamic content to render
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      console.log('CV Element found:', cvPreviewElement);
+      console.log('CV Element dimensions:', {
+        width: cvPreviewElement.offsetWidth,
+        height: cvPreviewElement.offsetHeight,
+        scrollWidth: cvPreviewElement.scrollWidth,
+        scrollHeight: cvPreviewElement.scrollHeight
+      });
+
       // Use html2canvas to capture the actual rendered CV preview
       const canvas = await html2canvas(cvPreviewElement, {
-        scale: 3,
+        scale: 1.5, // Reduced scale for smaller file size
         useCORS: true,
         allowTaint: true,
         backgroundColor: '#ffffff',
@@ -92,9 +82,7 @@ export default function CVSuggestionManager({
         height: cvPreviewElement.scrollHeight,
         scrollX: 0,
         scrollY: 0,
-        logging: false,
-        letterRendering: true,
-        foreignObjectRendering: true,
+        logging: true, // Enable logging to debug
         imageTimeout: 0,
         removeContainer: true,
         ignoreElements: (element) => {
@@ -102,31 +90,30 @@ export default function CVSuggestionManager({
         }
       });
 
-      // Create PDF
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('p', 'mm', 'a4');
+      console.log('Canvas created:', {
+        width: canvas.width,
+        height: canvas.height
+      });
+
+      // Create PDF with custom dimensions to fit all content
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: [210, canvas.height * 210 / canvas.width] // Custom height to fit content
+      });
       
-      const imgWidth = 210; // A4 width in mm
-      const pageHeight = 295; // A4 height in mm
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      let heightLeft = imgHeight;
-
-      let position = 0;
-
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
-
-      while (heightLeft >= 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
-      }
+      // Convert to JPEG for smaller file size
+      const imgData = canvas.toDataURL('image/jpeg', 0.85);
+      
+      // Add image to PDF - full size to fit all content
+      pdf.addImage(imgData, 'JPEG', 0, 0, 210, canvas.height * 210 / canvas.width);
 
       // Download the PDF
       const fullName = currentData.fullName || 'CV';
-      const fileName = `${fullName.replace(/\s+/g, '_')}_Optimized_CV.pdf`;
+      const fileName = `${fullName.replace(/\s+/g, '_')}_Enhanced_CV.pdf`;
       pdf.save(fileName);
+      
+      console.log('PDF saved successfully');
 
     } catch (error) {
       console.error('Error generating optimized CV PDF:', error);
@@ -135,20 +122,14 @@ export default function CVSuggestionManager({
     }
   };
 
-  const getStatusIcon = (type: string) => {
-    return <Sparkles className="w-5 h-5 text-blue-600" />;
-  };
 
-  const getStatusColor = (type: string) => {
-    return 'border-blue-200 bg-blue-50';
-  };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold flex items-center">
           <Sparkles className="w-5 h-5 mr-2 text-blue-600" />
-          AI-Powered CV Optimization Suggestions
+          AI-Powered CV Enhancement Suggestions
         </h3>
         <div className="flex items-center space-x-2">
           <Button
@@ -157,17 +138,17 @@ export default function CVSuggestionManager({
             className="flex items-center"
             >
               <Download className={`w-4 h-4 mr-2 ${isDownloading ? 'animate-spin' : ''}`} />
-              {isDownloading ? 'Generating...' : 'Download Optimized CV'}
+              {isDownloading ? 'Generating...' : 'Download Enhanced CV'}
             </Button>
         </div>
       </div>
 
       {/* Professional Summary Suggestion */}
-      <div className={`border rounded-lg p-6 ${getStatusColor('summary')}`}>
+      <div className="border rounded-lg p-6 border-blue-200 bg-blue-50">
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center">
-            {getStatusIcon('summary')}
-            <h4 className="font-medium text-gray-900 ml-2">Optimized Professional Summary</h4>
+            <Sparkles className="w-5 h-5 text-blue-600" />
+            <h4 className="font-medium text-gray-900 ml-2">Enhanced Professional Summary</h4>
           </div>
         </div>
 
@@ -179,7 +160,7 @@ export default function CVSuggestionManager({
             </div>
           </div>
           <div>
-            <p className="text-sm text-gray-500 mb-2">AI-Optimized Version:</p>
+            <p className="text-sm text-gray-500 mb-2">AI-Enhanced Version (adds to existing):</p>
             <div className="p-3 bg-white rounded border border-blue-200">
               <p className="text-gray-700 font-medium">{suggestions.summary}</p>
             </div>
@@ -190,11 +171,11 @@ export default function CVSuggestionManager({
       </div>
 
       {/* Skills Optimization */}
-      <div className={`border rounded-lg p-6 ${getStatusColor('skills')}`}>
+      <div className="border rounded-lg p-6 border-blue-200 bg-blue-50">
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center">
-            {getStatusIcon('skills')}
-            <h4 className="font-medium text-gray-900 ml-2">Key Skills to Highlight</h4>
+            <Sparkles className="w-5 h-5 text-blue-600" />
+            <h4 className="font-medium text-gray-900 ml-2">Additional Skills to Add</h4>
           </div>
         </div>
 
@@ -210,7 +191,7 @@ export default function CVSuggestionManager({
             </div>
           </div>
           <div>
-            <p className="text-sm text-gray-500 mb-2">AI-Recommended Skills to Highlight:</p>
+            <p className="text-sm text-gray-500 mb-2">AI-Recommended Additional Skills:</p>
             <div className="flex flex-wrap gap-2">
               {suggestions.highlightedSkills.map((skill, index) => (
                 <span key={index} className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
@@ -226,11 +207,11 @@ export default function CVSuggestionManager({
 
       {/* Experience Improvements */}
       {suggestions.experienceImprovements.length > 0 && (
-        <div className={`border rounded-lg p-6 ${getStatusColor('experience')}`}>
+        <div className="border rounded-lg p-6 border-blue-200 bg-blue-50">
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center">
-              {getStatusIcon('experience')}
-              <h4 className="font-medium text-gray-900 ml-2">Experience Improvements</h4>
+              <Sparkles className="w-5 h-5 text-blue-600" />
+              <h4 className="font-medium text-gray-900 ml-2">Experience Enhancements</h4>
             </div>
           </div>
 
@@ -243,7 +224,7 @@ export default function CVSuggestionManager({
                     <p className="text-gray-700 text-sm">{improvement.original}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500 mb-1">AI-Enhanced Version:</p>
+                    <p className="text-sm text-gray-500 mb-1">AI-Enhanced Addition (adds to original):</p>
                     <p className="text-gray-700 font-medium text-sm bg-blue-50 p-3 rounded border">
                       {improvement.improved}
                     </p>
@@ -259,10 +240,10 @@ export default function CVSuggestionManager({
 
       {/* Additional Sections */}
       {suggestions.additionalSections.length > 0 && (
-        <div className={`border rounded-lg p-6 ${getStatusColor('sections')}`}>
+        <div className="border rounded-lg p-6 border-blue-200 bg-blue-50">
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center">
-              {getStatusIcon('sections')}
+              <Sparkles className="w-5 h-5 text-blue-600" />
               <h4 className="font-medium text-gray-900 ml-2">Suggested Additional Sections</h4>
             </div>
           </div>
@@ -270,7 +251,25 @@ export default function CVSuggestionManager({
           <div className="space-y-4">
             {suggestions.additionalSections.map((section, index) => (
               <div key={index} className="border rounded-lg p-4 bg-white">
-                <h5 className="font-medium text-gray-900 mb-2">{section.title}</h5>
+                <div className="flex items-start justify-between mb-2">
+                  <h5 className="font-medium text-gray-900">{section.title}</h5>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      if (onAddCustomSection) {
+                        onAddCustomSection({
+                          title: section.title,
+                          content: section.content,
+                          type: 'text'
+                        });
+                      }
+                    }}
+                  >
+                    <Plus className="w-4 h-4 mr-1" />
+                    Add to CV
+                  </Button>
+                </div>
                 <p className="text-gray-700 text-sm">{section.content}</p>
               </div>
             ))}

@@ -972,7 +972,25 @@ export default function CareerExplorer({ onGenerateLearningPath, jobs, setJobs, 
             experience: profile?.experience || [],
             projects: profile?.projects || [],
             education: profile?.education || [],
-            languages: profile?.languages || []
+            languages: profile?.languages || [],
+            customSections: profile?.custom_sections || []
+          }}
+          onAddCustomSection={async (section) => {
+            try {
+              const { error } = await supabase
+                .from('profiles')
+                .update({
+                  custom_sections: [...(profile?.custom_sections || []), section]
+                })
+                .eq('id', profile?.id);
+
+              if (error) throw error;
+              
+              // Reload profile to get updated data
+              await loadProfile();
+            } catch (error) {
+              console.error('Error adding custom section:', error);
+            }
           }}
         />
 
