@@ -70,11 +70,12 @@ export default function LearningPaths({ job }: LearningPathsProps) {
     loadData();
   }, []);
 
-  useEffect(() => {
-    if (job) {
-      handleGenerateLearningPath(job);
-    }
-  }, [job]);
+  // Removed automatic generation - let user control when to generate
+  // useEffect(() => {
+  //   if (job) {
+  //     handleGenerateLearningPath(job);
+  //   }
+  // }, [job]);
 
   async function loadData() {
     try {
@@ -86,9 +87,6 @@ export default function LearningPaths({ job }: LearningPathsProps) {
         supabase.from('generated_careers').select('title').eq('user_id', user.id),
         supabase.from('saved_jobs').select('id, title, company, description, requirements').eq('user_id', user.id)
       ]);
-
-      console.log('Loaded career data:', careerData);
-      console.log('Loaded job data:', jobData);
 
       if (jobData) {
         setAllJobs(jobData);
@@ -123,7 +121,6 @@ export default function LearningPaths({ job }: LearningPathsProps) {
         });
 
         setCareers(careersWithJobs);
-        console.log('Processed careers with jobs:', careersWithJobs);
       }
 
       // Load learning paths
@@ -359,6 +356,19 @@ export default function LearningPaths({ job }: LearningPathsProps) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      // Check if a learning path already exists for this job
+      const { data: existingPath } = await supabase
+        .from('learning_paths')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('job_title', selectedJob.title)
+        .single();
+
+      if (existingPath) {
+        setError(`A learning path for "${selectedJob.title}" already exists. Please delete the existing one first or choose a different job.`);
+        return;
+      }
+
       const plan = await generateLearningPlan(
         selectedJob.title, 
         selectedJob.description, 
@@ -372,8 +382,6 @@ export default function LearningPaths({ job }: LearningPathsProps) {
           r.title.toLowerCase() === resource.title.toLowerCase()
         ) === index;
       });
-
-      console.log(`Removed ${plan.length - uniquePlan.length} duplicate resources from learning plan.`);
 
       // Save the new path to the database
       const { data: savedPath, error: saveError } = await supabase
@@ -464,6 +472,53 @@ export default function LearningPaths({ job }: LearningPathsProps) {
 
   return (
     <div className="space-y-8">
+      {/* Job from Career Explorer */}
+      {job && (
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6">
+          <h3 className="text-lg font-semibold mb-4 flex items-center">
+            <BookOpen className="w-5 h-5 mr-2 text-blue-600" />
+            Generate Learning Path for Selected Job
+          </h3>
+          <div className="bg-white rounded-lg p-4 mb-4">
+            <h4 className="font-medium text-gray-900">{job.title}</h4>
+            <p className="text-sm text-gray-600 mt-1">{job.description}</p>
+            {job.requirements && job.requirements.length > 0 && (
+              <div className="mt-2">
+                <p className="text-sm font-medium text-gray-700">Key Requirements:</p>
+                <ul className="text-sm text-gray-600 mt-1">
+                  {job.requirements.slice(0, 3).map((req, index) => (
+                    <li key={index} className="flex items-start">
+                      <span className="text-blue-500 mr-2">•</span>
+                      {req}
+                    </li>
+                  ))}
+                  {job.requirements.length > 3 && (
+                    <li className="text-gray-500">... and {job.requirements.length - 3} more</li>
+                  )}
+                </ul>
+              </div>
+            )}
+          </div>
+          <Button
+            onClick={() => handleGenerateLearningPath(job)}
+            disabled={generatingPlan}
+            className="w-full"
+          >
+            {generatingPlan ? (
+              <>
+                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                Generating Learning Path...
+              </>
+            ) : (
+              <>
+                <BookOpen className="w-4 h-4 mr-2" />
+                Generate Learning Path for "{job.title}"
+              </>
+            )}
+          </Button>
+        </div>
+      )}
+
       {/* Generate New Learning Path */}
       <div className="bg-white rounded-lg shadow-lg p-6">
         <h3 className="text-lg font-semibold mb-4 flex items-center">
@@ -535,7 +590,15 @@ export default function LearningPaths({ job }: LearningPathsProps) {
           )}
 
           <Button
-            onClick={() => handleGenerateLearningPath(job)}
+            onClick={() => {
+              const selectedCareerData = careers.find(c => c.title === selectedCareer);
+              const selectedJobData = selectedCareerData?.jobs.find(j => 
+                `${j.title} at ${j.company}` === selectedJob
+              );
+              if (selectedJobData) {
+                handleGenerateLearningPath(selectedJobData);
+              }
+            }}
             disabled={!selectedCareer || !selectedJob || generatingPlan}
             className="w-full"
           >
