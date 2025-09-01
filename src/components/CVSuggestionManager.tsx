@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Sparkles, Download, Plus } from 'lucide-react';
+import { Sparkles, Download, Plus, Edit3, Check, X, AlertCircle } from 'lucide-react';
 import Button from './Button';
 import { CVSuggestion } from '../lib/careerServices';
 import html2canvas from 'html2canvas';
@@ -45,10 +45,105 @@ export default function CVSuggestionManager({
   currentData,
   onAddCustomSection
 }: CVSuggestionManagerProps) {
-  // Remove all Accept/Reject state and logic
   const [isDownloading, setIsDownloading] = useState(false);
+  const [editingSection, setEditingSection] = useState<number | null>(null);
+  const [editedSections, setEditedSections] = useState<Array<{ title: string; content: string; type: 'text' | 'list' | 'experience' }>>([]);
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [isAddingSection, setIsAddingSection] = useState<number | null>(null);
+  const [editingSummary, setEditingSummary] = useState(false);
+  const [editedSummary, setEditedSummary] = useState(suggestions.summary);
+  const [editingExperience, setEditingExperience] = useState<number | null>(null);
+  const [editedExperience, setEditedExperience] = useState<Array<{ original: string; improved: string }>>([]);
+  const [addedItems, setAddedItems] = useState<Set<string>>(new Set());
 
+  const showFeedback = (type: 'success' | 'error', message: string) => {
+    setFeedback({ type, message });
+    setTimeout(() => setFeedback(null), 5000);
+  };
 
+  const handleEditSection = (index: number) => {
+    setEditingSection(index);
+    // Initialize edited section if not already edited
+    if (!editedSections[index]) {
+      setEditedSections(prev => {
+        const newSections = [...prev];
+        newSections[index] = { ...suggestions.additionalSections[index], type: 'text' as const };
+        return newSections;
+      });
+    }
+  };
+
+  const handleSaveEdit = () => {
+    setEditingSection(null);
+    showFeedback('success', 'Section edited successfully!');
+  };
+
+  const handleCancelEdit = (index: number) => {
+    setEditingSection(null);
+    setEditedSections(prev => {
+      const newSections = [...prev];
+      newSections[index] = { ...suggestions.additionalSections[index], type: 'text' as const };
+      return newSections;
+    });
+  };
+
+  const handleAddSection = async (index: number) => {
+    if (!onAddCustomSection) return;
+    
+    setIsAddingSection(index);
+    try {
+      const sectionToAdd = editedSections[index] || suggestions.additionalSections[index];
+      await onAddCustomSection(sectionToAdd);
+      
+      // Mark this section as added
+      setAddedItems(prev => new Set(prev).add(`section-${index}`));
+      
+      showFeedback('success', `"${sectionToAdd.title}" section added to your CV successfully!`);
+    } catch (error) {
+      showFeedback('error', 'Failed to add section to CV. Please try again.');
+    } finally {
+      setIsAddingSection(null);
+    }
+  };
+
+  const handleEditSummary = () => {
+    setEditingSummary(true);
+  };
+
+  const handleSaveSummary = () => {
+    setEditingSummary(false);
+    showFeedback('success', 'Summary edited successfully!');
+  };
+
+  const handleCancelSummary = () => {
+    setEditingSummary(false);
+    setEditedSummary(suggestions.summary);
+  };
+
+  const handleEditExperience = (index: number) => {
+    setEditingExperience(index);
+    if (!editedExperience[index]) {
+      setEditedExperience(prev => {
+        const newExperience = [...prev];
+        newExperience[index] = { ...suggestions.experienceImprovements[index] };
+        return newExperience;
+      });
+    }
+  };
+
+  const handleSaveExperience = () => {
+    setEditingExperience(null);
+    showFeedback('success', 'Experience enhancement edited successfully!');
+  };
+
+  const handleCancelExperience = (index: number) => {
+    setEditingExperience(null);
+    setEditedExperience(prev => {
+      const newExperience = [...prev];
+      newExperience[index] = { ...suggestions.experienceImprovements[index] };
+      return newExperience;
+    });
+  };
 
   const handleDownloadOptimizedCV = async () => {
     try {
@@ -126,6 +221,22 @@ export default function CVSuggestionManager({
 
   return (
     <div className="space-y-6">
+      {/* Feedback Messages */}
+      {feedback && (
+        <div className={`p-4 rounded-lg border flex items-center ${
+          feedback.type === 'success' 
+            ? 'bg-green-50 border-green-200 text-green-800' 
+            : 'bg-red-50 border-red-200 text-red-800'
+        }`}>
+          {feedback.type === 'success' ? (
+            <Check className="w-5 h-5 mr-2" />
+          ) : (
+            <AlertCircle className="w-5 h-5 mr-2" />
+          )}
+          {feedback.message}
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold flex items-center">
           <Sparkles className="w-5 h-5 mr-2 text-blue-600" />
@@ -150,6 +261,17 @@ export default function CVSuggestionManager({
             <Sparkles className="w-5 h-5 text-blue-600" />
             <h4 className="font-medium text-gray-900 ml-2">Enhanced Professional Summary</h4>
           </div>
+          {!editingSummary && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleEditSummary}
+              className="text-blue-600 border-blue-300 hover:bg-blue-50"
+            >
+              <Edit3 className="w-4 h-4 mr-1" />
+              Edit
+            </Button>
+          )}
         </div>
 
         <div className="space-y-4">
@@ -161,13 +283,42 @@ export default function CVSuggestionManager({
           </div>
           <div>
             <p className="text-sm text-gray-500 mb-2">AI-Enhanced Version (adds to existing):</p>
+            {editingSummary ? (
+              <div className="space-y-3">
+                <textarea
+                  value={editedSummary}
+                  onChange={(e) => setEditedSummary(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded text-sm text-gray-700 min-h-[120px] resize-y"
+                  placeholder="Enhanced professional summary"
+                />
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleSaveSummary}
+                    className="text-green-600 border-green-300 hover:bg-green-50"
+                  >
+                    <Check className="w-4 h-4 mr-1" />
+                    Save
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCancelSummary}
+                    className="text-red-600 border-red-300 hover:bg-red-50"
+                  >
+                    <X className="w-4 h-4 mr-1" />
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            ) : (
             <div className="p-3 bg-white rounded border border-blue-200">
-              <p className="text-gray-700 font-medium">{suggestions.summary}</p>
+                <p className="text-gray-700 font-medium">{editedSummary}</p>
             </div>
+            )}
           </div>
         </div>
-
-        {/* No acceptance/rejection for summary */}
       </div>
 
       {/* Skills Optimization */}
@@ -218,6 +369,20 @@ export default function CVSuggestionManager({
           <div className="space-y-4">
             {suggestions.experienceImprovements.map((improvement, index) => (
               <div key={index} className="border rounded-lg p-4 bg-white">
+                <div className="flex items-start justify-between mb-3">
+                  <h5 className="font-medium text-gray-900">Experience Enhancement #{index + 1}</h5>
+                  {editingExperience !== index && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleEditExperience(index)}
+                      className="text-blue-600 border-blue-300 hover:bg-blue-50"
+                    >
+                      <Edit3 className="w-4 h-4 mr-1" />
+                      Edit
+                    </Button>
+                  )}
+                </div>
                 <div className="space-y-3">
                   <div>
                     <p className="text-sm text-gray-500 mb-1">Original:</p>
@@ -225,9 +390,47 @@ export default function CVSuggestionManager({
                   </div>
                   <div>
                     <p className="text-sm text-gray-500 mb-1">AI-Enhanced Addition (adds to original):</p>
+                    {editingExperience === index ? (
+                      <div className="space-y-3">
+                        <textarea
+                          value={editedExperience[index]?.improved || improvement.improved}
+                          onChange={(e) => {
+                            setEditedExperience(prev => {
+                              const newExperience = [...prev];
+                              if (!newExperience[index]) newExperience[index] = { ...improvement };
+                              newExperience[index].improved = e.target.value;
+                              return newExperience;
+                            });
+                          }}
+                          className="w-full px-3 py-2 border border-gray-300 rounded text-sm text-gray-700 min-h-[100px] resize-y"
+                          placeholder="Enhanced experience description"
+                        />
+                        <div className="flex items-center space-x-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleSaveExperience}
+                            className="text-green-600 border-green-300 hover:bg-green-50"
+                          >
+                            <Check className="w-4 h-4 mr-1" />
+                            Save
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleCancelExperience(index)}
+                            className="text-red-600 border-red-300 hover:bg-red-50"
+                          >
+                            <X className="w-4 h-4 mr-1" />
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
                     <p className="text-gray-700 font-medium text-sm bg-blue-50 p-3 rounded border">
-                      {improvement.improved}
+                        {editedExperience[index]?.improved || improvement.improved}
                     </p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -251,26 +454,98 @@ export default function CVSuggestionManager({
           <div className="space-y-4">
             {suggestions.additionalSections.map((section, index) => (
               <div key={index} className="border rounded-lg p-4 bg-white">
-                <div className="flex items-start justify-between mb-2">
-                  <h5 className="font-medium text-gray-900">{section.title}</h5>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      if (onAddCustomSection) {
-                        onAddCustomSection({
-                          title: section.title,
-                          content: section.content,
-                          type: 'text'
-                        });
-                      }
-                    }}
-                  >
-                    <Plus className="w-4 h-4 mr-1" />
-                    Add to CV
-                  </Button>
+                <div className="flex items-start justify-between mb-3">
+                  <h5 className="font-medium text-gray-900">
+                    {editingSection === index ? (
+                      <input
+                        type="text"
+                        value={editedSections[index]?.title || section.title}
+                        onChange={(e) => {
+                          setEditedSections(prev => {
+                            const newSections = [...prev];
+                            if (!newSections[index]) newSections[index] = { ...section, type: 'text' as const };
+                            newSections[index].title = e.target.value;
+                            return newSections;
+                          });
+                        }}
+                        className="w-full px-2 py-1 border border-gray-300 rounded text-sm font-medium"
+                        placeholder="Section title"
+                      />
+                    ) : (
+                      section.title
+                    )}
+                  </h5>
+                  <div className="flex items-center space-x-2">
+                    {editingSection === index ? (
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleSaveEdit}
+                          className="text-green-600 border-green-300 hover:bg-green-50"
+                        >
+                          <Check className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleCancelEdit(index)}
+                          className="text-red-600 border-red-300 hover:bg-red-50"
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEditSection(index)}
+                          className="text-blue-600 border-blue-300 hover:bg-blue-50"
+                        >
+                          <Edit3 className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleAddSection(index)}
+                          disabled={isAddingSection === index || addedItems.has(`section-${index}`)}
+                          className={
+                            addedItems.has(`section-${index}`)
+                              ? "text-green-600 border-green-300 bg-green-50 cursor-default"
+                              : "text-green-600 border-green-300 hover:bg-green-50"
+                          }
+                        >
+                          {isAddingSection === index ? (
+                            <div className="w-4 h-4 border-2 border-green-600 border-t-transparent rounded-full animate-spin" />
+                          ) : addedItems.has(`section-${index}`) ? (
+                            <Check className="w-4 h-4" />
+                          ) : (
+                            <Plus className="w-4 h-4" />
+                          )}
+                          {addedItems.has(`section-${index}`) ? 'Added' : 'Add to CV'}
+                        </Button>
+                      </>
+                    )}
+                  </div>
                 </div>
+                {editingSection === index ? (
+                  <textarea
+                    value={editedSections[index]?.content || section.content}
+                    onChange={(e) => {
+                      setEditedSections(prev => {
+                        const newSections = [...prev];
+                        if (!newSections[index]) newSections[index] = { ...section, type: 'text' as const };
+                        newSections[index].content = e.target.value;
+                        return newSections;
+                      });
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded text-sm text-gray-700 min-h-[100px] resize-y"
+                    placeholder="Section content"
+                  />
+                ) : (
                 <p className="text-gray-700 text-sm">{section.content}</p>
+                )}
               </div>
             ))}
           </div>

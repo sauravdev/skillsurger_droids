@@ -1003,7 +1003,7 @@ export async function generateCVSuggestions(
       type: "generateCVSuggestions",
       targetJob: targetJob,
       cvData: cvData,
-      prompt: `You are an expert career coach and CV optimization specialist. Analyze the provided CV data and target job description to generate ENHANCEMENTS that ADD VALUE to the existing CV without congesting or replacing content.
+      prompt: `You are an expert career coach and CV optimization specialist. Analyze the provided CV data and target job description to generate MEANINGFUL ENHANCEMENTS that significantly improve the CV's impact for the target role.
 
 TARGET JOB: ${targetJob.title} at ${targetJob.company}
 JOB DESCRIPTION: ${targetJob.description}
@@ -1017,31 +1017,50 @@ CURRENT CV DATA:
 - Experience Entries: ${Array.isArray(cvData.experience) ? cvData.experience.length : 0} positions
 - Education: ${Array.isArray(cvData.education) ? cvData.education.length : 0} entries
 
-OPTIMIZATION STRATEGY - ADD ENHANCEMENTS, DON'T REPLACE:
-1. ENHANCE the existing professional summary by adding 1-2 strategic sentences that align with the target role (keep existing content)
-2. IDENTIFY 3-5 additional skills from job requirements that complement existing skills (don't replace current skills)
-3. For existing experience entries, provide ENHANCED versions that:
-   - Build upon the original description
-   - Add quantifiable metrics and impact statements
-   - Include relevant technologies mentioned in job requirements
-   - Maintain the original structure while adding value
-4. Suggest 1-2 NEW sections that would strengthen the CV for this specific role
-5. Focus on ADDING VALUE rather than replacing existing content
+CRITICAL REQUIREMENTS FOR MEANINGFUL ENHANCEMENTS:
+1. SUMMARY ENHANCEMENT: Add 2-3 POWERFUL sentences that specifically address the target role's key requirements. Include:
+   - Quantifiable achievements (numbers, percentages, scale)
+   - Industry-specific expertise relevant to ${targetJob.company}
+   - Leadership or impact statements that match the job level
+   - Technologies or methodologies mentioned in job requirements
+
+2. SKILLS ADDITION: Identify 4-6 HIGH-VALUE skills from job requirements that are:
+   - Not already present in current skills
+   - Directly mentioned in job requirements
+   - Industry-standard for this role level
+   - Include specific technologies, frameworks, or methodologies
+
+3. EXPERIENCE ENHANCEMENTS: For each existing experience entry, provide SUBSTANTIAL improvements that:
+   - Add specific metrics (increased performance by X%, managed team of Y, reduced costs by Z%)
+   - Include technologies/tools from job requirements
+   - Add leadership, problem-solving, or innovation examples
+   - Show progression and career growth
+   - Demonstrate impact on business outcomes
+
+4. NEW SECTIONS: Suggest 2-3 COMPELLING new sections that would make this CV stand out:
+   - Certifications relevant to the role
+   - Key Projects with measurable outcomes
+   - Awards/Recognition
+   - Publications/Thought Leadership
+   - Volunteer Work (if relevant to role)
+   - Languages (if mentioned in job requirements)
+
+AVOID MINOR CHANGES: Don't suggest simple word replacements or minor tweaks. Focus on SUBSTANTIAL additions that demonstrate expertise, leadership, and measurable impact.
 
 Return your response as a JSON object with the following structure:
 {
-  "summary": "Enhanced professional summary that builds on existing content",
-  "highlightedSkills": ["additional_skill1", "additional_skill2", "additional_skill3"],
+  "summary": "Powerful professional summary with quantifiable achievements and role-specific expertise",
+  "highlightedSkills": ["specific_technology1", "industry_methodology2", "advanced_skill3", "certification4"],
   "experienceImprovements": [
     {
       "original": "Original experience description",
-      "improved": "Enhanced version that adds metrics and impact while preserving original content"
+      "improved": "Enhanced version with specific metrics, technologies, and measurable business impact"
     }
   ],
   "additionalSections": [
     {
-      "title": "New Section Title",
-      "content": "Detailed content for this new section"
+      "title": "Compelling Section Title",
+      "content": "Detailed, impactful content with specific examples and achievements"
     }
   ]
 }`

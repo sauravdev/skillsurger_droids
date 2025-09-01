@@ -79,7 +79,8 @@ export default function SignUpWizard() {
             projects: parsedCvData?.projects || [],
             skills: parsedCvData?.skills || [],
             education: parsedCvData?.education || [],
-            cv_parsed_data: parsedCvData || {}
+            cv_parsed_data: parsedCvData || {},
+            cv_analyses_count: parsedCvData ? 1 : 0 // Initialize CV analyses count
           }
         ])
         .select();

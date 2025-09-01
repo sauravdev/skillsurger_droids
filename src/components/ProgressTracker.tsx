@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Trophy, Star, Target, Award, TrendingUp } from 'lucide-react';
+import { Trophy, Star, Target, Award, TrendingUp, BookOpen, Briefcase, FileText } from 'lucide-react';
 import Button from './Button';
 import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
@@ -12,7 +12,7 @@ interface Achievement {
   progress: number;
   maxProgress: number;
   completed: boolean;
-  section: 'profile' | 'mock-interviews' | 'skills' | 'mentorship';
+  section: 'profile' | 'mock-interviews' | 'skills' | 'mentorship' | 'learning';
 }
 
 interface ProgressStats {
@@ -21,6 +21,9 @@ interface ProgressStats {
   nextLevelExperience: number;
   completedTasks: number;
   skillsLearned: number;
+  learningPathsGenerated: number;
+  jobsSaved: number;
+  cvAnalyses: number;
 }
 
 const icons = {
@@ -28,7 +31,10 @@ const icons = {
   Star,
   Target,
   Award,
-  TrendingUp
+  TrendingUp,
+  BookOpen,
+  Briefcase,
+  FileText
 };
 
 export default function ProgressTracker() {
@@ -73,6 +79,26 @@ export default function ProgressTracker() {
       maxProgress: 3,
       completed: false,
       section: 'mentorship'
+    },
+    {
+      id: '5',
+      title: 'Learning Path Creator',
+      description: 'Generate 3 learning paths',
+      icon: 'BookOpen',
+      progress: 0,
+      maxProgress: 3,
+      completed: false,
+      section: 'learning'
+    },
+    {
+      id: '6',
+      title: 'CV Optimizer',
+      description: 'Analyze and optimize your CV',
+      icon: 'FileText',
+      progress: 0,
+      maxProgress: 1,
+      completed: false,
+      section: 'profile'
     }
   ]);
 
@@ -97,12 +123,18 @@ export default function ProgressTracker() {
         { data: skills },
         { data: interviews },
         { data: mentorships },
-        { data: learningPlans }
+        { data: learningPlans },
+        { data: learningPaths },
+        { data: savedJobs },
+        { data: profile }
       ] = await Promise.all([
         supabase.from('user_skills').select('*').eq('user_id', user.id),
         supabase.from('mock_interviews').select('*').eq('user_id', user.id),
         supabase.from('mentorship_sessions').select('*').eq('mentee_id', user.id),
-        supabase.from('learning_plans').select('*').eq('user_id', user.id)
+        supabase.from('learning_plans').select('*').eq('user_id', user.id),
+        supabase.from('learning_paths').select('*').eq('user_id', user.id),
+        supabase.from('saved_jobs').select('*').eq('user_id', user.id),
+        supabase.from('profiles').select('cv_url, cv_parsed_data, cv_analyses_count').eq('id', user.id).single()
       ]);
 
       const updatedAchievements = achievements.map(achievement => {
@@ -135,6 +167,20 @@ export default function ProgressTracker() {
               progress: Math.min(mentorCount, achievement.maxProgress),
               completed: mentorCount >= achievement.maxProgress
             };
+          case '5': // Learning Path Creator
+            const learningPathCount = learningPaths?.length || 0;
+            return {
+              ...achievement,
+              progress: Math.min(learningPathCount, achievement.maxProgress),
+              completed: learningPathCount >= achievement.maxProgress
+            };
+          case '6': // CV Optimizer
+            const cvAnalysisCount = profile?.cv_analyses_count || 0;
+            return {
+              ...achievement,
+              progress: Math.min(cvAnalysisCount, achievement.maxProgress),
+              completed: cvAnalysisCount >= achievement.maxProgress
+            };
           default:
             return achievement;
         }
@@ -144,7 +190,10 @@ export default function ProgressTracker() {
 
       const totalTasks = (learningPlans?.length || 0) + (interviews?.length || 0);
       const totalSkills = skills?.length || 0;
-      const experience = calculateExperience(totalTasks, totalSkills);
+      const learningPathsGenerated = learningPaths?.length || 0;
+      const jobsSaved = savedJobs?.length || 0;
+      const cvAnalyses = profile?.cv_analyses_count || 0; // Count CV analyses
+      const experience = calculateExperience(totalTasks, totalSkills, learningPathsGenerated, cvAnalyses);
       const level = Math.floor(experience / 1000) + 1;
 
       setStats({
@@ -152,7 +201,10 @@ export default function ProgressTracker() {
         experience: experience % 1000,
         nextLevelExperience: 1000,
         completedTasks: totalTasks,
-        skillsLearned: totalSkills
+        skillsLearned: totalSkills,
+        learningPathsGenerated,
+        jobsSaved,
+        cvAnalyses
       });
     } catch (error) {
       console.error('Error loading progress:', error);
@@ -163,8 +215,8 @@ export default function ProgressTracker() {
     return 3; // Placeholder value
   }
 
-  function calculateExperience(tasks: number, skills: number): number {
-    return (tasks * 100) + (skills * 200);
+  function calculateExperience(tasks: number, skills: number, learningPaths: number, cvAnalyses: number): number {
+    return (tasks * 100) + (skills * 200) + (learningPaths * 150) + (cvAnalyses * 300);
   }
 
   const handleAchievementClick = (section: string) => {
@@ -197,7 +249,7 @@ export default function ProgressTracker() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <div className="bg-gray-50 rounded-lg p-4">
           <div className="flex items-center space-x-2">
             <Target className="w-5 h-5 text-blue-600" />
@@ -211,6 +263,27 @@ export default function ProgressTracker() {
             <span className="font-medium">Skills Learned</span>
           </div>
           <p className="text-2xl font-bold mt-2">{stats.skillsLearned}</p>
+        </div>
+        <div className="bg-gray-50 rounded-lg p-4">
+          <div className="flex items-center space-x-2">
+            <BookOpen className="w-5 h-5 text-purple-600" />
+            <span className="font-medium">Learning Paths</span>
+          </div>
+          <p className="text-2xl font-bold mt-2">{stats.learningPathsGenerated}</p>
+        </div>
+        <div className="bg-gray-50 rounded-lg p-4">
+          <div className="flex items-center space-x-2">
+            <Briefcase className="w-5 h-5 text-orange-600" />
+            <span className="font-medium">Jobs Saved</span>
+          </div>
+          <p className="text-2xl font-bold mt-2">{stats.jobsSaved}</p>
+        </div>
+        <div className="bg-gray-50 rounded-lg p-4">
+          <div className="flex items-center space-x-2">
+            <FileText className="w-5 h-5 text-indigo-600" />
+            <span className="font-medium">CV Analyses</span>
+          </div>
+          <p className="text-2xl font-bold mt-2">{stats.cvAnalyses}</p>
         </div>
       </div>
 

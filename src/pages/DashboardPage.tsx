@@ -60,6 +60,7 @@ export default function DashboardPage() {
           setActiveSection('mentorship');
           break;
         case 'skills':
+        case 'learning':
           setActiveSection('learning');
           break;
         case 'subscription':

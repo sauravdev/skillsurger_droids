@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { BookOpen, CheckCircle, ExternalLink, RefreshCw, Trash2, Archive, AlertTriangle, ChevronDown, ChevronUp, Star, Clock, DollarSign, Award, Shield } from 'lucide-react';
+import { BookOpen, CheckCircle, ExternalLink, RefreshCw, Trash2, Archive, ChevronDown, ChevronUp, Star, Clock, Award, Shield } from 'lucide-react';
 import Button from './Button';
 import { supabase } from '../lib/supabase';
 import { generateLearningPlan } from '../lib/openai';
@@ -33,8 +33,11 @@ interface SavedJob {
   id: string;
   title: string;
   company: string;
+  location: string;
   description: string;
-  requirements: string[];
+  requirements?: string[];
+  type?: string;
+  salary?: string;
 }
 
 interface Career {
@@ -43,9 +46,21 @@ interface Career {
 }
 
 interface JobOpportunity {
+  id: string;
   title: string;
+  company: string;
+  companyLogo?: string;
+  companyUrl?: string;
+  location: string;
   description: string;
-  requirements: string[];
+  requirements?: string[];
+  type?: string;
+  salary?: string;
+  applicationUrl?: string;
+  postedDate?: string;
+  seniority?: string;
+  organizationSize?: string;
+  organizationIndustry?: string;
 }
 
 interface LearningPathsProps {
@@ -60,7 +75,7 @@ export default function LearningPaths({ job }: LearningPathsProps) {
   const [selectedCareer, setSelectedCareer] = useState('');
   const [selectedJob, setSelectedJob] = useState('');
   const [careers, setCareers] = useState<Career[]>([]);
-  const [allJobs, setAllJobs] = useState<SavedJob[]>([]);
+  const [, setAllJobs] = useState<SavedJob[]>([]);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [showHistorical, setShowHistorical] = useState(false);
@@ -77,6 +92,101 @@ export default function LearningPaths({ job }: LearningPathsProps) {
   //   }
   // }, [job]);
 
+  // Helper function to save job to database
+  async function saveJobToDatabase(job: JobOpportunity, userId: string) {
+    try {
+      // Check if job already exists
+      const { data: existingJob } = await supabase
+        .from('saved_jobs')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('title', job.title)
+        .eq('company', job.company)
+        .single();
+
+      if (existingJob) {
+        console.log('Job already exists in database');
+        return;
+      }
+
+      // Save the job
+      const jobToSave = {
+        user_id: userId,
+        title: job.title,
+        company: job.company,
+        location: job.location,
+        description: job.description,
+        requirements: job.requirements,
+        type: job.type,
+        salary: job.salary
+      };
+
+      const { error } = await supabase
+        .from('saved_jobs')
+        .insert([jobToSave]);
+
+      if (error) throw error;
+      console.log('Job saved to database successfully');
+    } catch (error) {
+      console.error('Error saving job to database:', error);
+      // Don't throw error here as it shouldn't stop the learning path generation
+    }
+  }
+
+  // Helper function to convert SavedJob to JobOpportunity
+  function convertSavedJobToJobOpportunity(savedJob: SavedJob): JobOpportunity {
+    return {
+      id: savedJob.id,
+      title: savedJob.title,
+      company: savedJob.company,
+      location: savedJob.location,
+      description: savedJob.description,
+      requirements: savedJob.requirements || [],
+      type: savedJob.type,
+      salary: savedJob.salary
+    };
+  }
+
+  // Helper function to determine career path based on job
+  function determineCareerPath(job: JobOpportunity): string {
+    const title = job.title.toLowerCase();
+    const description = job.description.toLowerCase();
+    const requirements = Array.isArray(job.requirements) ? job.requirements.join(' ').toLowerCase() : '';
+
+    // Define career path mappings
+    const careerMappings = [
+      { keywords: ['software engineer', 'software developer', 'full stack', 'frontend', 'backend', 'web developer', 'mobile developer'], career: 'Software Development' },
+      { keywords: ['data scientist', 'data analyst', 'data engineer', 'machine learning', 'ai engineer', 'ml engineer'], career: 'Data Science' },
+      { keywords: ['product manager', 'product owner', 'product lead'], career: 'Product Management' },
+      { keywords: ['ui designer', 'ux designer', 'designer', 'graphic designer', 'visual designer'], career: 'Design' },
+      { keywords: ['marketing manager', 'digital marketing', 'growth marketing', 'content marketing'], career: 'Marketing' },
+      { keywords: ['sales manager', 'sales representative', 'business development'], career: 'Sales' },
+      { keywords: ['devops', 'site reliability', 'cloud engineer', 'infrastructure'], career: 'DevOps & Cloud' },
+      { keywords: ['cybersecurity', 'security engineer', 'security analyst'], career: 'Cybersecurity' },
+      { keywords: ['project manager', 'program manager', 'scrum master'], career: 'Project Management' },
+      { keywords: ['business analyst', 'data analyst', 'financial analyst'], career: 'Business Analysis' }
+    ];
+
+    // Check job title first
+    for (const mapping of careerMappings) {
+      if (mapping.keywords.some(keyword => title.includes(keyword))) {
+        return mapping.career;
+      }
+    }
+
+    // Check job description and requirements
+    for (const mapping of careerMappings) {
+      if (mapping.keywords.some(keyword => 
+        description.includes(keyword) || requirements.includes(keyword)
+      )) {
+        return mapping.career;
+      }
+    }
+
+    // Default fallback
+    return 'General Technology';
+  }
+
   async function loadData() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -85,7 +195,7 @@ export default function LearningPaths({ job }: LearningPathsProps) {
       // Load careers and jobs
       const [{ data: careerData }, { data: jobData }] = await Promise.all([
         supabase.from('generated_careers').select('title').eq('user_id', user.id),
-        supabase.from('saved_jobs').select('id, title, company, description, requirements').eq('user_id', user.id)
+        supabase.from('saved_jobs').select('id, title, company, location, description, requirements, type, salary').eq('user_id', user.id)
       ]);
 
       if (jobData) {
@@ -93,26 +203,47 @@ export default function LearningPaths({ job }: LearningPathsProps) {
       }
 
       if (careerData && jobData) {
-        // Create career objects with their related jobs
+        // Create career objects with their related jobs using intelligent matching
         const uniqueCareers = Array.from(new Set(careerData.map(c => c.title)));
-        const careersWithJobs: Career[] = uniqueCareers.map(careerTitle => {
-          // Find jobs that are related to this career
+        const usedJobs = new Set<string>(); // Track which jobs have been assigned
+        const careersWithJobs: Career[] = [];
+
+        // First, try to match jobs to specific career paths
+        for (const careerTitle of uniqueCareers) {
           const relatedJobs = jobData.filter(job => {
-            const careerWords = careerTitle.toLowerCase().split(' ');
-            const jobTitle = job.title.toLowerCase();
-            const jobDescription = job.description.toLowerCase();
-            
-            // Check if any career words appear in job title or description
-            return careerWords.some(word => 
-              word.length > 3 && (jobTitle.includes(word) || jobDescription.includes(word))
-            );
+            const jobKey = `${job.title}-${job.company}`;
+            if (usedJobs.has(jobKey)) return false; // Skip if already assigned
+
+            // Use the same logic as determineCareerPath for consistency
+            const jobOpportunity = convertSavedJobToJobOpportunity(job);
+            const determinedCareer = determineCareerPath(jobOpportunity);
+            return determinedCareer === careerTitle;
           });
 
-          return {
-            title: careerTitle,
-            jobs: relatedJobs
-          };
-        });
+          // Mark these jobs as used
+          relatedJobs.forEach(job => {
+            usedJobs.add(`${job.title}-${job.company}`);
+          });
+
+          if (relatedJobs.length > 0) {
+            careersWithJobs.push({
+              title: careerTitle,
+              jobs: relatedJobs
+            });
+          }
+        }
+
+        // Add any remaining unmatched jobs to a "Other Jobs" category
+        const unmatchedJobs = jobData.filter(job => 
+          !usedJobs.has(`${job.title}-${job.company}`)
+        );
+
+        if (unmatchedJobs.length > 0) {
+          careersWithJobs.push({
+            title: 'Other Jobs',
+            jobs: unmatchedJobs
+          });
+        }
 
         // Also add a "All Jobs" category that includes all saved jobs
         careersWithJobs.unshift({
@@ -356,16 +487,23 @@ export default function LearningPaths({ job }: LearningPathsProps) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      // Auto-save the job first
+      await saveJobToDatabase(selectedJob, user.id);
+
+      // Determine the appropriate career path for this job
+      const careerPath = determineCareerPath(selectedJob);
+
       // Check if a learning path already exists for this job
       const { data: existingPath } = await supabase
         .from('learning_paths')
         .select('*')
         .eq('user_id', user.id)
         .eq('job_title', selectedJob.title)
+        .eq('company', selectedJob.company)
         .single();
 
       if (existingPath) {
-        setError(`A learning path for "${selectedJob.title}" already exists. Please delete the existing one first or choose a different job.`);
+        setError(`A learning path for "${selectedJob.title}" at ${selectedJob.company} already exists. Please delete the existing one first or choose a different job.`);
         return;
       }
 
@@ -388,9 +526,10 @@ export default function LearningPaths({ job }: LearningPathsProps) {
         .from('learning_paths')
         .insert({
           user_id: user.id,
-          career_path: selectedJob.title, // Use job title as career path for now
+          career_path: careerPath,
           job_title: selectedJob.title,
-          skills_to_learn: selectedJob.requirements, // Use job requirements for skills to learn
+          company: selectedJob.company,
+          skills_to_learn: selectedJob.requirements,
           resources: uniquePlan,
           progress: 0,
         })
@@ -402,6 +541,9 @@ export default function LearningPaths({ job }: LearningPathsProps) {
       // Add new path to the top of the list
       setLearningPaths(prev => [savedPath, ...prev]);
       
+      // Reload data to show the saved job in the dropdown
+      await loadData();
+      
     } catch (error: any) {
       console.error('Error generating learning path:', error);
       setError(error.message || 'Failed to generate learning path');
@@ -410,18 +552,31 @@ export default function LearningPaths({ job }: LearningPathsProps) {
     }
   }
 
-  async function handleUpdateProgress(pathId: string, newProgress: number) {
+  async function handleUpdateProgress(pathId: string, newProgress: number, updatedResources?: any[]) {
     try {
+      const updateData: any = { progress: newProgress };
+      
+      // If updatedResources is provided, also update the resources array
+      if (updatedResources) {
+        updateData.resources = updatedResources;
+      }
+
       const { error: updateError } = await supabase
         .from('learning_paths')
-        .update({ progress: newProgress })
+        .update(updateData)
         .eq('id', pathId);
 
       if (updateError) throw updateError;
 
       setLearningPaths(prev =>
         prev.map(path =>
-          path.id === pathId ? { ...path, progress: newProgress } : path
+          path.id === pathId 
+            ? { 
+                ...path, 
+                progress: newProgress,
+                ...(updatedResources && { resources: updatedResources })
+              } 
+            : path
         )
       );
     } catch (error) {
@@ -805,16 +960,8 @@ export default function LearningPaths({ job }: LearningPathsProps) {
                             const completedCount = updatedResources.filter(r => r.completed).length;
                             const newProgress = Math.round((completedCount / updatedResources.length) * 100);
                             
-                            handleUpdateProgress(path.id, newProgress);
-                            
-                            // Update local state
-                            setLearningPaths(prev =>
-                              prev.map(p =>
-                                p.id === path.id 
-                                  ? { ...p, resources: updatedResources, progress: newProgress }
-                                  : p
-                              )
-                            );
+                            // Update database with both progress and resources
+                            handleUpdateProgress(path.id, newProgress, updatedResources);
                           }}
                           className={`p-2 rounded-full transition-colors ml-4 ${
                             resource.completed 

@@ -236,6 +236,50 @@ export default function CareerExplorer({ onGenerateLearningPath, jobs, setJobs, 
     }
   }
 
+  // Helper function to save job to database (used for auto-save)
+  async function saveJobToDatabase(job: JobOpportunity) {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Check if job already exists
+      const { data: existingJob } = await supabase
+        .from('saved_jobs')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('title', job.title)
+        .eq('company', job.company)
+        .single();
+
+      if (existingJob) {
+        console.log('Job already exists in database');
+        return;
+      }
+
+      // Save the job
+      const jobToSave = {
+        user_id: user.id,
+        title: job.title,
+        company: job.company,
+        location: job.location,
+        description: job.description,
+        requirements: job.requirements,
+        type: job.type,
+        salary: job.salary
+      };
+
+      const { error } = await supabase
+        .from('saved_jobs')
+        .insert([jobToSave]);
+
+      if (error) throw error;
+      console.log('Job auto-saved to database successfully');
+    } catch (error) {
+      console.error('Error auto-saving job to database:', error);
+      // Don't throw error here as it shouldn't stop the CV suggestions generation
+    }
+  }
+
   async function saveJob(job: JobOpportunity) {
     try {
       setSavingJob(`${job.title}-${job.company}`);
@@ -858,6 +902,9 @@ export default function CareerExplorer({ onGenerateLearningPath, jobs, setJobs, 
       };
 
       console.log('Generating CV suggestions with comprehensive data:', comprehensiveCVData);
+
+      // Auto-save the job first
+      await saveJobToDatabase(job);
 
       const suggestions = await generateCVSuggestions(
         JSON.stringify(comprehensiveCVData),

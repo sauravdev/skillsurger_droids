@@ -15,11 +15,24 @@ async function extractTextFromPdf(file: File): Promise<string> {
     const arrayBuffer = await file.arrayBuffer();
     const typedArray = new Uint8Array(arrayBuffer);
     
+    // Basic PDF validation - check for PDF header
+    const header = new TextDecoder().decode(typedArray.slice(0, 8));
+    if (!header.startsWith('%PDF-')) {
+      throw new Error('Invalid PDF structure: File does not appear to be a valid PDF document.');
+    }
+    
     console.log('Loading PDF document...');
     const loadingTask = pdfjsLib.getDocument({ 
       data: typedArray,
-      verbosity: 0 // Reduce console noise
+      verbosity: 0, // Reduce console noise
+      stopAtErrors: false, // Continue processing even with errors
+      maxImageSize: 1024 * 1024, // Limit image size to prevent memory issues
+      isEvalSupported: false, // Disable eval for security
+      disableFontFace: true, // Disable font face loading
+      disableRange: false, // Enable range requests
+      disableStream: false // Enable streaming
     });
+    
     const pdf = await loadingTask.promise;
     
     console.log(`PDF loaded successfully. Pages: ${pdf.numPages}`);
@@ -27,24 +40,30 @@ async function extractTextFromPdf(file: File): Promise<string> {
     let fullText = '';
     
     for (let i = 1; i <= pdf.numPages; i++) {
-      console.log(`Processing page ${i}/${pdf.numPages}`);
-      const page = await pdf.getPage(i);
-      const textContent = await page.getTextContent();
-      
-      // Extract text items and join them properly
-      const pageText = textContent.items
-        .filter((item: any) => item.str && item.str.trim()) // Filter out empty strings
-        .map((item: any) => {
-          // Handle text positioning for better formatting
-          if (item.hasEOL) {
-            return item.str + '\n';
-          }
-          return item.str + ' ';
-        })
-        .join('');
-      
-      fullText += pageText + '\n\n';
-      console.log(`Page ${i} text length: ${pageText.length}`);
+      try {
+        console.log(`Processing page ${i}/${pdf.numPages}`);
+        const page = await pdf.getPage(i);
+        const textContent = await page.getTextContent();
+        
+        // Extract text items and join them properly
+        const pageText = textContent.items
+          .filter((item: any) => item.str && item.str.trim()) // Filter out empty strings
+          .map((item: any) => {
+            // Handle text positioning for better formatting
+            if (item.hasEOL) {
+              return item.str + '\n';
+            }
+            return item.str + ' ';
+          })
+          .join('');
+        
+        fullText += pageText + '\n\n';
+        console.log(`Page ${i} text length: ${pageText.length}`);
+      } catch (pageError) {
+        console.warn(`Failed to process page ${i}:`, pageError);
+        // Continue with other pages even if one fails
+        fullText += `[Page ${i} could not be processed]\n\n`;
+      }
     }
 
     console.log(`Total extracted text length: ${fullText.length}`);
@@ -107,13 +126,14 @@ export async function uploadCV(file: File, userId: string): Promise<string> {
     }
 
     // Get the public URL for the uploaded file
-    const { data: { signedUrl } } = await supabase.storage
+    const { data: { publicUrl } } = supabase.storage
       .from('cvs')
-      .createSignedUrl(filePath, 60 * 60); // 1 hour expiry
-    if (error) throw error;
+      .getPublicUrl(filePath);
 
-    console.log('CV uploaded successfully:', signedUrl);
-    return signedUrl;
+    console.log('CV uploaded successfully:');
+    console.log('File path:', filePath);
+    console.log('Public URL:', publicUrl);
+    return publicUrl;
   } catch (error) {
     console.error('Error uploading CV:', error);
     throw error;
@@ -602,8 +622,24 @@ export async function parseCV(file: File): Promise<ParsedCV> {
 
     console.log('Starting CV parsing process...');
     
+    // Validate file type
+    if (file.type !== 'application/pdf') {
+      throw new Error('Invalid file type. Please upload a PDF file.');
+    }
+
+    // Check file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      throw new Error('File too large. Please upload a PDF smaller than 10MB.');
+    }
+    
     // Extract text using PDF.js first
-    const pdfText = await extractTextFromPdf(file);
+    let pdfText: string;
+    try {
+      pdfText = await extractTextFromPdf(file);
+    } catch (pdfError) {
+      console.error('PDF text extraction failed:', pdfError);
+      throw new Error('Failed to extract text from PDF. The file might be corrupted, password-protected, or contain only images. Please try a different PDF file.');
+    }
     
     if (pdfText && pdfText.trim()) {
       // Use OpenAI to analyze the extracted text

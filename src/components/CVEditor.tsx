@@ -64,7 +64,7 @@ interface Props {
   hideSummaryInPreview?: boolean;
 }
 
-export default function CVEditor({ initialData, onSave, hideSummaryInPreview }: Props) {
+export default function CVEditor({ initialData, onSave }: Props) {
   const [isEditing, setIsEditing] = useState(false);
   const [data, setData] = useState<CVData>(initialData);
   const [loading, setLoading] = useState(false);
@@ -74,8 +74,30 @@ export default function CVEditor({ initialData, onSave, hideSummaryInPreview }: 
       setLoading(true);
       await onSave(data);
       setIsEditing(false);
+      
+      // Show success message
+      const successDiv = document.createElement('div');
+      successDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+      successDiv.textContent = 'CV changes saved successfully!';
+      document.body.appendChild(successDiv);
+      setTimeout(() => {
+        if (document.body.contains(successDiv)) {
+          document.body.removeChild(successDiv);
+        }
+      }, 3000);
     } catch (error) {
       console.error('Error saving CV:', error);
+      
+      // Show error message
+      const errorDiv = document.createElement('div');
+      errorDiv.className = 'fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+      errorDiv.textContent = 'Failed to save CV changes. Please try again.';
+      document.body.appendChild(errorDiv);
+      setTimeout(() => {
+        if (document.body.contains(errorDiv)) {
+          document.body.removeChild(errorDiv);
+        }
+      }, 5000);
     } finally {
       setLoading(false);
     }
@@ -141,8 +163,30 @@ export default function CVEditor({ initialData, onSave, hideSummaryInPreview }: 
       pdf.save(fileName);
       
       console.log('PDF saved successfully');
+      
+      // Show success message
+      const successDiv = document.createElement('div');
+      successDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+      successDiv.textContent = 'CV PDF downloaded successfully!';
+      document.body.appendChild(successDiv);
+      setTimeout(() => {
+        if (document.body.contains(successDiv)) {
+          document.body.removeChild(successDiv);
+        }
+      }, 3000);
     } catch (error) {
       console.error('Error generating PDF:', error);
+      
+      // Show error message
+      const errorDiv = document.createElement('div');
+      errorDiv.className = 'fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+      errorDiv.textContent = 'Failed to generate CV PDF. Please try again.';
+      document.body.appendChild(errorDiv);
+      setTimeout(() => {
+        if (document.body.contains(errorDiv)) {
+          document.body.removeChild(errorDiv);
+        }
+      }, 5000);
     } finally {
       setLoading(false);
     }

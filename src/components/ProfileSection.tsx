@@ -52,6 +52,7 @@ interface ProfileData {
     content: string;
     type: 'text' | 'list' | 'experience';
   }>;
+  cv_analyses_count?: number;
 }
 
 interface UserSkill {
@@ -297,6 +298,7 @@ export default function ProfileSection() {
         profileUpdate.education = parsedCvData.education;
         profileUpdate.certifications = parsedCvData.certifications;
         profileUpdate.cv_parsed_data = parsedCvData;
+        profileUpdate.cv_analyses_count = (profile?.cv_analyses_count || 0) + 1; // Increment CV analyses count
         
         // Update email and location from CV if not already set
         if (parsedCvData.city && !profile?.city) {
@@ -344,9 +346,31 @@ export default function ProfileSection() {
 
       await loadProfile();
       setIsEditing(false);
+      
+      // Show success message
+      const successDiv = document.createElement('div');
+      successDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+      successDiv.textContent = 'Profile updated successfully!';
+      document.body.appendChild(successDiv);
+      setTimeout(() => {
+        if (document.body.contains(successDiv)) {
+          document.body.removeChild(successDiv);
+        }
+      }, 3000);
     } catch (error: any) {
       console.error('Error updating profile:', error);
       setError(error.message || 'Failed to update profile');
+      
+      // Show error message
+      const errorDiv = document.createElement('div');
+      errorDiv.className = 'fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+      errorDiv.textContent = 'Failed to update profile. Please try again.';
+      document.body.appendChild(errorDiv);
+      setTimeout(() => {
+        if (document.body.contains(errorDiv)) {
+          document.body.removeChild(errorDiv);
+        }
+      }, 5000);
     } finally {
       setSaving(false);
     }
@@ -420,9 +444,31 @@ export default function ProfileSection() {
       }
       
       await loadProfile();
+      
+      // Show success message
+      const successDiv = document.createElement('div');
+      successDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+      successDiv.textContent = 'CV uploaded and analyzed successfully!';
+      document.body.appendChild(successDiv);
+      setTimeout(() => {
+        if (document.body.contains(successDiv)) {
+          document.body.removeChild(successDiv);
+        }
+      }, 3000);
     } catch (error: any) {
       console.error('Error reuploading CV:', error);
       setError(error.message || 'Failed to reupload CV');
+      
+      // Show error message
+      const errorDiv = document.createElement('div');
+      errorDiv.className = 'fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+      errorDiv.textContent = 'Failed to upload CV. Please try again.';
+      document.body.appendChild(errorDiv);
+      setTimeout(() => {
+        if (document.body.contains(errorDiv)) {
+          document.body.removeChild(errorDiv);
+        }
+      }, 5000);
     } finally {
       setUploading(false);
       // Reset the input
@@ -520,28 +566,74 @@ export default function ProfileSection() {
         setReanalyzingAndSaving(false);
         return;
       }
-      // Download the PDF file from the URL
-      const response = await fetch(profile.cv_url);
-      const blob = await response.blob();
-      const file = new File([blob], 'resume.pdf', { type: 'application/pdf' });
-      // Parse the CV using AI
-      const parsedData = await parseCV(file);
       // Get user id
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No user found');
-      // Upload the file again (to update timestamp or replace)
-      const cvUrl = await uploadCV(file, user.id);
-      // Update the profile with the new parsed data and file URL
+      
+      // Fetch CV file directly from storage using user ID
+      let cvFile: File;
+      let latestCvFileName: string;
+      try {
+        console.log('Fetching CV files from storage for user:', user.id);
+        
+        // List all CV files for this user
+        const { data: cvFiles, error: listError } = await supabase.storage
+          .from('cvs')
+          .list(user.id);
+        
+        if (listError) {
+          console.error('Error listing CV files:', listError);
+          throw new Error('Failed to access CV storage. Please try again.');
+        }
+        
+        if (!cvFiles || cvFiles.length === 0) {
+          throw new Error('No CV file found in storage. Please upload a CV first.');
+        }
+        
+        // Get the most recent CV file (assuming files are sorted by creation time)
+        const latestCvFile = cvFiles[cvFiles.length - 1];
+        latestCvFileName = latestCvFile.name;
+        console.log('Found CV file:', latestCvFileName);
+        
+        // Download the CV file
+        const { data: cvData, error: downloadError } = await supabase.storage
+          .from('cvs')
+          .download(`${user.id}/${latestCvFileName}`);
+        
+        if (downloadError) {
+          console.error('Error downloading CV file:', downloadError);
+          throw new Error('Failed to download CV file. Please try again.');
+        }
+        
+        // Convert blob to File object
+        cvFile = new File([cvData], latestCvFileName, { type: 'application/pdf' });
+        console.log('Successfully downloaded CV file:', latestCvFileName);
+        
+      } catch (storageError) {
+        console.error('Error fetching CV from storage:', storageError);
+        throw new Error('CV file is no longer accessible. Please re-upload your CV file.');
+      }
+      
+      // Parse the CV using AI
+      const parsedData = await parseCV(cvFile);
+      
+      // Get the public URL for the CV file we just downloaded
+      const { data: { publicUrl } } = supabase.storage
+        .from('cvs')
+        .getPublicUrl(`${user.id}/${latestCvFileName}`);
+      
+      // Update the profile with the new parsed data and correct CV URL
       const { error: updateError } = await supabase
         .from('profiles')
         .update({
-          cv_url: cvUrl,
+          cv_url: publicUrl,
           summary: parsedData.summary,
           experience: parsedData.experience,
           projects: parsedData.projects,
           education: parsedData.education,
           certifications: parsedData.certifications,
           cv_parsed_data: parsedData,
+          cv_analyses_count: (profile?.cv_analyses_count || 0) + 1, // Increment CV analyses count
           ...(parsedData.city && { 
             city: parsedData.city,
             state: parsedData.state,
@@ -576,10 +668,42 @@ export default function ProfileSection() {
         if (document.body.contains(successDiv)) {
           document.body.removeChild(successDiv);
         }
+        // Reload the page after showing success message
+        window.location.reload();
       }, 3000);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error re-analyzing and saving CV:', error);
-      setError('Failed to re-analyze and save resume. Please try again.');
+      
+      let errorMessage = 'Failed to re-analyze and save resume. Please try again.';
+      let toastMessage = 'Failed to re-analyze CV. Please try again.';
+      
+      // Provide more specific error messages based on the error type
+      if (error.message?.includes('no longer accessible') || error.message?.includes('download URL')) {
+        errorMessage = 'CV file is no longer accessible. Please re-upload your CV file.';
+        toastMessage = 'CV file expired. Please re-upload your CV file.';
+      } else if (error.message?.includes('Invalid PDF structure') || error.message?.includes('corrupted')) {
+        errorMessage = 'The CV file appears to be corrupted or invalid. Please try uploading a different PDF file.';
+        toastMessage = 'CV file is corrupted. Please upload a valid PDF file.';
+      } else if (error.message?.includes('File too large')) {
+        errorMessage = 'CV file is too large. Please upload a PDF smaller than 10MB.';
+        toastMessage = 'CV file too large. Please upload a smaller PDF.';
+      } else if (error.message?.includes('Invalid file type')) {
+        errorMessage = 'Invalid file type. Please upload a PDF file.';
+        toastMessage = 'Invalid file type. Please upload a PDF file.';
+      }
+      
+      setError(errorMessage);
+      
+      // Show error message
+      const errorDiv = document.createElement('div');
+      errorDiv.className = 'fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+      errorDiv.textContent = toastMessage;
+      document.body.appendChild(errorDiv);
+      setTimeout(() => {
+        if (document.body.contains(errorDiv)) {
+          document.body.removeChild(errorDiv);
+        }
+      }, 5000);
     } finally {
       setReanalyzingAndSaving(false);
     }
