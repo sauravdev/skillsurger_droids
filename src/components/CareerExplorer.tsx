@@ -1033,10 +1033,86 @@ export default function CareerExplorer({ onGenerateLearningPath, jobs, setJobs, 
 
               if (error) throw error;
               
-              // Reload profile to get updated data
-              await loadProfile();
+              // Update profile state with new custom section
+              setProfile((prev: any) => ({
+                ...prev,
+                custom_sections: [...(prev?.custom_sections || []), section]
+              }));
+              
+              // Show success message
+              const successDiv = document.createElement('div');
+              successDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+              successDiv.textContent = `"${section.title}" section added successfully!`;
+              document.body.appendChild(successDiv);
+              setTimeout(() => {
+                if (document.body.contains(successDiv)) {
+                  document.body.removeChild(successDiv);
+                }
+              }, 3000);
             } catch (error) {
               console.error('Error adding custom section:', error);
+            }
+          }}
+          onAddCertification={async (certification) => {
+            try {
+              const { error } = await supabase
+                .from('profiles')
+                .update({
+                  certifications: [...(profile?.certifications || []), certification]
+                })
+                .eq('id', profile?.id);
+
+              if (error) throw error;
+              
+              // Update profile state with new certification
+              setProfile((prev: any) => ({
+                ...prev,
+                certifications: [...(prev?.certifications || []), certification]
+              }));
+              
+              // Show success message
+              const successDiv = document.createElement('div');
+              successDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+              successDiv.textContent = `"${certification.name}" certification added successfully!`;
+              document.body.appendChild(successDiv);
+              setTimeout(() => {
+                if (document.body.contains(successDiv)) {
+                  document.body.removeChild(successDiv);
+                }
+              }, 3000);
+            } catch (error) {
+              console.error('Error adding certification:', error);
+            }
+          }}
+          onAddProject={async (project) => {
+            try {
+              const { error } = await supabase
+                .from('profiles')
+                .update({
+                  projects: [...(profile?.projects || []), project]
+                })
+                .eq('id', profile?.id);
+
+              if (error) throw error;
+              
+              // Update profile state with new project
+              setProfile((prev: any) => ({
+                ...prev,
+                projects: [...(prev?.projects || []), project]
+              }));
+              
+              // Show success message
+              const successDiv = document.createElement('div');
+              successDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+              successDiv.textContent = `"${project.name}" project added successfully!`;
+              document.body.appendChild(successDiv);
+              setTimeout(() => {
+                if (document.body.contains(successDiv)) {
+                  document.body.removeChild(successDiv);
+                }
+              }, 3000);
+            } catch (error) {
+              console.error('Error adding project:', error);
             }
           }}
         />
@@ -1165,6 +1241,7 @@ export default function CareerExplorer({ onGenerateLearningPath, jobs, setJobs, 
             location: [profile.city, profile.state, profile.country].filter(Boolean).join(', '),
             summary: profile.summary || '',
             experience: profile.experience || [],
+            projects: profile.projects || [],
             education: profile.education || [],
             skills: profile.skills || [],
             languages: profile.languages || []

@@ -38,12 +38,16 @@ interface CVSuggestionManagerProps {
     }>;
   };
   onAddCustomSection?: (section: { title: string; content: string; type: 'text' | 'list' | 'experience' }) => void;
+  onAddCertification?: (certification: { name: string; issuer: string; date: string }) => void;
+  onAddProject?: (project: { name: string; description: string; technologies: string[] }) => void;
 }
 
 export default function CVSuggestionManager({
   suggestions,
   currentData,
-  onAddCustomSection
+  onAddCustomSection,
+  onAddCertification,
+  onAddProject
 }: CVSuggestionManagerProps) {
   const [isDownloading, setIsDownloading] = useState(false);
   const [editingSection, setEditingSection] = useState<number | null>(null);
@@ -55,10 +59,38 @@ export default function CVSuggestionManager({
   const [editingExperience, setEditingExperience] = useState<number | null>(null);
   const [editedExperience, setEditedExperience] = useState<Array<{ original: string; improved: string }>>([]);
   const [addedItems, setAddedItems] = useState<Set<string>>(new Set());
+  const [isAddingCertification, setIsAddingCertification] = useState<number | null>(null);
+  const [isAddingProject, setIsAddingProject] = useState<number | null>(null);
 
   const showFeedback = (type: 'success' | 'error', message: string) => {
     setFeedback({ type, message });
     setTimeout(() => setFeedback(null), 5000);
+  };
+
+  // Smart categorization function to detect suggestion type
+  const categorizeSuggestion = (title: string, content: string): 'project' | 'certification' | 'custom' => {
+    const titleLower = title.toLowerCase();
+    const contentLower = content.toLowerCase();
+    
+    // Check for project indicators
+    const projectKeywords = ['project', 'developed', 'built', 'created', 'implemented', 'designed', 'architected', 'deployed', 'launched'];
+    const hasProjectKeywords = projectKeywords.some(keyword => 
+      titleLower.includes(keyword) || contentLower.includes(keyword)
+    );
+    
+    // Check for certification indicators
+    const certKeywords = ['certification', 'certified', 'certificate', 'license', 'credential', 'accreditation', 'aws', 'azure', 'google', 'microsoft'];
+    const hasCertKeywords = certKeywords.some(keyword => 
+      titleLower.includes(keyword) || contentLower.includes(keyword)
+    );
+    
+    if (hasProjectKeywords && !hasCertKeywords) {
+      return 'project';
+    } else if (hasCertKeywords) {
+      return 'certification';
+    }
+    
+    return 'custom';
   };
 
   const handleEditSection = (index: number) => {
@@ -93,7 +125,14 @@ export default function CVSuggestionManager({
     setIsAddingSection(index);
     try {
       const sectionToAdd = editedSections[index] || suggestions.additionalSections[index];
-      await onAddCustomSection(sectionToAdd);
+      
+      // Ensure the section has a type field, default to 'text' if missing
+      const sectionWithType = {
+        ...sectionToAdd,
+        type: sectionToAdd.type || 'text'
+      };
+      
+      await onAddCustomSection(sectionWithType);
       
       // Mark this section as added
       setAddedItems(prev => new Set(prev).add(`section-${index}`));
@@ -103,6 +142,48 @@ export default function CVSuggestionManager({
       showFeedback('error', 'Failed to add section to CV. Please try again.');
     } finally {
       setIsAddingSection(null);
+    }
+  };
+
+  const handleAddCertification = async (index: number, certification?: any) => {
+    if (!onAddCertification) return;
+    
+    setIsAddingCertification(index);
+    try {
+      const certificationToAdd = certification || suggestions.certifications?.[index];
+      if (!certificationToAdd) return;
+      
+      await onAddCertification(certificationToAdd);
+      
+      // Mark this certification as added
+      setAddedItems(prev => new Set(prev).add(`certification-${index}`));
+      
+      showFeedback('success', `"${certificationToAdd.name}" certification added to your CV successfully!`);
+    } catch (error) {
+      showFeedback('error', 'Failed to add certification to CV. Please try again.');
+    } finally {
+      setIsAddingCertification(null);
+    }
+  };
+
+  const handleAddProject = async (index: number, project?: any) => {
+    if (!onAddProject) return;
+    
+    setIsAddingProject(index);
+    try {
+      const projectToAdd = project || suggestions.projects?.[index];
+      if (!projectToAdd) return;
+      
+      await onAddProject(projectToAdd);
+      
+      // Mark this project as added
+      setAddedItems(prev => new Set(prev).add(`project-${index}`));
+      
+      showFeedback('success', `"${projectToAdd.name}" project added to your CV successfully!`);
+    } catch (error) {
+      showFeedback('error', 'Failed to add project to CV. Please try again.');
+    } finally {
+      setIsAddingProject(null);
     }
   };
 
@@ -508,7 +589,31 @@ export default function CVSuggestionManager({
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handleAddSection(index)}
+                          onClick={() => {
+                            const section = editedSections[index] || suggestions.additionalSections[index];
+                            const category = categorizeSuggestion(section.title, section.content);
+                            
+                            if (category === 'project' && onAddProject) {
+                              // Convert to project format
+                              const project = {
+                                name: section.title,
+                                description: section.content,
+                                technologies: [] // Could be enhanced to extract technologies from content
+                              };
+                              handleAddProject(index, project);
+                            } else if (category === 'certification' && onAddCertification) {
+                              // Convert to certification format
+                              const certification = {
+                                name: section.title,
+                                issuer: 'To be specified', // Could be enhanced to extract from content
+                                date: 'To be specified' // Could be enhanced to extract from content
+                              };
+                              handleAddCertification(index, certification);
+                            } else {
+                              // Default to custom section
+                              handleAddSection(index);
+                            }
+                          }}
                           disabled={isAddingSection === index || addedItems.has(`section-${index}`)}
                           className={
                             addedItems.has(`section-${index}`)
@@ -551,6 +656,110 @@ export default function CVSuggestionManager({
           </div>
 
           {/* No acceptance/rejection for sections */}
+        </div>
+      )}
+
+      {/* Certifications */}
+      {suggestions.certifications && suggestions.certifications.length > 0 && (
+        <div className="border rounded-lg p-6 border-green-200 bg-green-50">
+          <div className="flex items-start justify-between mb-4">
+            <div className="flex items-center">
+              <Sparkles className="w-5 h-5 text-green-600" />
+              <h4 className="font-medium text-gray-900 ml-2">Suggested Certifications</h4>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            {suggestions.certifications.map((certification, index) => (
+              <div key={index} className="border rounded-lg p-4 bg-white">
+                <div className="flex items-start justify-between mb-3">
+                  <div>
+                    <h5 className="font-medium text-gray-900">{certification.name}</h5>
+                    <p className="text-sm text-gray-600">Issued by: {certification.issuer}</p>
+                    <p className="text-sm text-gray-500">Date: {certification.date}</p>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleAddCertification(index)}
+                      disabled={isAddingCertification === index || addedItems.has(`certification-${index}`)}
+                      className={
+                        addedItems.has(`certification-${index}`)
+                          ? "text-green-600 border-green-300 bg-green-50 cursor-default"
+                          : "text-green-600 border-green-300 hover:bg-green-50"
+                      }
+                    >
+                      {isAddingCertification === index ? (
+                        <div className="w-4 h-4 border-2 border-green-600 border-t-transparent rounded-full animate-spin" />
+                      ) : addedItems.has(`certification-${index}`) ? (
+                        <Check className="w-4 h-4" />
+                      ) : (
+                        <Plus className="w-4 h-4" />
+                      )}
+                      {addedItems.has(`certification-${index}`) ? 'Added' : 'Add to CV'}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Projects */}
+      {suggestions.projects && suggestions.projects.length > 0 && (
+        <div className="border rounded-lg p-6 border-purple-200 bg-purple-50">
+          <div className="flex items-start justify-between mb-4">
+            <div className="flex items-center">
+              <Sparkles className="w-5 h-5 text-purple-600" />
+              <h4 className="font-medium text-gray-900 ml-2">Suggested Projects</h4>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            {suggestions.projects.map((project, index) => (
+              <div key={index} className="border rounded-lg p-4 bg-white">
+                <div className="flex items-start justify-between mb-3">
+                  <div>
+                    <h5 className="font-medium text-gray-900">{project.name}</h5>
+                    <p className="text-sm text-gray-700 mt-2">{project.description}</p>
+                    {project.technologies && project.technologies.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {project.technologies.map((tech, techIndex) => (
+                          <span key={techIndex} className="px-2 py-1 bg-purple-100 text-purple-800 rounded text-xs">
+                            {tech}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleAddProject(index)}
+                      disabled={isAddingProject === index || addedItems.has(`project-${index}`)}
+                      className={
+                        addedItems.has(`project-${index}`)
+                          ? "text-purple-600 border-purple-300 bg-purple-50 cursor-default"
+                          : "text-purple-600 border-purple-300 hover:bg-purple-50"
+                      }
+                    >
+                      {isAddingProject === index ? (
+                        <div className="w-4 h-4 border-2 border-purple-600 border-t-transparent rounded-full animate-spin" />
+                      ) : addedItems.has(`project-${index}`) ? (
+                        <Check className="w-4 h-4" />
+                      ) : (
+                        <Plus className="w-4 h-4" />
+                      )}
+                      {addedItems.has(`project-${index}`) ? 'Added' : 'Add to CV'}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

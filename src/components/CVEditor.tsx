@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Download, Plus, Trash2, Edit2, Save, X } from 'lucide-react';
 import Button from './Button';
 import html2canvas from 'html2canvas';
@@ -68,6 +68,11 @@ export default function CVEditor({ initialData, onSave }: Props) {
   const [isEditing, setIsEditing] = useState(false);
   const [data, setData] = useState<CVData>(initialData);
   const [loading, setLoading] = useState(false);
+
+  // Sync state with initialData prop changes
+  useEffect(() => {
+    setData(initialData);
+  }, [initialData]);
 
   const handleSave = async () => {
     try {
@@ -1118,6 +1123,11 @@ export default function CVEditor({ initialData, onSave }: Props) {
                     </div>
                   )}
                   {section.type === 'experience' && (
+                    <div className="bg-gray-50 p-6 rounded-lg">
+                      <p className="text-gray-700 leading-relaxed">{section.content}</p>
+                    </div>
+                  )}
+                  {!section.type && (
                     <div className="bg-gray-50 p-6 rounded-lg">
                       <p className="text-gray-700 leading-relaxed">{section.content}</p>
                     </div>

@@ -58,6 +58,16 @@ export interface CVSuggestion {
     title: string;
     content: string;
   }>;
+  certifications?: Array<{
+    name: string;
+    issuer: string;
+    date: string;
+  }>;
+  projects?: Array<{
+    name: string;
+    description: string;
+    technologies: string[];
+  }>;
 }
 
 // Real companies actively hiring in 2024-2025 by category
@@ -990,7 +1000,9 @@ export async function generateCVSuggestions(
         title: "Technical Proficiencies",
         content: `Emphasize technical skills that align with ${targetJob.company}'s technology stack and requirements.`
       }
-    ]
+    ],
+    certifications: [],
+    projects: []
   };
 
   if (!isOpenAIConfigured()) {
@@ -1038,12 +1050,12 @@ CRITICAL REQUIREMENTS FOR MEANINGFUL ENHANCEMENTS:
    - Demonstrate impact on business outcomes
 
 4. NEW SECTIONS: Suggest 2-3 COMPELLING new sections that would make this CV stand out:
-   - Certifications relevant to the role
-   - Key Projects with measurable outcomes
-   - Awards/Recognition
-   - Publications/Thought Leadership
-   - Volunteer Work (if relevant to role)
-   - Languages (if mentioned in job requirements)
+   - Certifications relevant to the role (put in certifications array)
+   - Key Projects with measurable outcomes (put in projects array)
+   - Awards/Recognition (put in custom sections)
+   - Publications/Thought Leadership (put in custom sections)
+   - Volunteer Work (if relevant to role) (put in custom sections)
+   - Languages (if mentioned in job requirements) (put in custom sections)
 
 AVOID MINOR CHANGES: Don't suggest simple word replacements or minor tweaks. Focus on SUBSTANTIAL additions that demonstrate expertise, leadership, and measurable impact.
 
@@ -1061,6 +1073,20 @@ Return your response as a JSON object with the following structure:
     {
       "title": "Compelling Section Title",
       "content": "Detailed, impactful content with specific examples and achievements"
+    }
+  ],
+  "certifications": [
+    {
+      "name": "Certification Name",
+      "issuer": "Issuing Organization",
+      "date": "Completion Date"
+    }
+  ],
+  "projects": [
+    {
+      "name": "Project Name",
+      "description": "Detailed project description with measurable outcomes",
+      "technologies": ["Technology1", "Technology2"]
     }
   ]
 }`

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FileText, Download, Award, Upload, Edit2, Save, X, Trash2, AlertTriangle, Sparkles } from 'lucide-react';
+import { FileText, Download, Award, Upload, Edit2, Save, X, Trash2, AlertTriangle } from 'lucide-react';
 import Button from './Button';
 import { supabase } from '../lib/supabase';
 import CVEditor from './CVEditor';
@@ -668,8 +668,6 @@ export default function ProfileSection() {
         if (document.body.contains(successDiv)) {
           document.body.removeChild(successDiv);
         }
-        // Reload the page after showing success message
-        window.location.reload();
       }, 3000);
     } catch (error: any) {
       console.error('Error re-analyzing and saving CV:', error);
@@ -1080,16 +1078,6 @@ export default function ProfileSection() {
                         <Download className="w-4 h-4 mr-2" />
                         {downloading ? 'Generating PDF...' : 'Download CV'}
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleReanalyzeAndSaveCV}
-                        disabled={reanalyzingAndSaving || uploading}
-                        className="flex items-center min-w-[200px] border-green-300 text-green-700 hover:bg-green-50"
-                      >
-                        <Sparkles className="w-4 h-4 mr-2 text-green-600" />
-                        {reanalyzingAndSaving ? 'Analyzing...' : 'Re-analyze with AI'}
-                      </Button>
                     </div>
                   </div>
                 )}
@@ -1142,7 +1130,10 @@ export default function ProfileSection() {
                     awards: profile.cv_parsed_data?.awards || [],
                     publications: profile.cv_parsed_data?.publications || [],
                     volunteerWork: profile.cv_parsed_data?.volunteerWork || [],
-                    customSections: profile.custom_sections || []
+                    customSections: (profile.custom_sections || []).map(section => ({
+                      ...section,
+                      type: section.type || 'text'
+                    }))
                   }}
                   onSave={async (data) => {
                     try {
