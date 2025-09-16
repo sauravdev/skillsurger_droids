@@ -389,18 +389,22 @@ export async function generateVerifiedLearningResources(
     const apiUrl = `${apiBase}/openai/skillsurger`;
     const response = await axios.post(apiUrl,{type : "generateVerifiedLearningResources",jobTitle,jobDescription,requirements})
 
+    console.log('Backend response:', response.data);
     const content = response.data
     if (!content.success) {
+      console.error('Backend returned unsuccessful response:', content);
       throw new Error('No content received from OpenAI');
     }
 
     const parsedJson = content.data;
+    console.log('Parsed JSON from backend:', parsedJson);
     
     if (!parsedJson.resources || !Array.isArray(parsedJson.resources)) {
         throw new Error("Invalid JSON structure from OpenAI. Missing 'resources' array.");
     }
     
     const resources = parsedJson.resources;
+    console.log('Resources from backend:', resources);
 
     // Remove duplicates based on URL and title before verification
     const uniqueResources = resources.filter((resource: any, index: number, arr: any[]) => {
@@ -411,6 +415,7 @@ export async function generateVerifiedLearningResources(
     });
 
     console.log(`Removed ${resources.length - uniqueResources.length} duplicate resources.`);
+    console.log('Unique resources after deduplication:', uniqueResources);
 
     // Asynchronously verify and enrich each resource
     const verifiedResources = await Promise.all(
@@ -438,6 +443,7 @@ export async function generateVerifiedLearningResources(
     });
 
     console.log(`Generated and verified ${finalResources.length} unique resources for ${jobTitle}.`);
+    console.log('Final resources being returned:', finalResources);
     return finalResources;
 
   } catch (error) {
