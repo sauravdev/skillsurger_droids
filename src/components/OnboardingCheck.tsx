@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import OnboardingForm from './OnboardingForm';
 
 interface OnboardingCheckProps {
   children: React.ReactNode;
 }
 
 export default function OnboardingCheck({ children }: OnboardingCheckProps) {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
 
@@ -47,7 +48,8 @@ export default function OnboardingCheck({ children }: OnboardingCheckProps) {
   }
 
   if (needsOnboarding) {
-    return <OnboardingForm />;
+    navigate('/user-type-selection');
+    return null;
   }
 
   return <>{children}</>;

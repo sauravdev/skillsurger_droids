@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Download, Plus, Trash2, Edit2, Save, X } from 'lucide-react';
+import { Download, Plus, Trash2, Edit2, Save, X, Sparkles } from 'lucide-react';
 import Button from './Button';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
+import GenerateCVModal from './GenerateCVModal';
+import { generateFresherCVFromProfile } from '../lib/careerServices';
 
 interface CVData {
   fullName: string;
@@ -62,17 +64,90 @@ interface Props {
   initialData: CVData;
   onSave: (data: CVData) => Promise<void>;
   hideSummaryInPreview?: boolean;
+  userType?: 'experienced' | 'fresher';
+  profileData?: any;
 }
 
-export default function CVEditor({ initialData, onSave }: Props) {
+export default function CVEditor({ initialData, onSave, userType, profileData }: Props) {
   const [isEditing, setIsEditing] = useState(false);
   const [data, setData] = useState<CVData>(initialData);
   const [loading, setLoading] = useState(false);
+  const [showGenerateModal, setShowGenerateModal] = useState(false);
+  const [generatingCV, setGeneratingCV] = useState(false);
 
   // Sync state with initialData prop changes
   useEffect(() => {
     setData(initialData);
   }, [initialData]);
+
+  const handleGenerateCV = async (interests: string) => {
+    if (!profileData) return;
+    
+    setGeneratingCV(true);
+    try {
+      const generatedCV = await generateFresherCVFromProfile(profileData, interests);
+      
+      // Merge the generated CV with existing data
+      const updatedData: CVData = {
+        ...data,
+        summary: generatedCV.summary || data.summary,
+        projects: [...(data.projects || []), ...(generatedCV.projects || [])],
+        skills: [...new Set([...(data.skills || []), ...(generatedCV.skills || [])])],
+        certifications: [...(data.certifications || []), ...(generatedCV.certifications || [])],
+        awards: [...(data.awards || []), ...(generatedCV.awards || [])],
+        volunteerWork: [...(data.volunteerWork || []), ...(generatedCV.volunteerWork || [])],
+        customSections: [...(data.customSections || []), ...(generatedCV.customSections || [])],
+        languages: [...new Set([...(data.languages || []), ...(generatedCV.languages || [])])]
+      };
+      
+      setData(updatedData);
+      setShowGenerateModal(false);
+      
+      // Automatically save the generated CV to the database
+      try {
+        await onSave(updatedData);
+        
+        // Show success message
+        const successDiv = document.createElement('div');
+        successDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+        successDiv.textContent = 'CV generated and saved successfully!';
+        document.body.appendChild(successDiv);
+        setTimeout(() => {
+          if (document.body.contains(successDiv)) {
+            document.body.removeChild(successDiv);
+          }
+        }, 3000);
+      } catch (saveError) {
+        console.error('Error auto-saving generated CV:', saveError);
+        
+        // Show warning message that CV was generated but not saved
+        const warningDiv = document.createElement('div');
+        warningDiv.className = 'fixed top-4 right-4 bg-yellow-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+        warningDiv.textContent = 'CV generated successfully! Please save your changes manually.';
+        document.body.appendChild(warningDiv);
+        setTimeout(() => {
+          if (document.body.contains(warningDiv)) {
+            document.body.removeChild(warningDiv);
+          }
+        }, 5000);
+      }
+    } catch (error) {
+      console.error('Error generating CV:', error);
+      
+      // Show error message
+      const errorDiv = document.createElement('div');
+      errorDiv.className = 'fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+      errorDiv.textContent = 'Failed to generate CV. Please try again.';
+      document.body.appendChild(errorDiv);
+      setTimeout(() => {
+        if (document.body.contains(errorDiv)) {
+          document.body.removeChild(errorDiv);
+        }
+      }, 5000);
+    } finally {
+      setGeneratingCV(false);
+    }
+  };
 
   const handleSave = async () => {
     try {
@@ -848,17 +923,35 @@ export default function CVEditor({ initialData, onSave }: Props) {
               <Save className="w-4 h-4 mr-2" />
               {loading ? 'Saving...' : 'Save Changes'}
             </Button>
-          </div>
         </div>
       </div>
-    );
-  }
+
+      {/* Generate CV Modal */}
+      <GenerateCVModal
+        isOpen={showGenerateModal}
+        onClose={() => setShowGenerateModal(false)}
+        onGenerate={handleGenerateCV}
+        loading={generatingCV}
+      />
+    </div>
+  );
+}
 
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-lg font-semibold">CV Preview</h3>
         <div className="flex space-x-2">
+          {userType === 'fresher' && (
+            <Button 
+              variant="outline" 
+              onClick={() => setShowGenerateModal(true)}
+              className="border-green-500 text-green-600 hover:bg-green-50"
+            >
+              <Sparkles className="w-4 h-4 mr-2" />
+              Generate CV
+            </Button>
+          )}
           <Button variant="outline" onClick={() => setIsEditing(true)}>
             <Edit2 className="w-4 h-4 mr-2" />
             Edit CV
@@ -1138,6 +1231,14 @@ export default function CVEditor({ initialData, onSave }: Props) {
           </>
         )}
       </div>
+
+      {/* Generate CV Modal */}
+      <GenerateCVModal
+        isOpen={showGenerateModal}
+        onClose={() => setShowGenerateModal(false)}
+        onGenerate={handleGenerateCV}
+        loading={generatingCV}
+      />
     </div>
   );
 }

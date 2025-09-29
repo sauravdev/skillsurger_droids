@@ -80,6 +80,203 @@ export async function generateLearningPlan(
   return learningPlan;
 }
 
+export async function generateVerifiedCareerPathLearningResources(
+  careerPath: string
+): Promise<Array<{
+  type: string;
+  title: string;
+  url: string;
+  description: string;
+  verified: boolean;
+  fallbackUrl?: string;
+  price?: string;
+  rating?: number;
+  provider?: string;
+  difficulty?: string;
+  duration?: string;
+}>> {
+  if (!isOpenAIConfigured()) {
+    console.log('OpenAI not configured, returning fallback career path resources');
+    return getFallbackCareerPathResources(careerPath);
+  }
+
+  try {
+    const apiBase = import.meta.env.VITE_BACKEND_API || 'http://localhost:5002/api/v1';
+    const response = await axios.post(`${apiBase}/openai/skillsurger`, {
+      type: "generateVerifiedCareerPathLearningResources",
+      careerPath: careerPath
+    });
+
+    if (!response.data.success) {
+      console.log('No response from OpenAI, using fallback career path resources');
+      return getFallbackCareerPathResources(careerPath);
+    }
+
+    const resources = response.data.data;
+    console.log('Generated career path learning resources:', resources.length);
+    return resources;
+  } catch (error) {
+    console.error('Error generating career path learning resources:', error);
+    return getFallbackCareerPathResources(careerPath);
+  }
+}
+
+function getFallbackCareerPathResources(careerPath: string): Array<{
+  type: string;
+  title: string;
+  url: string;
+  description: string;
+  verified: boolean;
+  fallbackUrl?: string;
+  price?: string;
+  rating?: number;
+  provider?: string;
+  difficulty?: string;
+  duration?: string;
+}> {
+  const fallbackResources: { [key: string]: any[] } = {
+    'Software Development': [
+      {
+        type: 'Course',
+        title: 'Complete Web Development Bootcamp',
+        url: 'https://www.udemy.com/course/the-complete-web-development-bootcamp/',
+        description: 'Learn HTML, CSS, JavaScript, React, Node.js, and more in this comprehensive web development course.',
+        verified: true,
+        price: 'Paid',
+        provider: 'Udemy',
+        difficulty: 'Beginner',
+        duration: '55 hours',
+        rating: 4.7
+      },
+      {
+        type: 'Course',
+        title: 'CS50: Introduction to Computer Science',
+        url: 'https://www.edx.org/course/introduction-computer-science-harvardx-cs50x',
+        description: 'Harvard\'s introduction to computer science and programming. Covers algorithms, data structures, and software engineering principles.',
+        verified: true,
+        price: 'Free',
+        provider: 'edX',
+        difficulty: 'Beginner',
+        duration: '12 weeks',
+        rating: 4.8
+      },
+      {
+        type: 'Tutorial',
+        title: 'freeCodeCamp Full Stack Development',
+        url: 'https://www.freecodecamp.org/',
+        description: 'Free comprehensive curriculum covering front-end, back-end, and full-stack development with hands-on projects.',
+        verified: true,
+        price: 'Free',
+        provider: 'freeCodeCamp',
+        difficulty: 'Beginner',
+        duration: '3000+ hours',
+        rating: 4.9
+      }
+    ],
+    'Data Science & Analytics': [
+      {
+        type: 'Course',
+        title: 'Data Science Specialization',
+        url: 'https://www.coursera.org/specializations/jhu-data-science',
+        description: 'Comprehensive data science program covering R programming, statistical analysis, machine learning, and data visualization.',
+        verified: true,
+        price: 'Paid',
+        provider: 'Coursera',
+        difficulty: 'Intermediate',
+        duration: '10 months',
+        rating: 4.5
+      },
+      {
+        type: 'Course',
+        title: 'Python for Data Science and Machine Learning',
+        url: 'https://www.udemy.com/course/python-for-data-science-and-machine-learning-bootcamp/',
+        description: 'Learn Python, NumPy, Pandas, Matplotlib, Seaborn, Scikit-learn, and TensorFlow for data science and machine learning.',
+        verified: true,
+        price: 'Paid',
+        provider: 'Udemy',
+        difficulty: 'Beginner',
+        duration: '25 hours',
+        rating: 4.6
+      }
+    ],
+    'Product Management': [
+      {
+        type: 'Course',
+        title: 'Digital Product Management Specialization',
+        url: 'https://www.coursera.org/specializations/product-management',
+        description: 'Learn the fundamentals of digital product management, including strategy, development, and launch.',
+        verified: true,
+        price: 'Paid',
+        provider: 'Coursera',
+        difficulty: 'Beginner',
+        duration: '6 months',
+        rating: 4.4
+      }
+    ]
+  };
+
+  return fallbackResources[careerPath] || [
+    {
+      type: 'Course',
+      title: `${careerPath} Fundamentals`,
+      url: 'https://www.coursera.org/',
+      description: `Comprehensive introduction to ${careerPath} covering key concepts, skills, and industry best practices.`,
+      verified: true,
+      price: 'Paid',
+      provider: 'Coursera',
+      difficulty: 'Beginner',
+      duration: '4-6 weeks',
+      rating: 4.3
+    }
+  ];
+}
+
+export async function generateCareerPathLearningPlan(
+  careerPath: string
+): Promise<Array<{
+  type: string;
+  title: string;
+  description: string;
+  url: string;
+  completed: boolean;
+  verified: boolean;
+  fallbackUrl?: string;
+  price?: string;
+  rating?: number;
+  provider?: string;
+  difficulty?: string;
+  duration?: string;
+}>> {
+  console.log('Generating career path learning plan for:', careerPath);
+
+  // Use the enhanced verified learning resources for career paths
+  const verifiedResources = await generateVerifiedCareerPathLearningResources(careerPath);
+  
+  // Convert VerifiedResource to the expected format
+  const learningPlan = verifiedResources.map(resource => ({
+    type: resource.type,
+    title: resource.title,
+    description: resource.description,
+    url: resource.url,
+    completed: false,
+    verified: resource.verified,
+    fallbackUrl: resource.fallbackUrl,
+    price: resource.price,
+    rating: resource.rating,
+    provider: resource.provider,
+    difficulty: resource.difficulty,
+    duration: resource.duration
+  }));
+
+  if (learningPlan.length === 0) {
+    console.warn(`No learning resources could be generated for career path "${careerPath}". The generated plan will be empty.`);
+  } else {
+    console.log('Generated verified career path learning plan with', learningPlan.length, 'resources');
+  }
+  
+  return learningPlan;
+}
+
 /**
  * Generates suggestions for improving a CV based on a job description.
  * @param cvText The text content of the user's CV.

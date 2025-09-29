@@ -1127,16 +1127,43 @@ export default function ProfileSection() {
                     skills: userSkills.map(s => s.skill).concat(profile.cv_parsed_data?.skills || profile.skills || []).filter((skill, index, arr) => arr.indexOf(skill) === index),
                     languages: profile.cv_parsed_data?.languages || profile.languages || [],
                     certifications: profile.certifications || profile.cv_parsed_data?.certifications || [],
-                    awards: profile.cv_parsed_data?.awards || [],
-                    publications: profile.cv_parsed_data?.publications || [],
-                    volunteerWork: profile.cv_parsed_data?.volunteerWork || [],
+                    awards: profile.cv_parsed_data?.awards || [], // Keep for backward compatibility
+                    publications: profile.cv_parsed_data?.publications || [], // Keep for backward compatibility
+                    volunteerWork: profile.cv_parsed_data?.volunteerWork || [], // Keep for backward compatibility
                     customSections: (profile.custom_sections || []).map(section => ({
                       ...section,
                       type: section.type || 'text'
                     }))
                   }}
+                  userType={profile.user_type}
+                  profileData={profile}
                   onSave={async (data) => {
                     try {
+                      // Combine awards with certifications since we don't have an awards column
+                      const combinedCertifications = [
+                        ...(data.certifications || []),
+                        ...(data.awards || []).map(award => ({
+                          name: award.title || award.name,
+                          issuer: award.issuer,
+                          date: award.date
+                        }))
+                      ];
+
+                      // Combine publications and volunteer work with custom sections
+                      const combinedCustomSections = [
+                        ...(data.customSections || []),
+                        ...(data.publications || []).map(pub => ({
+                          title: 'Publications',
+                          content: `${pub.title} - ${pub.publisher || 'Published'} (${pub.date || 'Date not specified'})`,
+                          type: 'text'
+                        })),
+                        ...(data.volunteerWork || []).map(vol => ({
+                          title: 'Volunteer Work',
+                          content: `${vol.role} at ${vol.organization} - ${vol.duration || 'Duration not specified'}. ${vol.description || ''}`,
+                          type: 'text'
+                        }))
+                      ];
+
                       const { error } = await supabase
                         .from('profiles')
                         .update({
@@ -1149,8 +1176,9 @@ export default function ProfileSection() {
                           education: data.education,
                           skills: data.skills,
                           languages: data.languages,
-                          certifications: data.certifications,
-                          custom_sections: data.customSections
+                          certifications: combinedCertifications,
+                          projects: data.projects,
+                          custom_sections: combinedCustomSections
                         })
                         .eq('id', profile.id);
 

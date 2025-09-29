@@ -3,6 +3,7 @@ import { BookOpen, CheckCircle, ExternalLink, RefreshCw, Trash2, Archive, Chevro
 import Button from './Button';
 import { supabase } from '../lib/supabase';
 import { generateLearningPlan } from '../lib/openai';
+import { generatePersonalizedLearningResources } from '../lib/careerServices';
 
 interface LearningPath {
   id: string;
@@ -552,6 +553,79 @@ export default function LearningPaths({ job }: LearningPathsProps) {
     }
   }
 
+
+
+  async function handleGeneratePersonalizedLearningPath() {
+    try {
+      setGeneratingPlan(true);
+      setError('');
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Get user's profile data
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError) {
+        console.error('Error fetching profile:', profileError);
+        setError('Unable to fetch your profile data. Please try again.');
+        return;
+      }
+
+      // Check if a personalized learning path already exists
+      const { data: existingPath } = await supabase
+        .from('learning_paths')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('career_path', 'Personalized')
+        .eq('job_title', profile.current_role || 'General')
+        .single();
+
+      if (existingPath) {
+        setError('A personalized learning path already exists for your current role.');
+        setGeneratingPlan(false);
+        return;
+      }
+
+      // Generate learning resources based on user's profile using backend API
+      const learningResources = await generatePersonalizedLearningResources(profile);
+
+      // Create the learning path object
+      const newLearningPath = {
+        user_id: user.id,
+        career_path: 'Personalized',
+        job_title: profile.current_role || 'General',
+        company: '', // Empty for personalized learning paths
+        skills_to_learn: learningResources.map((resource: any) => resource.skill || resource.title).slice(0, 10),
+        resources: learningResources,
+        progress: 0,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      // Save to database
+      const { data: savedPath, error: saveError } = await supabase
+        .from('learning_paths')
+        .insert([newLearningPath])
+        .select()
+        .single();
+
+      if (saveError) throw saveError;
+
+      // Add new path to the top of the list
+      setLearningPaths(prev => [savedPath, ...prev]);
+      
+    } catch (error: any) {
+      console.error('Error generating personalized learning path:', error);
+      setError(error.message || 'Failed to generate personalized learning path');
+    } finally {
+      setGeneratingPlan(false);
+    }
+  }
+
   async function handleUpdateProgress(pathId: string, newProgress: number, updatedResources?: any[]) {
     try {
       const updateData: any = { progress: newProgress };
@@ -613,22 +687,56 @@ export default function LearningPaths({ job }: LearningPathsProps) {
     );
   }
 
-  if (!job && learningPaths.length === 0) {
-    return (
-      <div className="bg-white rounded-lg shadow-lg p-8 text-center">
-        <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-        <h3 className="text-lg font-semibold mb-2">No Learning Path Generated</h3>
-        <p className="text-gray-600">
-          Select a job from the "Career Explorer" to generate a personalized learning path.
-        </p>
+  const emptyStateContent = !job && learningPaths.length === 0 ? (
+    <div className="bg-white rounded-lg shadow-lg p-8 text-center">
+      <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+      <h3 className="text-lg font-semibold mb-2">No Learning Path Generated</h3>
+      <p className="text-gray-600 mb-6">
+        Generate a personalized learning path by selecting either:
+      </p>
+      <div className="space-y-4">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <h4 className="font-medium text-blue-900 mb-2">Option 1: Personalized Learning Path</h4>
+            <p className="text-sm text-blue-700 mb-3">
+              Generate a comprehensive learning path based on your current role, experience, and CV data
+            </p>
+            <Button
+              onClick={() => handleGeneratePersonalizedLearningPath()}
+              disabled={generatingPlan}
+              className="bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50"
+            >
+              {generatingPlan ? (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <BookOpen className="w-4 h-4 mr-2" />
+                  Generate My Learning Path
+                </>
+              )}
+            </Button>
+          </div>
+        <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+          <h4 className="font-medium text-purple-900 mb-2">Option 2: Specific Job Learning</h4>
+          <p className="text-sm text-purple-700 mb-3">
+            Select a specific job from the "Career Explorer" to get a targeted learning path for that role
+          </p>
+          <p className="text-xs text-purple-600">
+            Go to Career Explorer → Find Jobs → Select a job → Create Learning Path
+          </p>
+        </div>
       </div>
-    );
-  }
+    </div>
+  ) : null;
 
   return (
-    <div className="space-y-8">
-      {/* Job from Career Explorer */}
-      {job && (
+    <>
+      {emptyStateContent}
+      <div className="space-y-8">
+        {/* Job from Career Explorer */}
+        {job && (
         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6">
           <h3 className="text-lg font-semibold mb-4 flex items-center">
             <BookOpen className="w-5 h-5 mr-2 text-blue-600" />
@@ -800,8 +908,12 @@ export default function LearningPaths({ job }: LearningPathsProps) {
               <div key={path.id} className="bg-white rounded-lg shadow-lg p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <h4 className="text-lg font-semibold">{path.job_title}</h4>
-                    <p className="text-gray-600">{path.career_path}</p>
+                    <h4 className="text-lg font-semibold">
+                      {path.job_title || `${path.career_path} Learning Path`}
+                    </h4>
+                    <p className="text-gray-600">
+                      {path.job_title ? path.career_path : 'Comprehensive Career Development'}
+                    </p>
                     <p className="text-xs text-gray-500 mt-1">
                       Created: {new Date(path.created_at).toLocaleDateString()}
                     </p>
@@ -843,19 +955,21 @@ export default function LearningPaths({ job }: LearningPathsProps) {
                 </div>
 
                 {/* Skills */}
-                <div className="mb-6">
-                  <h5 className="text-sm font-medium text-gray-700 mb-2">Required Skills</h5>
-                  <div className="flex flex-wrap gap-2">
-                    {path.skills_to_learn.map((skill, index) => (
-                      <span
-                        key={index}
-                        className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
-                      >
-                        {skill}
-                      </span>
-                    ))}
+                {path.skills_to_learn && path.skills_to_learn.length > 0 && (
+                  <div className="mb-6">
+                    <h5 className="text-sm font-medium text-gray-700 mb-2">Required Skills</h5>
+                    <div className="flex flex-wrap gap-2">
+                      {path.skills_to_learn.map((skill, index) => (
+                        <span
+                          key={index}
+                          className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
+                        >
+                          {skill}
+                        </span>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* Resources */}
                 <div className="space-y-4">
@@ -1030,7 +1144,9 @@ export default function LearningPaths({ job }: LearningPathsProps) {
                   <div className="flex items-center justify-between mb-4">
                     <div>
                       <div className="flex items-center">
-                        <h4 className="text-lg font-semibold">{path.job_title}</h4>
+                        <h4 className="text-lg font-semibold">
+                          {path.job_title || `${path.career_path} Learning Path`}
+                        </h4>
                         <span className="ml-2 px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs flex items-center">
                           <Archive className="w-3 h-3 mr-1" />
                           Historical
@@ -1153,6 +1269,10 @@ export default function LearningPaths({ job }: LearningPathsProps) {
           )}
         </div>
       )}
-    </div>
+
+
+      </div>
+
+    </>
   );
 }

@@ -1246,6 +1246,8 @@ export default function CareerExplorer({ onGenerateLearningPath, jobs, setJobs, 
             skills: profile.skills || [],
             languages: profile.languages || []
           }}
+          userType={profile.user_type}
+          profileData={profile}
           onSave={handleUpdateCV}
         />
       </div>

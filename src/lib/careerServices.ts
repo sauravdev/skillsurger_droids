@@ -968,6 +968,138 @@ export async function findJobOpportunities(
   }
 }
 
+export async function generateFresherLearningPlan(
+  fieldOfStudy: string,
+  careerInterests: string[],
+  skills: string[]
+): Promise<string> {
+  if (!isOpenAIConfigured()) {
+    return `Learning plan for ${fieldOfStudy} graduate interested in ${careerInterests.join(', ')}. Focus on developing practical skills in ${skills.join(', ')} and gaining hands-on experience through projects and internships.`;
+  }
+
+  try {
+    const apiBase = import.meta.env.VITE_BACKEND_API || 'http://localhost:5002/api/v1';
+    const response = await axios.post(`${apiBase}/openai/skillsurger`, {
+      type: "generateFresherLearningPlan",
+      fieldOfStudy,
+      careerInterests,
+      skills
+    });
+
+    if (!response.data.success) {
+      throw new Error('Failed to generate learning plan');
+    }
+
+    return response.data.data;
+  } catch (error) {
+    console.error('Error generating fresher learning plan:', error);
+    throw error;
+  }
+}
+
+export async function generatePersonalizedLearningResources(profile: any): Promise<any> {
+  try {
+    const apiBase = import.meta.env.VITE_BACKEND_API || 'http://localhost:5002/api/v1';
+    const response = await axios.post(`${apiBase}/openai/skillsurger`, {
+      type: "generatePersonalizedLearningResources",
+      profile
+    });
+
+    if (!response.data.success) {
+      throw new Error('Failed to generate personalized learning resources');
+    }
+
+    return response.data.data;
+  } catch (error) {
+    console.error('Error generating personalized learning resources:', error);
+    throw error;
+  }
+}
+
+export async function generateFresherCV(
+  educationData: {
+    degree: string;
+    institution: string;
+    graduationYear: string;
+    fieldOfStudy: string;
+    gpa?: string;
+  },
+  careerInterests: string[],
+  skills: string[],
+  interests: string[]
+): Promise<any> {
+  if (!isOpenAIConfigured()) {
+    return {
+      summary: `Recent ${educationData.degree} graduate in ${educationData.fieldOfStudy} from ${educationData.institution} with strong interest in ${careerInterests.join(', ')}. Eager to apply academic knowledge and develop professional skills in a dynamic work environment.`,
+      experience: [],
+      projects: [],
+      education: [{
+        degree: educationData.degree,
+        institution: educationData.institution,
+        year: educationData.graduationYear
+      }],
+      skills: skills,
+      languages: [],
+      certifications: []
+    };
+  }
+
+  try {
+    const apiBase = import.meta.env.VITE_BACKEND_API || 'http://localhost:5002/api/v1';
+    const response = await axios.post(`${apiBase}/openai/skillsurger`, {
+      type: "generateFresherCV",
+      educationData,
+      careerInterests,
+      skills,
+      interests
+    });
+
+    if (!response.data.success) {
+      throw new Error('Failed to generate CV');
+    }
+
+    return response.data.data;
+  } catch (error) {
+    console.error('Error generating fresher CV:', error);
+    throw error;
+  }
+}
+
+export async function generateFresherCVFromProfile(
+  profileData: any,
+  additionalInterests: string
+): Promise<any> {
+  if (!isOpenAIConfigured()) {
+    return {
+      summary: `Recent graduate with strong interest in ${additionalInterests}. Eager to apply academic knowledge and develop professional skills in a dynamic work environment.`,
+      experience: [],
+      projects: [],
+      education: profileData.education || [],
+      skills: profileData.skills || [],
+      languages: [],
+      certifications: []
+    };
+  }
+
+  try {
+    const apiBase = import.meta.env.VITE_BACKEND_API || 'http://localhost:5002/api/v1';
+    const response = await axios.post(`${apiBase}/openai/skillsurger`, {
+      type: "generateFresherCV",
+      profileData,
+      additionalInterests
+    });
+
+    if (!response.data.success) {
+      throw new Error('Failed to generate CV');
+    }
+
+    return response.data.data;
+  } catch (error) {
+    console.error('Error generating fresher CV from profile:', error);
+    throw error;
+  }
+}
+
 export async function generateCVSuggestions(
   comprehensiveCVData: string,
   targetJob: JobOpportunity

@@ -21,6 +21,8 @@ import BlogPost from "./pages/BlogPost";
 import WhatsAppChat from './components/WhatsAppChat';
 import Footer from './components/Footer';
 import AnalyticsTracking from './components/AnalyticsTracking';
+import UserTypeSelection from './components/UserTypeSelection';
+import OnboardingForm from './components/OnboardingForm';
 
 function App() {
   return (
@@ -64,6 +66,8 @@ function App() {
               <Route path="/ai-resume-builder" element={<AIResumeBuilder />} />
               <Route path="/mock-interview" element={<MockInterview />} />
               <Route path="/blog/:slug" element={<BlogPost />} />
+              <Route path="/user-type-selection" element={<UserTypeSelection />} />
+              <Route path="/onboarding" element={<OnboardingForm />} />
             </Routes>
           </main>
           
