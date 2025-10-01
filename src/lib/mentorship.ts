@@ -1,6 +1,5 @@
-import { openai, isOpenAIConfigured } from './openaiConfig';
 import { supabase } from './supabase';
-import { extractJsonFromMarkdown } from './utils';
+import { backendApi } from './backendApi';
 
 export interface MentorshipSession {
   id: string;
@@ -89,10 +88,6 @@ export async function sendMessageToAIMentor(
   message: string
 ): Promise<string> {
   try {
-    if (!isOpenAIConfigured()) {
-      return 'AI mentorship is currently disabled. Please configure your OpenAI API key to enable this feature.';
-    }
-
     const { data: session, error: sessionError } = await supabase
       .from('ai_mentorship_sessions')
       .select('*')
@@ -104,26 +99,14 @@ export async function sendMessageToAIMentor(
 
     const currentConversation = session.conversation || [];
 
-    const conversationHistory = [
-      {
-        role: "system",
-        content: `You are an expert mentor in ${session.topic}, providing guidance and advice to help professionals develop their careers.
-        Be supportive, constructive, and provide actionable advice based on industry best practices.`
-      },
-      ...currentConversation.map((msg: any) => ({
-        role: msg.role === 'user' ? 'user' : 'assistant',
-        content: msg.content
-      })),
-      { role: "user", content: message }
-    ];
+    // Call backend API instead of direct OpenAI
+    const response = await backendApi.sendMessageToAIMentor(
+      session.topic,
+      message,
+      currentConversation
+    );
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-4-turbo-preview",
-      messages: conversationHistory,
-      temperature: 0.7
-    });
-
-    const aiResponse = response.choices[0].message.content || 'No response generated';
+    const aiResponse = response.message || 'No response generated';
 
     const updatedConversation = [
       ...currentConversation,
@@ -176,48 +159,14 @@ export async function generateInterviewResponse(
   conversationHistory: Array<{ role: string; content: string }> = []
 ): Promise<string> {
   try {
-    if (!isOpenAIConfigured()) {
-      return 'AI interviewer is currently disabled. Please configure your OpenAI API key to enable this feature.';
-    }
+    // Call backend API instead of direct OpenAI
+    const response = await backendApi.generateInterviewResponse(
+      jobRole,
+      userMessage,
+      conversationHistory
+    );
 
-    const [title, company] = jobRole.split(' at ');
-
-    const formattedHistory = conversationHistory.map(msg => ({
-      role: msg.role === 'user' ? 'user' : 'assistant',
-      content: msg.content
-    }));
-
-    const response = await openai.chat.completions.create({
-      model: "gpt-4-turbo-preview",
-      messages: [
-        {
-          role: "system",
-          content: `You are conducting a technical interview for a ${title} position at ${company}.
-          
-          Make it a difficult interview technically, HR wise and managerially as well.
-          
-          Your role:
-          - Act as a professional technical interviewer
-          - Ask relevant technical questions based on the role
-          - Follow-up on candidate's responses
-          - Evaluate technical knowledge, problem-solving, and communication
-          - Keep responses concise and focused
-          - Maintain a professional and constructive tone
-          
-          Focus areas:
-          - Technical skills required for ${title}
-          - Problem-solving methodology
-          - Past experience and projects
-          - System design and architecture (if applicable)
-          - Best practices and industry standards`
-        },
-        ...formattedHistory,
-        { role: "user", content: userMessage }
-      ],
-      temperature: 0.7
-    });
-
-    return response.choices[0]?.message?.content || 'Could you please elaborate on that?';
+    return response.message || 'Could you please elaborate on that?';
   } catch (error) {
     console.error('Error generating interview response:', error);
     throw new Error('Failed to generate interview response');
@@ -236,10 +185,6 @@ export async function endInterview(interviewId: string): Promise<{
   };
 }> {
   try {
-    if (!isOpenAIConfigured()) {
-      throw new Error('AI interviewer is currently disabled');
-    }
-
     // Get the interview with conversation
     const { data: interview, error: getError } = await supabase
       .from('mock_interviews')
@@ -253,91 +198,18 @@ export async function endInterview(interviewId: string): Promise<{
       throw new Error('No interview conversation found');
     }
 
-    // Format conversation for analysis in a more structured way
+    // Format conversation for analysis
     const formattedConversation = interview.conversation
-      .map(msg => ({
+      .map((msg: any) => ({
         role: msg.role,
         content: msg.content
       }));
 
-    // Generate feedback using GPT-4
-    const response = await openai.chat.completions.create({
-      model: "gpt-4-turbo-preview",
-      messages: [
-        {
-          role: "system",
-          content: `You are an expert technical interviewer providing detailed feedback for a ${interview.job_role} position.
-          
-          Analyze the following interview conversation and provide structured feedback.
-          
-          Your response MUST be a valid JSON object with this exact structure:
-          {
-            "feedback": "detailed feedback text",
-            "technical_score": 1-5,
-            "communication_score": 1-5,
-            "overall_score": 1-5,
-            "detailed_feedback": {
-              "strengths": ["strength 1", "strength 2"],
-              "improvements": ["improvement 1", "improvement 2"],
-              "recommendations": ["recommendation 1", "recommendation 2"]
-            }
-          }
-
-          Rules:
-          1. Ensure all scores are integers between 1 and 5
-          2. Include at least 2 items in each array
-          3. Keep feedback concise but specific
-          4. Focus on actionable insights
-          5. Base feedback on both technical knowledge and communication skills
-          6. IMPORTANT: Return ONLY the JSON object, no other text or explanation`
-        },
-        ...formattedConversation.map(msg => ({
-          role: msg.role === 'user' ? 'user' : 'assistant',
-          content: msg.content
-        }))
-      ],
-      temperature: 0.7,
-      response_format: { type: "json_object" }
-    });
-
-    if (!response.choices[0]?.message?.content) {
-      throw new Error('Failed to generate feedback');
-    }
-
-    let feedbackData;
-    try {
-      const content = response.choices[0].message.content.trim();
-      
-      // Extract JSON from markdown if needed
-      const cleanedContent = extractJsonFromMarkdown(content);
-      
-      feedbackData = JSON.parse(cleanedContent);
-      
-      // Validate the feedback data structure
-      if (!feedbackData.feedback || 
-          !Number.isInteger(feedbackData.technical_score) ||
-          !Number.isInteger(feedbackData.communication_score) ||
-          !Number.isInteger(feedbackData.overall_score) ||
-          !feedbackData.detailed_feedback?.strengths?.length ||
-          !feedbackData.detailed_feedback?.improvements?.length ||
-          !feedbackData.detailed_feedback?.recommendations?.length) {
-        throw new Error('Invalid feedback format received from AI');
-      }
-
-      // Ensure scores are within valid range
-      const scores = [
-        feedbackData.technical_score,
-        feedbackData.communication_score,
-        feedbackData.overall_score
-      ];
-
-      if (!scores.every(score => score >= 1 && score <= 5)) {
-        throw new Error('Invalid score range received from AI');
-      }
-    } catch (parseError) {
-      console.error('Error parsing feedback:', parseError);
-      throw new Error('Failed to parse interview feedback');
-    }
+    // Call backend API instead of direct OpenAI
+    const feedbackData = await backendApi.endInterview(
+      interview.job_role,
+      formattedConversation
+    );
 
     // Update interview with feedback
     const { error: updateError } = await supabase
@@ -345,10 +217,10 @@ export async function endInterview(interviewId: string): Promise<{
       .update({
         status: 'completed',
         feedback: feedbackData.feedback,
-        technical_score: feedbackData.technical_score,
-        communication_score: feedbackData.communication_score,
-        overall_score: feedbackData.overall_score,
-        detailed_feedback: feedbackData.detailed_feedback
+        technical_score: feedbackData.technicalScore,
+        communication_score: feedbackData.communicationScore,
+        overall_score: feedbackData.overallScore,
+        detailed_feedback: feedbackData.detailedFeedback
       })
       .eq('id', interviewId);
 
@@ -356,10 +228,10 @@ export async function endInterview(interviewId: string): Promise<{
 
     return {
       feedback: feedbackData.feedback,
-      technicalScore: feedbackData.technical_score,
-      communicationScore: feedbackData.communication_score,
-      overallScore: feedbackData.overall_score,
-      detailedFeedback: feedbackData.detailed_feedback
+      technicalScore: feedbackData.technicalScore,
+      communicationScore: feedbackData.communicationScore,
+      overallScore: feedbackData.overallScore,
+      detailedFeedback: feedbackData.detailedFeedback
     };
   } catch (error: any) {
     console.error('Error ending interview:', error);
