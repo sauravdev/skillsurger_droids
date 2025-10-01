@@ -773,6 +773,74 @@ export default function CareerExplorer({ onGenerateLearningPath, jobs, setJobs, 
     }
   };
 
+  const autoSaveJobs = async (jobs: JobOpportunity[]) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.log('No user found, skipping auto-save');
+        return;
+      }
+
+      // First, clear all previous saved jobs for this user
+      const { error: deleteError } = await supabase
+        .from('saved_jobs')
+        .delete()
+        .eq('user_id', user.id);
+
+      if (deleteError) {
+        console.error('Error clearing previous jobs:', deleteError);
+        // Continue with saving new jobs even if clearing fails
+      } else {
+        console.log('Previous jobs cleared successfully');
+      }
+
+      // Prepare jobs for saving
+      const jobsToSave = jobs.map(job => ({
+        user_id: user.id,
+        title: job.title,
+        company: job.company,
+        location: job.location,
+        description: job.description,
+        requirements: job.requirements || [],
+        type: job.type || 'Full-time',
+        salary: job.salary || ''
+      }));
+
+      // Save all new jobs
+      const { error: insertError } = await supabase
+        .from('saved_jobs')
+        .insert(jobsToSave);
+
+      if (insertError) {
+        console.error('Error auto-saving jobs:', insertError);
+        setError('Jobs found but failed to save automatically. You can save them manually.');
+      } else {
+        console.log(`Successfully auto-saved ${jobs.length} jobs`);
+        
+        // Update local state
+        const savedJobIdentifiers = new Set(
+          jobs.map(job => `${job.title}-${job.company}`)
+        );
+        setSavedJobIds(savedJobIdentifiers);
+
+        // Show success message
+        const successDiv = document.createElement('div');
+        successDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+        successDiv.textContent = `Auto-saved ${jobs.length} jobs successfully!`;
+        document.body.appendChild(successDiv);
+        
+        setTimeout(() => {
+          if (document.body.contains(successDiv)) {
+            document.body.removeChild(successDiv);
+          }
+        }, 3000);
+      }
+    } catch (error) {
+      console.error('Error in auto-save process:', error);
+      setError('Jobs found but failed to save automatically. You can save them manually.');
+    }
+  };
+
   const handleFindJobs = async (careerTitle: string) => {
     try {
       setJobSearchLoading(true);
@@ -845,6 +913,9 @@ export default function CareerExplorer({ onGenerateLearningPath, jobs, setJobs, 
       
       if (opportunities.length === 0) {
         setError('No job opportunities found for this career path. Try adjusting your search criteria.');
+      } else {
+        // Auto-save all fetched jobs and clear previous ones
+        await autoSaveJobs(opportunities);
       }
     } catch (error) {
       console.error('Error finding jobs:', error);
