@@ -459,16 +459,29 @@ export default function ProfileSection() {
       console.error('Error reuploading CV:', error);
       setError(error.message || 'Failed to reupload CV');
       
-      // Show error message
+      // Show error message with more specific guidance
       const errorDiv = document.createElement('div');
-      errorDiv.className = 'fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
-      errorDiv.textContent = 'Failed to upload CV. Please try again.';
+      errorDiv.className = 'fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 max-w-md';
+      
+      let errorMessage = 'Failed to upload CV. Please try again.';
+      if (error.message?.includes('image-based') || error.message?.includes('No text could be extracted')) {
+        errorMessage = 'Your PDF appears to be image-based. Please use a PDF with selectable text for better results.';
+      } else if (error.message?.includes('corrupted') || error.message?.includes('Invalid PDF')) {
+        errorMessage = 'The PDF file appears to be corrupted. Please try a different PDF file.';
+      } else if (error.message?.includes('too large')) {
+        errorMessage = 'PDF file is too large. Please upload a file smaller than 10MB.';
+      }
+      
+      errorDiv.innerHTML = `
+        <div class="font-medium">Upload Failed</div>
+        <div class="text-sm mt-1">${errorMessage}</div>
+      `;
       document.body.appendChild(errorDiv);
       setTimeout(() => {
         if (document.body.contains(errorDiv)) {
           document.body.removeChild(errorDiv);
         }
-      }, 5000);
+      }, 7000);
     } finally {
       setUploading(false);
       // Reset the input
@@ -692,16 +705,27 @@ export default function ProfileSection() {
       
       setError(errorMessage);
       
-      // Show error message
+      // Show error message with more specific guidance
       const errorDiv = document.createElement('div');
-      errorDiv.className = 'fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
-      errorDiv.textContent = toastMessage;
+      errorDiv.className = 'fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 max-w-md';
+      
+      let displayMessage = toastMessage;
+      if (error.message?.includes('image-based') || error.message?.includes('No text could be extracted')) {
+        displayMessage = 'Your PDF appears to be image-based. Please use a PDF with selectable text for better results.';
+      } else if (error.message?.includes('corrupted') || error.message?.includes('Invalid PDF')) {
+        displayMessage = 'The PDF file appears to be corrupted. Please try a different PDF file.';
+      }
+      
+      errorDiv.innerHTML = `
+        <div class="font-medium">Re-analysis Failed</div>
+        <div class="text-sm mt-1">${displayMessage}</div>
+      `;
       document.body.appendChild(errorDiv);
       setTimeout(() => {
         if (document.body.contains(errorDiv)) {
           document.body.removeChild(errorDiv);
         }
-      }, 5000);
+      }, 7000);
     } finally {
       setReanalyzingAndSaving(false);
     }

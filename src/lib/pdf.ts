@@ -30,7 +30,9 @@ async function extractTextFromPdf(file: File): Promise<string> {
       isEvalSupported: false, // Disable eval for security
       disableFontFace: true, // Disable font face loading
       disableRange: false, // Enable range requests
-      disableStream: false // Enable streaming
+      disableStream: false, // Enable streaming
+      cMapUrl: 'https://unpkg.com/pdfjs-dist@3.11.174/cmaps/',
+      cMapPacked: true
     });
     
     const pdf = await loadingTask.promise;
@@ -46,7 +48,7 @@ async function extractTextFromPdf(file: File): Promise<string> {
         const textContent = await page.getTextContent();
         
         // Extract text items and join them properly
-        const pageText = textContent.items
+        let pageText = textContent.items
           .filter((item: any) => item.str && item.str.trim()) // Filter out empty strings
           .map((item: any) => {
             // Handle text positioning for better formatting
@@ -55,21 +57,53 @@ async function extractTextFromPdf(file: File): Promise<string> {
             }
             return item.str + ' ';
           })
-          .join('');
+          .join('')
+          .replace(/\s+/g, ' ') // Normalize whitespace
+          .trim();
+        
+        // If no text found, try alternative extraction method
+        if (!pageText) {
+          console.log(`Trying alternative text extraction for page ${i}`);
+          pageText = textContent.items
+            .map((item: any) => item.str || '')
+            .join(' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+        }
+        
+        // Log if no text was found on this page
+        if (!pageText.trim()) {
+          console.warn(`No text found on page ${i}. This might be an image-only page.`);
+        }
         
         fullText += pageText + '\n\n';
         console.log(`Page ${i} text length: ${pageText.length}`);
       } catch (pageError) {
         console.warn(`Failed to process page ${i}:`, pageError);
-        // Continue with other pages even if one fails
-        fullText += `[Page ${i} could not be processed]\n\n`;
+        // Try to continue with other pages even if one fails
+        // Don't add error message to fullText as it might interfere with text detection
+        console.log(`Skipping page ${i} due to processing error`);
       }
     }
 
     console.log(`Total extracted text length: ${fullText.length}`);
+    console.log(`Extracted text preview: "${fullText.substring(0, 200)}..."`);
     
+    // Debug: Log the full text for troubleshooting (remove this in production)
+    if (fullText.length < 100) {
+      console.log('Full extracted text:', fullText);
+    }
+    
+    // Only consider it image-based if we get absolutely no text at all
     if (!fullText.trim()) {
-      throw new Error('No text could be extracted from the PDF. The PDF might be image-based or corrupted.');
+      console.warn('No text could be extracted from the PDF. This might be an image-based PDF.');
+      console.log('PDF processing details:', {
+        numPages: pdf.numPages,
+        fullTextLength: fullText.length,
+        fullTextContent: fullText
+      });
+      // Return a minimal text structure for image-based PDFs
+      return 'This appears to be an image-based PDF. Please ensure your CV contains selectable text for better parsing results.';
     }
 
     return fullText.trim();
@@ -638,10 +672,31 @@ export async function parseCV(file: File): Promise<ParsedCV> {
       pdfText = await extractTextFromPdf(file);
     } catch (pdfError) {
       console.error('PDF text extraction failed:', pdfError);
+      // For image-based PDFs, provide a fallback structure
+      if (pdfError instanceof Error && pdfError.message.includes('image-based')) {
+        console.log('Handling image-based PDF with fallback structure');
+        return {
+          full_name: '',
+          email: '',
+          phone: '',
+          city: '',
+          state: '',
+          country: '',
+          current_role: '',
+          years_of_experience: 0,
+          summary: 'This appears to be an image-based PDF. Please ensure your CV contains selectable text for better parsing results.',
+          experience: [],
+          projects: [],
+          skills: [],
+          education: [],
+          languages: [],
+          certifications: []
+        };
+      }
       throw new Error('Failed to extract text from PDF. The file might be corrupted, password-protected, or contain only images. Please try a different PDF file.');
     }
     
-    if (pdfText && pdfText.trim()) {
+    if (pdfText && pdfText.trim() && !pdfText.includes('This appears to be an image-based PDF')) {
       // Use OpenAI to analyze the extracted text
       try {
         const result = await analyzeCVTextWithOpenAI(pdfText);
@@ -701,6 +756,26 @@ export async function parseCV(file: File): Promise<ParsedCV> {
 
         return parsedData;
       }
+    } else if (pdfText && pdfText.includes('This appears to be an image-based PDF')) {
+      // Handle image-based PDF case
+      console.log('Processing image-based PDF with fallback structure');
+      return {
+        full_name: '',
+        email: '',
+        phone: '',
+        city: '',
+        state: '',
+        country: '',
+        current_role: '',
+        years_of_experience: 0,
+        summary: 'This appears to be an image-based PDF. Please ensure your CV contains selectable text for better parsing results.',
+        experience: [],
+        projects: [],
+        skills: [],
+        education: [],
+        languages: [],
+        certifications: []
+      };
     }
     
     throw new Error('No text could be extracted from the PDF');
