@@ -18,6 +18,7 @@ import {
 } from '../lib/careerServices';
 import { cleanTruncatedDescription } from '../lib/utils';
 import { useUser } from '../context/UserContext';
+import axios from 'axios';
 
 interface AcceptedSuggestions {
   summary?: string;
@@ -75,6 +76,11 @@ export default function CareerExplorer({ onGenerateLearningPath, jobs, setJobs, 
   const [lastGenerationMethod, setLastGenerationMethod] = useState<'profile' | 'interests'>('profile');
   const [lastCustomFormData, setLastCustomFormData] = useState<any>(null);
   const [jobSearchLoading, setJobSearchLoading] = useState(false);
+  
+  // Hiring manager feature state
+  const [hiringManagerLoading, setHiringManagerLoading] = useState<string | null>(null);
+  const [hiringManagerResults, setHiringManagerResults] = useState<{[key: string]: any}>({});
+  const [showEmailDraft, setShowEmailDraft] = useState<string | null>(null);
   const [expandedJob, setExpandedJob] = useState<number | null>(null);
 
   useEffect(() => {
@@ -1044,6 +1050,211 @@ export default function CareerExplorer({ onGenerateLearningPath, jobs, setJobs, 
     }
   };
 
+  const handleFindJobsBasedOnProfile = async () => {
+    try {
+      setJobSearchLoading(true);
+      setError('');
+      
+      // Check subscription for AI features
+      if (!checkSubscriptionForAI()) {
+        setJobSearchLoading(false);
+        return;
+      }
+      
+      // Check if we have profile data
+      if (!profile || (!profile.current_role && !userSkills.length)) {
+        setError('Please complete your profile first to find jobs based on your information');
+        setJobSearchLoading(false);
+        return;
+      }
+      
+      // Prepare job search context based on profile data
+      const jobSearchContext = {
+        jobTitle: profile.current_role || profile.cv_parsed_data?.current_role || '',
+        location: {
+          city: profile.city || profile.cv_parsed_data?.city || '',
+          state: profile.state || profile.cv_parsed_data?.state || '',
+          country: profile.country || profile.cv_parsed_data?.country || 'United States'
+        },
+        skills: userSkills,
+        experience: profile.years_of_experience || profile.cv_parsed_data?.years_of_experience || 0,
+        summary: profile.summary || profile.cv_parsed_data?.summary || ''
+      };
+      
+      console.log('Searching for jobs based on profile:', jobSearchContext);
+      
+      // First get AI-powered job search recommendations
+      const apiBase = import.meta.env.VITE_BACKEND_API || 'http://localhost:5002/api/v1';
+      const apiUrl = `${apiBase}/openai/skillsurger`;
+      
+      let jobSearchRecommendations = null;
+      try {
+        const recommendationsResponse = await axios.post(apiUrl, {
+          type: 'findJobsBasedOnProfile',
+          profileData: jobSearchContext
+        });
+        jobSearchRecommendations = recommendationsResponse.data.data;
+        console.log('AI Job Search Recommendations:', jobSearchRecommendations);
+      } catch (recommendationError) {
+        console.warn('Failed to get AI recommendations, proceeding with direct search:', recommendationError);
+      }
+      
+      // Use AI recommendations to enhance job search if available
+      let enhancedJobSearchContext = jobSearchContext;
+      if (jobSearchRecommendations && jobSearchRecommendations.suggestedJobTitles?.length > 0) {
+        // Use the first suggested job title for search
+        enhancedJobSearchContext = {
+          ...jobSearchContext,
+          jobTitle: jobSearchRecommendations.suggestedJobTitles[0]
+        };
+      }
+      
+      // Find job opportunities directly
+      const foundJobs = await findJobOpportunities(enhancedJobSearchContext);
+      
+      if (foundJobs.length === 0) {
+        setError('No jobs found matching your profile. Try adjusting your search criteria or location.');
+        setJobSearchLoading(false);
+        return;
+      }
+      
+      // Update jobs state with found jobs
+      setJobs(foundJobs);
+      setLastGenerationMethod('profile');
+      
+      // Show success message with AI recommendations
+      const successDiv = document.createElement('div');
+      successDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 max-w-md';
+      
+      let successMessage = `Found ${foundJobs.length} jobs based on your profile!`;
+      if (jobSearchRecommendations) {
+        successMessage += `\n\nAI Recommendations:\n• Experience Level: ${jobSearchRecommendations.experienceLevel || 'Not specified'}\n• Industry Focus: ${jobSearchRecommendations.industryFocus || 'Not specified'}`;
+        if (jobSearchRecommendations.suggestedJobTitles?.length > 0) {
+          successMessage += `\n• Suggested Roles: ${jobSearchRecommendations.suggestedJobTitles.slice(0, 2).join(', ')}`;
+        }
+      }
+      
+      successDiv.innerHTML = `
+        <div class="font-medium">Job Search Complete!</div>
+        <div class="text-sm mt-1 whitespace-pre-line">${successMessage}</div>
+      `;
+      document.body.appendChild(successDiv);
+      
+      setTimeout(() => {
+        if (document.body.contains(successDiv)) {
+          document.body.removeChild(successDiv);
+        }
+      }, 5000);
+      
+    } catch (error) {
+      console.error('Error finding jobs based on profile:', error);
+      setError('Failed to find jobs based on your profile. Please try again.');
+    } finally {
+      setJobSearchLoading(false);
+    }
+  };
+
+  const handleFindHiringManager = async (job: JobOpportunity) => {
+    const jobKey = `${job.title}-${job.company}`;
+    
+    try {
+      setHiringManagerLoading(jobKey);
+      setError('');
+      
+      // Check subscription for AI features
+      if (!checkSubscriptionForAI()) {
+        setHiringManagerLoading(null);
+        return;
+      }
+      
+      // Prepare job data for backend
+      const jobData = {
+        jobTitle: job.title,
+        company: job.company,
+        jobDescription: job.description,
+        companyUrl: job.companyUrl,
+        location: job.location,
+        requirements: job.requirements || [],
+        profileData: {
+          currentRole: profile?.current_role || profile?.cv_parsed_data?.current_role || '',
+          skills: userSkills,
+          experience: profile?.years_of_experience || profile?.cv_parsed_data?.years_of_experience || 0,
+          summary: profile?.summary || profile?.cv_parsed_data?.summary || '',
+          fullName: profile?.full_name || profile?.cv_parsed_data?.full_name || '',
+          email: profile?.email || profile?.cv_parsed_data?.email || ''
+        }
+      };
+      
+      console.log('Finding hiring manager for job:', jobData);
+      
+      // Call backend API
+      const apiBase = import.meta.env.VITE_BACKEND_API || 'http://localhost:5002/api/v1';
+      const apiUrl = `${apiBase}/openai/skillsurger`;
+      
+      const response = await axios.post(apiUrl, {
+        type: 'findHiringManager',
+        jobData: jobData
+      });
+      
+      const result = response.data.data;
+      console.log('Hiring manager result:', result);
+      
+      // Store the result
+      setHiringManagerResults(prev => ({
+        ...prev,
+        [jobKey]: result
+      }));
+      
+      // Show success message
+      const successDiv = document.createElement('div');
+      successDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 max-w-md';
+      
+      let successMessage = result.emailFound ? 'Email found and draft generated' : 'Email draft generated based on job description';
+      if (result.emailVerification) {
+        successMessage += `\nEmail verification: ${result.emailVerification.result} (${result.emailVerification.score}%)`;
+      }
+      
+      successDiv.innerHTML = `
+        <div class="font-medium">Hiring Manager Found!</div>
+        <div class="text-sm mt-1 whitespace-pre-line">${successMessage}</div>
+      `;
+      document.body.appendChild(successDiv);
+      
+      setTimeout(() => {
+        if (document.body.contains(successDiv)) {
+          document.body.removeChild(successDiv);
+        }
+      }, 3000);
+      
+    } catch (error) {
+      console.error('Error finding hiring manager:', error);
+      setError('Failed to find hiring manager. Please try again.');
+    } finally {
+      setHiringManagerLoading(null);
+    }
+  };
+
+  const handleCopyEmailDraft = (jobKey: string) => {
+    const result = hiringManagerResults[jobKey];
+    if (result && result.emailDraft) {
+      navigator.clipboard.writeText(result.emailDraft).then(() => {
+        const successDiv = document.createElement('div');
+        successDiv.className = 'fixed top-4 right-4 bg-blue-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+        successDiv.textContent = 'Email draft copied to clipboard!';
+        document.body.appendChild(successDiv);
+        
+        setTimeout(() => {
+          if (document.body.contains(successDiv)) {
+            document.body.removeChild(successDiv);
+          }
+        }, 2000);
+      }).catch(err => {
+        console.error('Failed to copy email draft:', err);
+        setError('Failed to copy email draft to clipboard');
+      });
+    }
+  };
+
   if (!userSkills.length && !userInterests.length && !profile?.current_role) {
     return (
       <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 lg:p-8 w-full max-w-full overflow-x-hidden">
@@ -1328,7 +1539,7 @@ export default function CareerExplorer({ onGenerateLearningPath, jobs, setJobs, 
   return (
     <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 lg:p-8 w-full max-w-full overflow-x-hidden">
       <div className="flex flex-col space-y-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0 mb-8">
-        <h2 className="text-2xl font-bold">Career Explorer</h2>
+        {/* <h2 className="text-2xl font-bold">Career Explorer</h2> */}
         <div className="flex flex-col space-y-3 sm:flex-row sm:space-y-0 sm:space-x-4">
           <Button 
             onClick={() => setShowCustomForm(true)} 
@@ -1341,6 +1552,14 @@ export default function CareerExplorer({ onGenerateLearningPath, jobs, setJobs, 
           <Button onClick={handleGenerateCareerOptions} disabled={loading}>
             <Briefcase className="w-4 h-4 mr-2" />
             {loading ? 'Generating...' : 'Generate from Profile'}
+          </Button>
+          <Button 
+            onClick={handleFindJobsBasedOnProfile} 
+            disabled={jobSearchLoading}
+            className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200 text-green-700 hover:bg-green-100"
+          >
+            <Search className="w-4 h-4 mr-2" />
+            {jobSearchLoading ? 'Finding Jobs...' : 'Find Jobs Based on Profile'}
           </Button>
         </div>
       </div>
@@ -1748,6 +1967,27 @@ export default function CareerExplorer({ onGenerateLearningPath, jobs, setJobs, 
                       )}
                     </Button>
 
+                    {/* Find Hiring Manager Button */}
+                    <Button
+                      onClick={() => handleFindHiringManager(job)}
+                      variant="outline"
+                      size="sm"
+                      disabled={hiringManagerLoading === `${job.title}-${job.company}`}
+                      className="w-full sm:w-auto bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+                    >
+                      {hiringManagerLoading === `${job.title}-${job.company}` ? (
+                        <>
+                          <div className="w-4 h-4 mr-2 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                          Finding...
+                        </>
+                      ) : (
+                        <>
+                          <Search className="w-4 h-4 mr-2" />
+                          Find Hiring Manager
+                        </>
+                      )}
+                    </Button>
+
                     {/* Generate Learning Path Button */}
                     <Button
                       onClick={() => onGenerateLearningPath(job)}
@@ -1760,6 +2000,78 @@ export default function CareerExplorer({ onGenerateLearningPath, jobs, setJobs, 
                     </Button>
                   </div>
                 </div>
+
+                {/* Email Draft Display */}
+                {hiringManagerResults[`${job.title}-${job.company}`] && (
+                  <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-semibold text-blue-800">Hiring Manager Email Draft</h4>
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={() => setShowEmailDraft(showEmailDraft === `${job.title}-${job.company}` ? null : `${job.title}-${job.company}`)}
+                          variant="outline"
+                          size="sm"
+                          className="text-blue-700 border-blue-300 hover:bg-blue-100"
+                        >
+                          {showEmailDraft === `${job.title}-${job.company}` ? 'Hide' : 'Show'} Draft
+                        </Button>
+                        <Button
+                          onClick={() => handleCopyEmailDraft(`${job.title}-${job.company}`)}
+                          size="sm"
+                          className="bg-blue-600 hover:bg-blue-700 text-white"
+                        >
+                          Copy Draft
+                        </Button>
+                      </div>
+                    </div>
+                    
+                    {hiringManagerResults[`${job.title}-${job.company}`].emailFound && (
+                      <div className="mb-3 p-2 bg-green-100 border border-green-300 rounded text-sm">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <strong>Email Found:</strong> {hiringManagerResults[`${job.title}-${job.company}`].foundEmail}
+                          </div>
+                          {hiringManagerResults[`${job.title}-${job.company}`].emailVerification && (
+                            <div className="flex items-center gap-2">
+                              <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                hiringManagerResults[`${job.title}-${job.company}`].emailVerification.result === 'deliverable' 
+                                  ? 'bg-green-200 text-green-800' 
+                                  : hiringManagerResults[`${job.title}-${job.company}`].emailVerification.result === 'undeliverable'
+                                  ? 'bg-red-200 text-red-800'
+                                  : 'bg-yellow-200 text-yellow-800'
+                              }`}>
+                                {hiringManagerResults[`${job.title}-${job.company}`].emailVerification.result}
+                              </span>
+                              <span className="text-xs text-gray-600">
+                                Score: {hiringManagerResults[`${job.title}-${job.company}`].emailVerification.score}%
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                        {hiringManagerResults[`${job.title}-${job.company}`].emailVerification && (
+                          <div className="mt-2 text-xs text-gray-600">
+                            {hiringManagerResults[`${job.title}-${job.company}`].emailVerification.deliverable && (
+                              <span className="mr-3">✓ Deliverable</span>
+                            )}
+                            {hiringManagerResults[`${job.title}-${job.company}`].emailVerification.disposable && (
+                              <span className="mr-3 text-orange-600">⚠ Disposable</span>
+                            )}
+                            {hiringManagerResults[`${job.title}-${job.company}`].emailVerification.webmail && (
+                              <span className="mr-3">📧 Webmail</span>
+                            )}
+                            <span>Sources: {hiringManagerResults[`${job.title}-${job.company}`].emailVerification.sources}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
+                    <div className="bg-white p-3 rounded border">
+                      <pre className="whitespace-pre-wrap text-sm text-gray-700">
+                        {hiringManagerResults[`${job.title}-${job.company}`].emailDraft}
+                      </pre>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
