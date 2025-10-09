@@ -1,6 +1,7 @@
 import React from 'react';
 import { useUser } from '../context/UserContext';
 import { CheckCircle, XCircle, Zap, Star } from 'lucide-react';
+import { calculateSubscriptionExpiry, isSubscriptionValid, getTrialDaysRemaining } from '../lib/subscriptionUtils';
 
 function calculateExpiry(subscription: any) {
   if (!subscription) return null;
@@ -61,10 +62,11 @@ const Subscription: React.FC = () => {
     );
   }
 
-  const expiry = calculateExpiry(subscription);
+  const expiry = calculateSubscriptionExpiry(subscription);
   const tier = (subscription.subscription_tier || '').toLowerCase();
   const planColor = PLAN_COLORS[tier.includes('trial') ? 'trial' : tier.includes('pro') ? 'pro' : tier.includes('premium') ? 'premium' : 'default'];
-  const isActive = subscription.subscription_status === 'active';
+  const isActive = isSubscriptionValid(subscription);
+  const trialDaysRemaining = getTrialDaysRemaining(subscription);
 
   return (
     <div className="flex flex-col items-center min-h-[70vh] bg-gradient-to-br from-blue-50 via-white to-purple-50 py-12 px-2">
@@ -103,6 +105,29 @@ const Subscription: React.FC = () => {
           </div>
         )}
         {tier.includes('trial') && (
+          <div className="mt-4 text-center">
+            {trialDaysRemaining > 0 ? (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <p className="text-yellow-800 font-semibold">
+                  ⏰ {trialDaysRemaining} day{trialDaysRemaining !== 1 ? 's' : ''} remaining in your trial
+                </p>
+                <p className="text-yellow-700 text-sm mt-1">
+                  Upgrade to continue using all features after your trial expires
+                </p>
+              </div>
+            ) : (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <p className="text-red-800 font-semibold">
+                  ⚠️ Your trial has expired
+                </p>
+                <p className="text-red-700 text-sm mt-1">
+                  Please upgrade to continue using all features
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+        {tier.includes('trial') && trialDaysRemaining > 0 && (
           <div className="mt-2 text-center">
             <span className="text-yellow-600 font-semibold text-lg">Your 7-day Trial is live</span>
           </div>

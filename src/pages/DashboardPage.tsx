@@ -20,6 +20,7 @@ import ProgressTracker from '../components/ProgressTracker';
 import ProfileSection from '../components/ProfileSection';
 import LearningPaths from '../components/LearningPaths';
 import Subscription from './Subscription';
+import TrialWarning from '../components/TrialWarning';
 import { UserProvider, useUser } from '../context/UserContext';
 
 type DashboardSection = 'overview' | 'profile' | 'career' | 'mentorship' | 'learning' | 'subscription';
@@ -217,6 +218,9 @@ export default function DashboardPage() {
             )}
 
             <div className="max-w-6xl mx-auto space-y-8">
+              {/* Trial Warning */}
+              <TrialWarning />
+              
               {activeSection === 'overview' && (
                 <>
                   <h1 className="text-2xl font-bold">Dashboard Overview</h1>

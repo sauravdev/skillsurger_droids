@@ -2,8 +2,9 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { fetchUserSubscription } from '../lib/subscription';
 import { useNavigate } from 'react-router-dom';
+import { hasAIFeatureAccess } from '../lib/subscriptionUtils';
 
-interface SubscriptionData {
+export interface SubscriptionData {
   id: string;
   user_id: string;
   subscription_id: string;
@@ -38,14 +39,8 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const navigate = useNavigate();
 
   const checkSubscriptionForAI = (): boolean => {
-    // Check if user has a valid subscription for AI features
-    if (!subscription) {
-      navigate('/pricing');
-      return false;
-    }
-
-    const tier = subscription.subscription_tier?.toLowerCase();
-    if (!tier || tier === 'free') {
+    // Use the utility function to check AI feature access
+    if (!hasAIFeatureAccess(subscription)) {
       navigate('/pricing');
       return false;
     }

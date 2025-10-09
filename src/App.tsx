@@ -12,6 +12,7 @@ import ContactUs from './pages/ContactUs';
 import AboutUs from './pages/AboutUs';
 import Blog from './pages/Blog';
 import ProtectedRoute from './components/ProtectedRoute';
+import SubscriptionProtectedRoute from './components/SubscriptionProtectedRoute';
 import { UserProvider } from './context/UserContext';
 import Pricing from './pages/Pricing';
 import Subscription from './pages/Subscription';
@@ -50,7 +51,9 @@ function App() {
                 path="/dashboard"
                 element={
                   <ProtectedRoute>
-                    <DashboardPage />
+                    <SubscriptionProtectedRoute>
+                      <DashboardPage />
+                    </SubscriptionProtectedRoute>
                   </ProtectedRoute>
                 }
               />
@@ -58,13 +61,33 @@ function App() {
                 path="/job-search"
                 element={
                   <ProtectedRoute>
-                    <JobSearchPage />
+                    <SubscriptionProtectedRoute>
+                      <JobSearchPage />
+                    </SubscriptionProtectedRoute>
                   </ProtectedRoute>
                 }
               />
               <Route path="/auth/callback/google" element={<GoogleAuthCallback />} />
-              <Route path="/ai-resume-builder" element={<AIResumeBuilder />} />
-              <Route path="/mock-interview" element={<MockInterview />} />
+              <Route 
+                path="/ai-resume-builder" 
+                element={
+                  <ProtectedRoute>
+                    <SubscriptionProtectedRoute>
+                      <AIResumeBuilder />
+                    </SubscriptionProtectedRoute>
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/mock-interview" 
+                element={
+                  <ProtectedRoute>
+                    <SubscriptionProtectedRoute>
+                      <MockInterview />
+                    </SubscriptionProtectedRoute>
+                  </ProtectedRoute>
+                } 
+              />
               <Route path="/blog/:slug" element={<BlogPost />} />
               <Route path="/user-type-selection" element={<UserTypeSelection />} />
               <Route path="/onboarding" element={<OnboardingForm />} />
