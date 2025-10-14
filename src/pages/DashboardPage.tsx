@@ -22,6 +22,7 @@ import LearningPaths from '../components/LearningPaths';
 import Subscription from './Subscription';
 import TrialWarning from '../components/TrialWarning';
 import { UserProvider, useUser } from '../context/UserContext';
+import { hasAIFeatureAccess } from '../lib/subscriptionUtils';
 
 type DashboardSection = 'overview' | 'profile' | 'career' | 'mentorship' | 'learning' | 'subscription';
 
@@ -39,6 +40,14 @@ export default function DashboardPage() {
   const [careerExplorerSelectedCareer, setCareerExplorerSelectedCareer] = useState<string>('');
 
   const { user, subscription, loading: contextLoading } = useUser();
+
+  // Check if current section requires AI access
+  const requiresAIAccess = (section: DashboardSection): boolean => {
+    return ['career', 'mentorship', 'learning'].includes(section);
+  };
+
+  // Check if user has AI access
+  const hasAI = hasAIFeatureAccess(subscription);
 
   useEffect(() => {
     // Read section from URL query params
@@ -238,30 +247,75 @@ export default function DashboardPage() {
               {activeSection === 'career' && (
                 <>
                   <h1 className="text-2xl font-bold">Career Explorer</h1>
-                  <CareerExplorer
-                    onGenerateLearningPath={(job) => {
-                      setSelectedJobForLearning(job);
-                      setActiveSection('learning');
-                    }}
-                    jobs={careerExplorerJobs}
-                    setJobs={setCareerExplorerJobs}
-                    selectedCareer={careerExplorerSelectedCareer}
-                    setSelectedCareer={setCareerExplorerSelectedCareer}
-                  />
+                  {!hasAI ? (
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
+                      <h3 className="text-lg font-semibold text-yellow-800 mb-2">AI Features Require Active Subscription</h3>
+                      <p className="text-yellow-700 mb-4">
+                        Your trial or subscription has expired. To access Career Explorer and other AI-powered features, please upgrade your plan.
+                      </p>
+                      <a
+                        href="/pricing"
+                        className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-lg shadow transition"
+                      >
+                        Upgrade Now
+                      </a>
+                    </div>
+                  ) : (
+                    <CareerExplorer
+                      onGenerateLearningPath={(job) => {
+                        setSelectedJobForLearning(job);
+                        setActiveSection('learning');
+                      }}
+                      jobs={careerExplorerJobs}
+                      setJobs={setCareerExplorerJobs}
+                      selectedCareer={careerExplorerSelectedCareer}
+                      setSelectedCareer={setCareerExplorerSelectedCareer}
+                    />
+                  )}
                 </>
               )}
 
               {activeSection === 'mentorship' && (
                 <>
                   <h1 className="text-2xl font-bold">Mentorship Hub</h1>
-                  <MentorshipHub />
+                  {!hasAI ? (
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
+                      <h3 className="text-lg font-semibold text-yellow-800 mb-2">AI Features Require Active Subscription</h3>
+                      <p className="text-yellow-700 mb-4">
+                        Your trial or subscription has expired. To access Mentorship Hub and other AI-powered features, please upgrade your plan.
+                      </p>
+                      <a
+                        href="/pricing"
+                        className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-lg shadow transition"
+                      >
+                        Upgrade Now
+                      </a>
+                    </div>
+                  ) : (
+                    <MentorshipHub />
+                  )}
                 </>
               )}
 
               {activeSection === 'learning' && (
                 <>
                   <h1 className="text-2xl font-bold">Learning Paths</h1>
-                  <LearningPaths job={selectedJobForLearning} />
+                  {!hasAI ? (
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
+                      <h3 className="text-lg font-semibold text-yellow-800 mb-2">AI Features Require Active Subscription</h3>
+                      <p className="text-yellow-700 mb-4">
+                        Your trial or subscription has expired. To access Learning Paths and other AI-powered features, please upgrade your plan.
+                      </p>
+                      <a
+                        href="/pricing"
+                        className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-lg shadow transition"
+                      >
+                        Upgrade Now
+                      </a>
+                    </div>
+                  ) : (
+                    <LearningPaths job={selectedJobForLearning} />
+                  )}
                 </>
               )}
 

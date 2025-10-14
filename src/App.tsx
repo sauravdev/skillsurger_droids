@@ -13,6 +13,7 @@ import AboutUs from './pages/AboutUs';
 import Blog from './pages/Blog';
 import ProtectedRoute from './components/ProtectedRoute';
 import SubscriptionProtectedRoute from './components/SubscriptionProtectedRoute';
+import ProfileProtectedRoute from './components/ProfileProtectedRoute';
 import { UserProvider } from './context/UserContext';
 import Pricing from './pages/Pricing';
 import Subscription from './pages/Subscription';
@@ -40,7 +41,16 @@ function App() {
               <Route path="/signup" element={<SignUpPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/pricing" element={<Pricing />} />
-              <Route path="/subscription" element={<Subscription />} />
+              <Route 
+                path="/subscription" 
+                element={
+                  <ProtectedRoute>
+                    <ProfileProtectedRoute>
+                      <Subscription />
+                    </ProfileProtectedRoute>
+                  </ProtectedRoute>
+                } 
+              />
               <Route path="/auth/callback" element={<GoogleAuthCallback />} />
               <Route path="/privacy" element={<PrivacyPolicy />} />
               <Route path="/terms" element={<TermsAndConditions />} />
@@ -51,9 +61,9 @@ function App() {
                 path="/dashboard"
                 element={
                   <ProtectedRoute>
-                    <SubscriptionProtectedRoute>
+                    <ProfileProtectedRoute>
                       <DashboardPage />
-                    </SubscriptionProtectedRoute>
+                    </ProfileProtectedRoute>
                   </ProtectedRoute>
                 }
               />

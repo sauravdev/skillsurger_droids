@@ -61,6 +61,15 @@ export function hasAIFeatureAccess(subscription: SubscriptionData | null): boole
 }
 
 /**
+ * Check if user has access to profile and subscription pages
+ * This allows access even for expired trials/plans
+ */
+export function hasProfileAccess(subscription: SubscriptionData | null): boolean {
+  // Always allow access to profile and subscription pages if user has any subscription record
+  return subscription !== null;
+}
+
+/**
  * Get subscription status message for display
  */
 export function getSubscriptionStatusMessage(subscription: SubscriptionData | null): string {

@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { fetchUserSubscription } from '../lib/subscription';
 import { useNavigate } from 'react-router-dom';
-import { hasAIFeatureAccess } from '../lib/subscriptionUtils';
+import { hasAIFeatureAccess, hasProfileAccess } from '../lib/subscriptionUtils';
 
 export interface SubscriptionData {
   id: string;
@@ -21,6 +21,7 @@ interface UserContextType {
   subscription: SubscriptionData | null;
   loading: boolean;
   checkSubscriptionForAI: () => boolean;
+  checkProfileAccess: () => boolean;
 }
 
 const UserContext = createContext<UserContextType>({
@@ -28,6 +29,7 @@ const UserContext = createContext<UserContextType>({
   subscription: null,
   loading: true,
   checkSubscriptionForAI: () => false,
+  checkProfileAccess: () => false,
 });
 
 export const useUser = () => useContext(UserContext);
@@ -41,6 +43,16 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const checkSubscriptionForAI = (): boolean => {
     // Use the utility function to check AI feature access
     if (!hasAIFeatureAccess(subscription)) {
+      navigate('/pricing');
+      return false;
+    }
+
+    return true;
+  };
+
+  const checkProfileAccess = (): boolean => {
+    // Use the utility function to check profile access (allows expired users)
+    if (!hasProfileAccess(subscription)) {
       navigate('/pricing');
       return false;
     }
@@ -89,7 +101,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [navigate]);
 
   return (
-    <UserContext.Provider value={{ user, subscription, loading, checkSubscriptionForAI }}>
+    <UserContext.Provider value={{ user, subscription, loading, checkSubscriptionForAI, checkProfileAccess }}>
       {children}
     </UserContext.Provider>
   );
