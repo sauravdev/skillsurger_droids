@@ -1,5 +1,5 @@
 // Backend API service for AI Mentor functionality
-const BACKEND_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5002';
+const BACKEND_BASE_URL = import.meta.env.VITE_BACKEND_API || 'http://localhost:5002';
 
 export interface BackendResponse<T> {
   success: boolean;
