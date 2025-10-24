@@ -36,7 +36,7 @@ class BackendApiService {
     type: string
   ): Promise<T> {
     try {
-      const response = await fetch(`${BACKEND_BASE_URL}/api/v1/openai/skillsurger`, {
+      const response = await fetch(`${BACKEND_BASE_URL}/openai/skillsurger`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
