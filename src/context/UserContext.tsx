@@ -64,6 +64,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const getUserAndSubscription = async () => {
       setLoading(true);
       const { data: { session } } = await supabase.auth.getSession();
+      
       if (!session?.user) {
         setUser(null);
         setSubscription(null);
@@ -74,6 +75,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       try {
         const subRes = await fetchUserSubscription(session.user.id);
+        
         if (subRes.success && subRes.data) {
           setSubscription(subRes.data);
         } else {

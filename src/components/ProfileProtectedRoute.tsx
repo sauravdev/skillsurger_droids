@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
 
@@ -7,7 +7,21 @@ interface ProfileProtectedRouteProps {
 }
 
 export default function ProfileProtectedRoute({ children }: ProfileProtectedRouteProps) {
-  const { loading, checkProfileAccess } = useUser();
+  const { loading, subscription } = useUser();
+  const [shouldRedirect, setShouldRedirect] = useState(false);
+
+  useEffect(() => {
+    // Add a small delay to prevent rapid redirects during tab switching
+    if (!loading && subscription === null) {
+      const timer = setTimeout(() => {
+        setShouldRedirect(true);
+      }, 100); // 100ms delay
+
+      return () => clearTimeout(timer);
+    } else {
+      setShouldRedirect(false);
+    }
+  }, [loading, subscription]);
 
   if (loading) {
     return (
@@ -18,8 +32,9 @@ export default function ProfileProtectedRoute({ children }: ProfileProtectedRout
     );
   }
 
-  // Check if user has access to profile pages (allows expired users)
-  if (!checkProfileAccess()) {
+  // Allow access to profile pages if user has any subscription record (including expired)
+  // This prevents redirects during tab switching when subscription might be temporarily null
+  if (shouldRedirect) {
     return <Navigate to="/pricing" replace />;
   }
 
