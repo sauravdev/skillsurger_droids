@@ -1209,13 +1209,15 @@ export default function CareerExplorer({ onGenerateLearningPath, jobs, setJobs, 
       const successDiv = document.createElement('div');
       successDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 max-w-md';
       
-      let successMessage = result.emailFound ? 'Email found and draft generated' : 'Email draft generated based on job description';
-      if (result.emailVerification) {
+      let successMessage = result.emailFound 
+        ? 'Email found and draft generated' 
+        : 'No email found, but draft is ready';
+      if (result.emailFound && result.emailVerification) {
         successMessage += `\nEmail verification: ${result.emailVerification.result} (${result.emailVerification.score}%)`;
       }
       
       successDiv.innerHTML = `
-        <div class="font-medium">Hiring Manager Found!</div>
+        <div class="font-medium">${result.emailFound ? 'Hiring Manager Found!' : 'Email Draft Ready'}</div>
         <div class="text-sm mt-1 whitespace-pre-line">${successMessage}</div>
       `;
       document.body.appendChild(successDiv);
@@ -2008,12 +2010,15 @@ export default function CareerExplorer({ onGenerateLearningPath, jobs, setJobs, 
                       <h4 className="font-semibold text-blue-800">Hiring Manager Email Draft</h4>
                       <div className="flex gap-2">
                         <Button
-                          onClick={() => setShowEmailDraft(showEmailDraft === `${job.title}-${job.company}` ? null : `${job.title}-${job.company}`)}
+                          onClick={() => {
+                            const jobKey = `${job.title}-${job.company}`;
+                            setShowEmailDraft(showEmailDraft === jobKey ? null : jobKey);
+                          }}
                           variant="outline"
                           size="sm"
                           className="text-blue-700 border-blue-300 hover:bg-blue-100"
                         >
-                          {showEmailDraft === `${job.title}-${job.company}` ? 'Hide' : 'Show'} Draft
+                          {showEmailDraft === `${job.title}-${job.company}` ? 'Show' : 'Hide'} Draft
                         </Button>
                         <Button
                           onClick={() => handleCopyEmailDraft(`${job.title}-${job.company}`)}
@@ -2025,51 +2030,60 @@ export default function CareerExplorer({ onGenerateLearningPath, jobs, setJobs, 
                       </div>
                     </div>
                     
-                    {hiringManagerResults[`${job.title}-${job.company}`].emailFound && (
-                      <div className="mb-3 p-2 bg-green-100 border border-green-300 rounded text-sm">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <strong>Email Found:</strong> {hiringManagerResults[`${job.title}-${job.company}`].foundEmail}
-                          </div>
-                          {hiringManagerResults[`${job.title}-${job.company}`].emailVerification && (
-                            <div className="flex items-center gap-2">
-                              <span className={`px-2 py-1 rounded text-xs font-medium ${
-                                hiringManagerResults[`${job.title}-${job.company}`].emailVerification.result === 'deliverable' 
-                                  ? 'bg-green-200 text-green-800' 
-                                  : hiringManagerResults[`${job.title}-${job.company}`].emailVerification.result === 'undeliverable'
-                                  ? 'bg-red-200 text-red-800'
-                                  : 'bg-yellow-200 text-yellow-800'
-                              }`}>
-                                {hiringManagerResults[`${job.title}-${job.company}`].emailVerification.result}
-                              </span>
-                              <span className="text-xs text-gray-600">
-                                Score: {hiringManagerResults[`${job.title}-${job.company}`].emailVerification.score}%
-                              </span>
+                    {/* Show email info and draft by default, hide when showEmailDraft is set to a different job */}
+                    {showEmailDraft !== `${job.title}-${job.company}` && (
+                      <>
+                        {hiringManagerResults[`${job.title}-${job.company}`].emailFound ? (
+                          <div className="mb-3 p-2 bg-green-100 border border-green-300 rounded text-sm">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <strong>Email Found:</strong> {hiringManagerResults[`${job.title}-${job.company}`].foundEmail}
+                              </div>
+                              {hiringManagerResults[`${job.title}-${job.company}`].emailVerification && (
+                                <div className="flex items-center gap-2">
+                                  <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                    hiringManagerResults[`${job.title}-${job.company}`].emailVerification.result === 'deliverable' 
+                                      ? 'bg-green-200 text-green-800' 
+                                      : hiringManagerResults[`${job.title}-${job.company}`].emailVerification.result === 'undeliverable'
+                                      ? 'bg-red-200 text-red-800'
+                                      : 'bg-yellow-200 text-yellow-800'
+                                  }`}>
+                                    {hiringManagerResults[`${job.title}-${job.company}`].emailVerification.result}
+                                  </span>
+                                  <span className="text-xs text-gray-600">
+                                    Score: {hiringManagerResults[`${job.title}-${job.company}`].emailVerification.score}%
+                                  </span>
+                                </div>
+                              )}
                             </div>
-                          )}
-                        </div>
-                        {hiringManagerResults[`${job.title}-${job.company}`].emailVerification && (
-                          <div className="mt-2 text-xs text-gray-600">
-                            {hiringManagerResults[`${job.title}-${job.company}`].emailVerification.deliverable && (
-                              <span className="mr-3">✓ Deliverable</span>
+                            {hiringManagerResults[`${job.title}-${job.company}`].emailVerification && (
+                              <div className="mt-2 text-xs text-gray-600">
+                                {hiringManagerResults[`${job.title}-${job.company}`].emailVerification.deliverable && (
+                                  <span className="mr-3">✓ Deliverable</span>
+                                )}
+                                {hiringManagerResults[`${job.title}-${job.company}`].emailVerification.disposable && (
+                                  <span className="mr-3 text-orange-600">⚠ Disposable</span>
+                                )}
+                                {hiringManagerResults[`${job.title}-${job.company}`].emailVerification.webmail && (
+                                  <span className="mr-3">📧 Webmail</span>
+                                )}
+                                <span>Sources: {hiringManagerResults[`${job.title}-${job.company}`].emailVerification.sources}</span>
+                              </div>
                             )}
-                            {hiringManagerResults[`${job.title}-${job.company}`].emailVerification.disposable && (
-                              <span className="mr-3 text-orange-600">⚠ Disposable</span>
-                            )}
-                            {hiringManagerResults[`${job.title}-${job.company}`].emailVerification.webmail && (
-                              <span className="mr-3">📧 Webmail</span>
-                            )}
-                            <span>Sources: {hiringManagerResults[`${job.title}-${job.company}`].emailVerification.sources}</span>
+                          </div>
+                        ) : (
+                          <div className="mb-3 p-2 bg-blue-100 border border-blue-300 rounded text-sm text-blue-800">
+                            <strong>No email found, but draft is ready</strong>
                           </div>
                         )}
-                      </div>
+                        
+                        <div className="bg-white p-3 rounded border">
+                          <pre className="whitespace-pre-wrap text-sm text-gray-700">
+                            {hiringManagerResults[`${job.title}-${job.company}`].emailDraft}
+                          </pre>
+                        </div>
+                      </>
                     )}
-                    
-                    <div className="bg-white p-3 rounded border">
-                      <pre className="whitespace-pre-wrap text-sm text-gray-700">
-                        {hiringManagerResults[`${job.title}-${job.company}`].emailDraft}
-                      </pre>
-                    </div>
                   </div>
                 )}
               </div>
