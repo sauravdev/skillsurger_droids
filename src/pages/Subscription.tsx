@@ -5,26 +5,32 @@ import { calculateSubscriptionExpiry, isSubscriptionValid, getTrialDaysRemaining
 
 function calculateExpiry(subscription: any) {
   if (!subscription) return null;
-  const created = new Date(subscription.created_at);
-  let expiry: Date | null = null;
-  const tier = (subscription.subscription_tier || '');
-  expiry = null;
-
-  if (!expiry) {
-    if (tier.includes('Annual Pro')) {
-      expiry = new Date(created);
-      expiry.setFullYear(expiry.getFullYear() + 1);
-    } else if (tier.includes('Monthly pro')) {
-      expiry = new Date(created);
-      expiry.setDate(expiry.getDate() + 30);
-    } else if (tier.includes('trial')) {
-      expiry = new Date(created);
-      expiry.setDate(expiry.getDate() + 7);
-    } else {
-      expiry = null;
-    }
+  const tier = (subscription.subscription_tier || '').toLowerCase();
+  
+  // For trials, always calculate from created_at
+  if (tier.includes('trial')) {
+    const created = new Date(subscription.created_at);
+    const expiry = new Date(created);
+    expiry.setDate(expiry.getDate() + 7);
+    return expiry;
   }
-  return expiry;
+  
+  // For paid plans, use updated_at if available (for renewals), otherwise created_at
+  const baseDate = subscription.updated_at 
+    ? new Date(subscription.updated_at) 
+    : new Date(subscription.created_at);
+  
+  if (tier.includes('annual pro') || tier.includes('yearly pro')) {
+    const expiry = new Date(baseDate);
+    expiry.setFullYear(expiry.getFullYear() + 1);
+    return expiry;
+  } else if (tier.includes('monthly pro')) {
+    const expiry = new Date(baseDate);
+    expiry.setMonth(expiry.getMonth() + 1);
+    return expiry;
+  }
+  
+  return null;
 }
 
 const PLAN_COLORS: Record<string, string> = {
