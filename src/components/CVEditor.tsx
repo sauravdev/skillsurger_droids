@@ -74,10 +74,17 @@ export default function CVEditor({ initialData, onSave, userType, profileData }:
   const [loading, setLoading] = useState(false);
   const [showGenerateModal, setShowGenerateModal] = useState(false);
   const [generatingCV, setGeneratingCV] = useState(false);
+  
+  // Store raw input strings for comma-separated fields to preserve commas while typing
+  const [skillsInput, setSkillsInput] = useState('');
+  const [languagesInput, setLanguagesInput] = useState('');
 
   // Sync state with initialData prop changes
   useEffect(() => {
     setData(initialData);
+    // Initialize input strings from data
+    setSkillsInput(Array.isArray(initialData.skills) ? initialData.skills.join(', ') : '');
+    setLanguagesInput(Array.isArray(initialData.languages) ? initialData.languages.join(', ') : '');
   }, [initialData]);
 
   const handleGenerateCV = async (interests: string) => {
@@ -152,7 +159,18 @@ export default function CVEditor({ initialData, onSave, userType, profileData }:
   const handleSave = async () => {
     try {
       setLoading(true);
-      await onSave(data);
+      
+      // Parse skills and languages from input strings before saving
+      const parsedSkills = skillsInput.split(',').map(s => s.trim()).filter(Boolean);
+      const parsedLanguages = languagesInput.split(',').map(l => l.trim()).filter(Boolean);
+      
+      const updatedData = {
+        ...data,
+        skills: parsedSkills,
+        languages: parsedLanguages
+      };
+      
+      await onSave(updatedData);
       setIsEditing(false);
       
       // Show success message
@@ -442,11 +460,12 @@ export default function CVEditor({ initialData, onSave, userType, profileData }:
                     />
                   </div>
                   <div className="mt-4">
-                    <label className="block text-sm font-medium text-gray-700">Technologies Used (comma-separated)</label>
+                    <label className="block text-sm font-medium text-gray-700">Technologies Used</label>
                     <input
                       type="text"
-                      value={exp.technologies?.join(', ') || ''}
-                      onChange={(e) => {
+                      defaultValue={Array.isArray(exp.technologies) ? exp.technologies.join(', ') : ''}
+                      onBlur={(e) => {
+                        // Only parse when user leaves the field
                         const newExp = [...data.experience];
                         newExp[index] = { 
                           ...exp, 
@@ -457,6 +476,7 @@ export default function CVEditor({ initialData, onSave, userType, profileData }:
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                       placeholder="e.g., React, Node.js, Python"
                     />
+                    <p className="text-xs text-gray-500 mt-1">Type freely - we'll separate by commas when you save</p>
                   </div>
                 </div>
               ))}
@@ -529,8 +549,9 @@ export default function CVEditor({ initialData, onSave, userType, profileData }:
                       <label className="block text-sm font-medium text-gray-700">Technologies</label>
                       <input
                         type="text"
-                        value={project.technologies.join(', ')}
-                        onChange={(e) => {
+                        defaultValue={Array.isArray(project.technologies) ? project.technologies.join(', ') : ''}
+                        onBlur={(e) => {
+                          // Only parse when user leaves the field
                           const newProjects = [...data.projects];
                           newProjects[index] = {
                             ...project,
@@ -541,6 +562,7 @@ export default function CVEditor({ initialData, onSave, userType, profileData }:
                         className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                         placeholder="e.g., React, Node.js, MongoDB"
                       />
+                      <p className="text-xs text-gray-500 mt-1">Type freely - we'll separate by commas when you save</p>
                     </div>
                   </div>
                 </div>
@@ -631,30 +653,30 @@ export default function CVEditor({ initialData, onSave, userType, profileData }:
 
           {/* Skills */}
           <div>
-            <label className="block text-sm font-medium text-gray-700">Skills (comma-separated)</label>
+            <label className="block text-sm font-medium text-gray-700">Skills</label>
             <input
               type="text"
-              value={data.skills.join(', ')}
-              onChange={(e) => setData({
-                ...data,
-                skills: e.target.value.split(',').map(s => s.trim()).filter(Boolean)
-              })}
+              value={skillsInput}
+              onChange={(e) => setSkillsInput(e.target.value)}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+              placeholder="e.g., JavaScript, React, Node.js, Python"
+              autoComplete="off"
             />
+            <p className="text-xs text-gray-500 mt-1">Type freely - we'll separate by commas when you save</p>
           </div>
 
           {/* Languages */}
           <div>
-            <label className="block text-sm font-medium text-gray-700">Languages (comma-separated)</label>
+            <label className="block text-sm font-medium text-gray-700">Languages</label>
             <input
               type="text"
-              value={data.languages.join(', ')}
-              onChange={(e) => setData({
-                ...data,
-                languages: e.target.value.split(',').map(l => l.trim()).filter(Boolean)
-              })}
+              value={languagesInput}
+              onChange={(e) => setLanguagesInput(e.target.value)}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+              placeholder="e.g., English, Spanish, Mandarin"
+              autoComplete="off"
             />
+            <p className="text-xs text-gray-500 mt-1">Type freely - we'll separate by commas when you save</p>
           </div>
 
           {/* Certifications */}
@@ -952,7 +974,12 @@ export default function CVEditor({ initialData, onSave, userType, profileData }:
               Generate CV
             </Button>
           )}
-          <Button variant="outline" onClick={() => setIsEditing(true)}>
+          <Button variant="outline" onClick={() => {
+            setIsEditing(true);
+            // Sync input states when entering edit mode
+            setSkillsInput(Array.isArray(data.skills) ? data.skills.join(', ') : '');
+            setLanguagesInput(Array.isArray(data.languages) ? data.languages.join(', ') : '');
+          }}>
             <Edit2 className="w-4 h-4 mr-2" />
             Edit CV
           </Button>
@@ -1059,17 +1086,19 @@ export default function CVEditor({ initialData, onSave, userType, profileData }:
                     <h3 className="text-xl font-semibold text-gray-900">{project.name}</h3>
                   </div>
                   <p className="text-gray-700 leading-relaxed mb-3">{project.description}</p>
-                  <div className="flex flex-wrap gap-2">
-                    <span className="text-sm font-medium text-gray-600">Technologies:</span>
-                    {project.technologies.map((tech, techIndex) => (
-                      <span
-                        key={techIndex}
-                        className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium"
-                      >
-                        {tech}
-                      </span>
-                    ))}
-                  </div>
+                  {project.technologies && Array.isArray(project.technologies) && project.technologies.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      <span className="text-sm font-medium text-gray-600">Technologies:</span>
+                      {project.technologies.map((tech, techIndex) => (
+                        <span
+                          key={techIndex}
+                          className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium"
+                        >
+                          {tech}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

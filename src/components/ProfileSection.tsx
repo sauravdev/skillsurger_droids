@@ -1159,14 +1159,14 @@ export default function ProfileSection() {
                       type: section.type || 'text'
                     }))
                   }}
-                  userType={profile.user_type}
+                  userType={(profile as any).user_type}
                   profileData={profile}
                   onSave={async (data) => {
                     try {
                       // Combine awards with certifications since we don't have an awards column
                       const combinedCertifications = [
                         ...(data.certifications || []),
-                        ...(data.awards || []).map(award => ({
+                        ...(data.awards || []).map((award: any) => ({
                           name: award.title || award.name,
                           issuer: award.issuer,
                           date: award.date
@@ -1176,10 +1176,10 @@ export default function ProfileSection() {
                       // Combine publications and volunteer work with custom sections
                       const combinedCustomSections = [
                         ...(data.customSections || []),
-                        ...(data.publications || []).map(pub => ({
+                        ...(data.publications || []).map((pub: any) => ({
                           title: 'Publications',
-                          content: `${pub.title} - ${pub.publisher || 'Published'} (${pub.date || 'Date not specified'})`,
-                          type: 'text'
+                          content: `${pub.title} - ${pub.publisher || pub.journal || 'Published'} (${pub.date || 'Date not specified'})`,
+                          type: 'text' as const
                         })),
                         ...(data.volunteerWork || []).map(vol => ({
                           title: 'Volunteer Work',
@@ -1187,6 +1187,22 @@ export default function ProfileSection() {
                           type: 'text'
                         }))
                       ];
+
+                      // Update cv_parsed_data to keep it in sync with manual edits
+                      const updatedCvParsedData = {
+                        ...(profile.cv_parsed_data || {}),
+                        full_name: data.fullName,
+                        current_role: data.title,
+                        email: data.email,
+                        phone: data.phone,
+                        summary: data.summary,
+                        experience: data.experience,
+                        education: data.education,
+                        skills: data.skills,
+                        languages: data.languages,
+                        certifications: combinedCertifications,
+                        projects: data.projects
+                      };
 
                       const { error } = await supabase
                         .from('profiles')
@@ -1202,7 +1218,8 @@ export default function ProfileSection() {
                           languages: data.languages,
                           certifications: combinedCertifications,
                           projects: data.projects,
-                          custom_sections: combinedCustomSections
+                          custom_sections: combinedCustomSections,
+                          cv_parsed_data: updatedCvParsedData
                         })
                         .eq('id', profile.id);
 
