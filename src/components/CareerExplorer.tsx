@@ -1563,6 +1563,19 @@ export default function CareerExplorer({ onGenerateLearningPath, jobs, setJobs, 
             <Search className="w-4 h-4 mr-2" />
             {jobSearchLoading ? 'Finding Jobs...' : 'Find Jobs Based on Profile'}
           </Button>
+          {jobs.length > 0 && (
+            <Button 
+              onClick={() => {
+                setJobs([]);
+                localStorage.removeItem('careerExplorerJobs');
+              }}
+              variant="outline"
+              className="border-red-300 text-red-600 hover:bg-red-50"
+            >
+              <X className="w-4 h-4 mr-2" />
+              Clear Jobs
+            </Button>
+          )}
         </div>
       </div>
 

@@ -40,10 +40,26 @@ export default function DashboardPage() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(true);
 
   // Persist job suggestions and selected career for CareerExplorer
-  const [careerExplorerJobs, setCareerExplorerJobs] = useState<any[]>([]);
+  const [careerExplorerJobs, setCareerExplorerJobs] = useState<any[]>(() => {
+    // Load jobs from localStorage on mount
+    try {
+      const savedJobs = localStorage.getItem('careerExplorerJobs');
+      return savedJobs ? JSON.parse(savedJobs) : [];
+    } catch (error) {
+      console.error('Error loading jobs from localStorage:', error);
+      return [];
+    }
+  });
   const [careerExplorerSelectedCareer, setCareerExplorerSelectedCareer] = useState<string>('');
 
   const { subscription, loading: contextLoading } = useUser();
+  
+  // Save jobs to localStorage whenever they change
+  useEffect(() => {
+    if (careerExplorerJobs.length > 0) {
+      localStorage.setItem('careerExplorerJobs', JSON.stringify(careerExplorerJobs));
+    }
+  }, [careerExplorerJobs]);
 
   // Check if user has AI access
   const hasAI = hasAIFeatureAccess(subscription);
