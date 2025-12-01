@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MessageSquare, Send, Bot, Video, Users, Book, Trash2, Archive, AlertTriangle, X, Loader2 } from 'lucide-react';
+import { MessageSquare, Send, Bot, Video, Users, Book, Trash2, Archive, AlertTriangle, X, Loader2, Mic, MicOff } from 'lucide-react';
 import Button from './Button';
 import {
   type MockInterview,
@@ -18,7 +18,9 @@ import {
 // Removed: analyzeFeedbackAndGenerateRecommendations - now handled by backend
 import { supabase } from '../lib/supabase';
 import AIMentorChat from './AIMentorChat';
+import VideoCapture, { getVideoFrames } from './VideoCapture';
 import { useUser } from '../context/UserContext';
+import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 
 interface SavedJob {
   id: string;
@@ -57,6 +59,84 @@ export default function MentorshipHub() {
   const [mentorshipTopic, setMentorshipTopic] = useState('');
   const [aiMessage, setAiMessage] = useState('');
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+
+  // Ref for auto-scrolling to bottom of messages
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to bottom when new messages arrive
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [interviewMessages, isInterviewResponseLoading]);
+
+  // Speech recognition for voice input
+  const {
+    isListening,
+    transcript,
+    interimTranscript,
+    isSupported: isSpeechSupported,
+    error: speechError,
+    startListening,
+    stopListening,
+    resetTranscript
+  } = useSpeechRecognition();
+
+  // Auto-fill input with transcript and auto-send when speech ends
+  useEffect(() => {
+    if (transcript && !isListening && activeInterview) {
+      // Speech has ended, set message and auto-send
+      const finalTranscript = transcript.trim();
+      if (finalTranscript) {
+        setCurrentMessage(finalTranscript);
+        
+        // Auto-submit after a brief delay to show the text
+        setTimeout(async () => {
+          try {
+            const updatedMessages: InterviewMessage[] = [
+              ...interviewMessages,
+              { role: 'user' as 'user', content: finalTranscript }
+            ];
+            setInterviewMessages(updatedMessages);
+            setCurrentMessage('');
+            setIsInterviewResponseLoading(true);
+            resetTranscript();
+
+            const response = await generateInterviewResponse(
+              activeInterview.job_role,
+              finalTranscript,
+              updatedMessages.map(msg => ({
+                role: msg.role,
+                content: msg.content
+              }))
+            );
+
+            setInterviewMessages([
+              ...updatedMessages,
+              { role: 'interviewer' as 'interviewer', content: response }
+            ]);
+            setIsInterviewResponseLoading(false);
+          } catch (error) {
+            console.error('Interview response error:', error);
+            setError('Failed to process interview response. Please try again.');
+            setIsInterviewResponseLoading(false);
+            resetTranscript();
+          }
+        }, 800); // Small delay to show transcript before sending
+      } else {
+        resetTranscript();
+      }
+    }
+  }, [transcript, isListening, activeInterview]);
+
+  // Update input with interim results while speaking
+  useEffect(() => {
+    if (isListening && (transcript || interimTranscript)) {
+      setCurrentMessage(transcript + interimTranscript);
+    }
+  }, [transcript, interimTranscript, isListening]);
 
   useEffect(() => {
     loadMentors();
@@ -441,6 +521,10 @@ export default function MentorshipHub() {
       setError('');
       setIsEndingInterview(true);
       
+      // Collect video frames for analysis
+      const videoFrames = getVideoFrames();
+      console.log(`Collected ${videoFrames.length} video frames for analysis`);
+      
       const { error: updateError } = await supabase
         .from('mock_interviews')
         .update({
@@ -451,7 +535,8 @@ export default function MentorshipHub() {
 
       if (updateError) throw updateError;
 
-      const result = await endInterview(activeInterview.id);
+      // Pass video frames to backend for Gemini analysis
+      const result = await endInterview(activeInterview.id, videoFrames);
 
       setMockInterviews(prevInterviews =>
         prevInterviews.map(interview =>
@@ -463,15 +548,16 @@ export default function MentorshipHub() {
                 technical_score: result.technicalScore,
                 communication_score: result.communicationScore,
                 overall_score: result.overallScore,
-                detailed_feedback: result.detailedFeedback
+                detailed_feedback: result.detailedFeedback,
+                video_analysis: result.videoAnalysis // Store video analysis results
               }
             : interview
         )
       );
 
       // Note: Learning recommendations are now generated by the backend
-      // The backend's endInterview function with GPT-5.1 provides comprehensive
-      // feedback including strengths, improvements, and recommendations
+      // The backend's endInterview function with GPT-5.1 and Gemini provides comprehensive
+      // feedback including verbal responses and video analysis (body language, eye contact, etc.)
 
       setActiveInterview(null);
       setIsInterviewing(false);
@@ -576,77 +662,159 @@ export default function MentorshipHub() {
       {activeTab === 'mock-interviews' && (
         <div className="space-y-8">
           {isInterviewing ? (
-            <div className="space-y-6">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div>
-                  <h3 className="text-lg font-semibold break-words">{activeInterview?.job_role}</h3>
-                  <p className="text-sm text-gray-500">Mock Interview Session</p>
+            <div className="fixed inset-0 bg-gray-50 z-50 overflow-auto">
+              {/* Full Screen Interview Layout */}
+              <div className="h-screen flex flex-col">
+                {/* Header Bar */}
+                <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between shadow-sm">
+                  <div className="flex items-center space-x-4">
+                    <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+                    <div>
+                      <h2 className="text-lg font-semibold text-gray-900">{activeInterview?.job_role}</h2>
+                      <p className="text-sm text-gray-500">AI Mock Interview Session</p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="outline"
+                    onClick={handleEndInterview}
+                    disabled={isEndingInterview}
+                    className="bg-red-50 text-red-600 hover:bg-red-100 border-red-200"
+                  >
+                    {isEndingInterview ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Ending...
+                      </>
+                    ) : (
+                      'End Interview'
+                    )}
+                  </Button>
                 </div>
-                <Button
-                  variant="outline"
-                  onClick={handleEndInterview}
-                  disabled={isEndingInterview}
-                  className="text-red-600 hover:bg-red-50 w-full sm:w-auto"
-                >
-                  {isEndingInterview ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Ending Interview...
-                    </>
-                  ) : (
-                    'End Interview'
-                  )}
-                </Button>
-              </div>
 
-              <div className="h-[500px] flex flex-col border rounded-lg">
-                <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                  {interviewMessages.map((message, index) => (
-                    <div
-                      key={index}
-                      className={`flex ${
-                        message.role === 'user' ? 'justify-end' : 'justify-start'
-                      }`}
-                    >
-                      <div
-                        className={`max-w-[80%] rounded-lg p-3 ${
-                          message.role === 'user'
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-gray-100 text-gray-900'
-                        }`}
-                      >
-                        {message.role === 'interviewer' && (
-                          <div className="flex items-center mb-1">
-                            <Bot className="w-4 h-4 mr-1" />
-                            <span className="text-sm font-medium">Interviewer</span>
+                {/* Main Content Area */}
+                <div className="flex-1 grid grid-cols-1 lg:grid-cols-[420px_1fr] gap-0 overflow-hidden">
+                  {/* Left Side: Video Feed */}
+                  <div className="bg-gray-900 p-6 flex flex-col overflow-y-auto">
+                    <div className="mb-4">
+                      <h3 className="text-white text-sm font-medium mb-1">Your Video</h3>
+                      <p className="text-gray-400 text-xs">Maintain eye contact and good posture</p>
+                    </div>
+                    <div className="flex-1 flex items-start">
+                      <VideoCapture 
+                        isActive={isInterviewing}
+                        captureInterval={10000}
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Right Side: Interview Chat */}
+                  <div className="flex flex-col bg-white h-full">
+                    {/* Messages Area */}
+                    <div className="flex-1 overflow-y-auto p-6 space-y-4" style={{ maxHeight: 'calc(100vh - 200px)' }}>
+                      {interviewMessages.map((message, index) => (
+                        <div
+                          key={index}
+                          className={`flex ${
+                            message.role === 'user' ? 'justify-end' : 'justify-start'
+                          }`}
+                        >
+                          <div
+                            className={`max-w-[75%] rounded-2xl px-4 py-3 shadow-sm ${
+                              message.role === 'user'
+                                ? 'bg-blue-600 text-white'
+                                : 'bg-gray-100 text-gray-900 border border-gray-200'
+                            }`}
+                          >
+                            {message.role === 'interviewer' && (
+                              <div className="flex items-center mb-2">
+                                <Bot className="w-5 h-5 mr-2 text-blue-600" />
+                                <span className="text-sm font-semibold text-blue-600">AI Interviewer</span>
+                              </div>
+                            )}
+                            <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>
+                          </div>
+                        </div>
+                      ))}
+                      {isInterviewResponseLoading && (
+                        <div className="flex items-start">
+                          <div className="bg-gray-100 border border-gray-200 rounded-2xl px-4 py-3 flex items-center space-x-3">
+                            <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                            <span className="text-gray-600 text-sm">AI is thinking...</span>
+                          </div>
+                        </div>
+                      )}
+                      {/* Invisible div for auto-scroll */}
+                      <div ref={messagesEndRef} />
+                    </div>
+
+                    {/* Input Area */}
+                    <div className="border-t border-gray-200 bg-gray-50 p-6">
+                      <form onSubmit={handleSendInterviewMessage} className="flex gap-3">
+                        <div className="flex-1 relative">
+                          <input
+                            type="text"
+                            value={currentMessage}
+                            onChange={(e) => setCurrentMessage(e.target.value)}
+                            placeholder={isListening ? "Listening..." : "Type or click mic to speak..."}
+                            className="w-full rounded-xl border border-gray-300 px-4 py-3 pr-12 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-base"
+                            disabled={isInterviewResponseLoading || isListening}
+                            autoFocus
+                          />
+                          {/* Mic Button inside input */}
+                          {isSpeechSupported && (
+                            <button
+                              type="button"
+                              onClick={isListening ? stopListening : startListening}
+                              disabled={isInterviewResponseLoading}
+                              className={`absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full transition-all ${
+                                isListening 
+                                  ? 'bg-red-500 hover:bg-red-600 text-white animate-pulse' 
+                                  : 'bg-blue-500 hover:bg-blue-600 text-white'
+                              }`}
+                              title={isListening ? "Stop recording" : "Click to speak"}
+                            >
+                              {isListening ? (
+                                <MicOff className="w-5 h-5" />
+                              ) : (
+                                <Mic className="w-5 h-5" />
+                              )}
+                            </button>
+                          )}
+                        </div>
+                        <Button 
+                          type="submit" 
+                          disabled={!currentMessage.trim() || isInterviewResponseLoading || isListening} 
+                          className="px-6 rounded-xl"
+                        >
+                          <Send className="w-5 h-5" />
+                        </Button>
+                      </form>
+                      
+                      {/* Status Messages */}
+                      <div className="mt-2 text-center space-y-1">
+                        {isListening && (
+                          <div className="flex items-center justify-center space-x-2 text-red-600 animate-pulse">
+                            <div className="w-2 h-2 bg-red-600 rounded-full"></div>
+                            <p className="text-sm font-medium">Recording... Speak now!</p>
                           </div>
                         )}
-                        <p className="whitespace-pre-wrap">{message.content}</p>
+                        {speechError && !isListening && (
+                          <p className="text-xs text-red-600">{speechError}</p>
+                        )}
+                        {!isListening && !speechError && (
+                          <p className="text-xs text-gray-500">
+                            {isSpeechSupported ? (
+                              <>Press Enter to send • Click <Mic className="w-3 h-3 inline" /> to speak</>
+                            ) : (
+                              'Press Enter to send'
+                            )}
+                          </p>
+                        )}
                       </div>
                     </div>
-                  ))}
-                  {isInterviewResponseLoading && (
-                    <div className="flex items-center mt-2">
-                      <div className="w-4 h-4 mr-2 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                      <span className="text-gray-500">Interviewer is typing...</span>
-                    </div>
-                  )}
-                </div>
-
-                <form onSubmit={handleSendInterviewMessage} className="border-t p-4">
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    <input
-                      type="text"
-                      value={currentMessage}
-                      onChange={(e) => setCurrentMessage(e.target.value)}
-                      placeholder="Type your response..."
-                      className="flex-1 rounded-lg border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <Button type="submit" disabled={!currentMessage.trim()} className="w-full sm:w-auto">
-                      Send
-                    </Button>
                   </div>
-                </form>
+                </div>
               </div>
             </div>
           ) : (
@@ -781,6 +949,70 @@ export default function MentorshipHub() {
                                 </p>
                               </div>
                             </div>
+
+                            {/* Video Analysis Results */}
+                            {interview.video_analysis && (
+                              <div className="mt-6 space-y-4">
+                                <div className="p-4 bg-purple-50 rounded-lg border-2 border-purple-200">
+                                  <h4 className="font-medium mb-4 text-purple-900 flex items-center">
+                                    <Video className="w-5 h-5 mr-2" />
+                                    Video Analysis Results (Powered by Gemini AI)
+                                  </h4>
+                                  <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
+                                    <div className="text-center">
+                                      <p className="text-xs text-gray-600">Body Language</p>
+                                      <p className="text-xl font-bold text-purple-600">
+                                        {interview.video_analysis.bodyLanguageScore}/10
+                                      </p>
+                                    </div>
+                                    <div className="text-center">
+                                      <p className="text-xs text-gray-600">Eye Contact</p>
+                                      <p className="text-xl font-bold text-purple-600">
+                                        {interview.video_analysis.eyeContactScore}/10
+                                      </p>
+                                    </div>
+                                    <div className="text-center">
+                                      <p className="text-xs text-gray-600">Appearance</p>
+                                      <p className="text-xl font-bold text-purple-600">
+                                        {interview.video_analysis.professionalAppearanceScore}/10
+                                      </p>
+                                    </div>
+                                    <div className="text-center">
+                                      <p className="text-xs text-gray-600">Energy Level</p>
+                                      <p className="text-xl font-bold text-purple-600">
+                                        {interview.video_analysis.energyScore}/10
+                                      </p>
+                                    </div>
+                                    <div className="text-center">
+                                      <p className="text-xs text-gray-600">Video Score</p>
+                                      <p className="text-xl font-bold text-purple-700">
+                                        {interview.video_analysis.overallVideoScore}/10
+                                      </p>
+                                    </div>
+                                  </div>
+                                  {interview.detailed_feedback?.videoStrengths && interview.detailed_feedback.videoStrengths.length > 0 && (
+                                    <div className="mt-3">
+                                      <h5 className="font-medium text-sm text-green-800 mb-2">Video Strengths</h5>
+                                      <ul className="list-disc list-inside text-sm text-green-700 space-y-1">
+                                        {interview.detailed_feedback.videoStrengths.map((strength, i) => (
+                                          <li key={i}>{strength}</li>
+                                        ))}
+                                      </ul>
+                                    </div>
+                                  )}
+                                  {interview.detailed_feedback?.videoImprovements && interview.detailed_feedback.videoImprovements.length > 0 && (
+                                    <div className="mt-3">
+                                      <h5 className="font-medium text-sm text-yellow-800 mb-2">Video Areas for Improvement</h5>
+                                      <ul className="list-disc list-inside text-sm text-yellow-700 space-y-1">
+                                        {interview.detailed_feedback.videoImprovements.map((improvement, i) => (
+                                          <li key={i}>{improvement}</li>
+                                        ))}
+                                      </ul>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>

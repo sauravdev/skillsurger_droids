@@ -173,7 +173,7 @@ export async function generateInterviewResponse(
   }
 }
 
-export async function endInterview(interviewId: string): Promise<{
+export async function endInterview(interviewId: string, videoFrames?: string[]): Promise<{
   feedback: string;
   technicalScore: number;
   communicationScore: number;
@@ -182,7 +182,10 @@ export async function endInterview(interviewId: string): Promise<{
     strengths: string[];
     improvements: string[];
     recommendations: string[];
+    videoStrengths?: string[];
+    videoImprovements?: string[];
   };
+  videoAnalysis?: any;
 }> {
   try {
     // Get the interview with conversation
@@ -205,13 +208,14 @@ export async function endInterview(interviewId: string): Promise<{
         content: msg.content
       }));
 
-    // Call backend API instead of direct OpenAI
+    // Call backend API with video frames for enhanced analysis
     const feedbackData = await backendApi.endInterview(
       interview.job_role,
-      formattedConversation
+      formattedConversation,
+      videoFrames // Pass video frames for Gemini analysis
     );
 
-    // Update interview with feedback
+    // Update interview with feedback including video analysis
     const { error: updateError } = await supabase
       .from('mock_interviews')
       .update({
@@ -220,7 +224,8 @@ export async function endInterview(interviewId: string): Promise<{
         technical_score: feedbackData.technicalScore,
         communication_score: feedbackData.communicationScore,
         overall_score: feedbackData.overallScore,
-        detailed_feedback: feedbackData.detailedFeedback
+        detailed_feedback: feedbackData.detailedFeedback,
+        video_analysis: feedbackData.videoAnalysis // Store video analysis
       })
       .eq('id', interviewId);
 

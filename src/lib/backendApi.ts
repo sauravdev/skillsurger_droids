@@ -26,6 +26,15 @@ export interface InterviewFeedback {
     strengths: string[];
     improvements: string[];
     recommendations: string[];
+    videoStrengths?: string[];
+    videoImprovements?: string[];
+  };
+  videoAnalysis?: {
+    bodyLanguageScore: number;
+    eyeContactScore: number;
+    professionalAppearanceScore: number;
+    energyScore: number;
+    overallVideoScore: number;
   };
 }
 
@@ -123,11 +132,12 @@ class BackendApiService {
 
   async endInterview(
     jobRole: string,
-    conversationHistory: Array<{ role: string; content: string }>
+    conversationHistory: Array<{ role: string; content: string }>,
+    videoFrames?: string[]
   ): Promise<InterviewFeedback> {
     return this.makeRequest<InterviewFeedback>(
       '/api/v1/openai/skillsurger',
-      { jobRole, conversationHistory },
+      { jobRole, conversationHistory, videoFrames },
       'endInterview'
     );
   }
