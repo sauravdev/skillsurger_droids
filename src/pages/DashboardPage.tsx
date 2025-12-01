@@ -10,19 +10,21 @@ import {
   Menu,
   X,
   LogOut,
-  BookOpen
+  BookOpen,
+  FileCheck
 } from 'lucide-react';
 import MentorshipHub from '../components/MentorshipHub';
 import CareerExplorer from '../components/CareerExplorer';
 import ProgressTracker from '../components/ProgressTracker';
 import ProfileSection from '../components/ProfileSection';
 import LearningPaths from '../components/LearningPaths';
+import CVScoring from '../components/CVScoring';
 import Subscription from './Subscription';
 import TrialWarning from '../components/TrialWarning';
 import { UserProvider, useUser } from '../context/UserContext';
 import { hasAIFeatureAccess } from '../lib/subscriptionUtils';
 
-type DashboardSection = 'overview' | 'profile' | 'career' | 'mentorship' | 'learning' | 'subscription';
+type DashboardSection = 'overview' | 'profile' | 'career' | 'cv-scoring' | 'mentorship' | 'learning' | 'subscription';
 
 export default function DashboardPage() {
   const navigate = useNavigate();
@@ -72,7 +74,7 @@ export default function DashboardPage() {
     
     // Only update if the URL section is different from current activeSection
     // AND the activeSection is not already set correctly (prevent loops)
-    if (sectionFromQuery && ['overview', 'profile', 'career', 'mentorship', 'learning', 'subscription'].includes(sectionFromQuery)) {
+    if (sectionFromQuery && ['overview', 'profile', 'career', 'cv-scoring', 'mentorship', 'learning', 'subscription'].includes(sectionFromQuery)) {
       if (activeSection !== sectionFromQuery) {
         console.log(`Setting section from URL: ${sectionFromQuery} (was ${activeSection})`);
         setActiveSection(sectionFromQuery as DashboardSection);
@@ -222,6 +224,11 @@ export default function DashboardPage() {
       icon: Briefcase,
     },
     {
+      id: 'cv-scoring',
+      label: 'CV Scoring',
+      icon: FileCheck,
+    },
+    {
       id: 'mentorship',
       label: 'Mentorship Hub',
       icon: Users,
@@ -361,6 +368,27 @@ export default function DashboardPage() {
                       selectedCareer={careerExplorerSelectedCareer}
                       setSelectedCareer={setCareerExplorerSelectedCareer}
                     />
+                  )}
+                </>
+              )}
+
+              {activeSection === 'cv-scoring' && (
+                <>
+                  {!hasAI ? (
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
+                      <h3 className="text-lg font-semibold text-yellow-800 mb-2">AI Features Require Active Subscription</h3>
+                      <p className="text-yellow-700 mb-4">
+                        Your trial or subscription has expired. To access CV Scoring and other AI-powered features, please upgrade your plan.
+                      </p>
+                      <a
+                        href="/pricing"
+                        className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-lg shadow transition"
+                      >
+                        Upgrade Now
+                      </a>
+                    </div>
+                  ) : (
+                    <CVScoring />
                   )}
                 </>
               )}

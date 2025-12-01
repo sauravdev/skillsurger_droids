@@ -9,7 +9,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   import.meta.url
 ).toString();
 
-async function extractTextFromPdf(file: File): Promise<string> {
+export async function extractTextFromPdf(file: File): Promise<string> {
   try {
     console.log('Starting PDF text extraction...');
     const arrayBuffer = await file.arrayBuffer();
