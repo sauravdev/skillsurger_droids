@@ -61,10 +61,17 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
-    const getUserAndSubscription = async () => {
-      setLoading(true);
+    let isSubscribed = true;
+
+    const getUserAndSubscription = async (shouldSetLoading = true) => {
+      if (shouldSetLoading) {
+        setLoading(true);
+      }
+
       const { data: { session } } = await supabase.auth.getSession();
-      
+
+      if (!isSubscribed) return;
+
       if (!session?.user) {
         setUser(null);
         setSubscription(null);
@@ -75,32 +82,52 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       try {
         const subRes = await fetchUserSubscription(session.user.id);
-        
+
+        if (!isSubscribed) return;
+
         if (subRes.success && subRes.data) {
           setSubscription(subRes.data);
         } else {
           setSubscription(null);
         }
       } catch (e) {
+        if (!isSubscribed) return;
         setSubscription(null);
       }
       setLoading(false);
     };
 
-    getUserAndSubscription();
+    getUserAndSubscription(true);
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        getUserAndSubscription();
-      } else {
-        setUser(null);
-        setSubscription(null);
+    // Listen for auth changes - but filter out TOKEN_REFRESHED events to prevent tab-switch reloads
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      // Ignore TOKEN_REFRESHED events - these happen when tabs switch and don't require a full reload
+      if (event === 'TOKEN_REFRESHED') {
+        console.log('Token refreshed - updating session without reload');
+        if (session?.user && isSubscribed) {
+          setUser(session.user);
+        }
+        return;
+      }
+
+      // Only reload data for significant auth events
+      if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
+        console.log('Auth event:', event, '- fetching user data');
+        getUserAndSubscription(false);
+      } else if (event === 'SIGNED_OUT') {
+        console.log('User signed out');
+        if (isSubscribed) {
+          setUser(null);
+          setSubscription(null);
+        }
       }
     });
 
-    return () => subscription.unsubscribe();
-  }, [navigate]);
+    return () => {
+      isSubscribed = false;
+      subscription.unsubscribe();
+    };
+  }, []); // Removed navigate dependency to prevent unnecessary re-renders
 
   return (
     <UserContext.Provider value={{ user, subscription, loading, checkSubscriptionForAI, checkProfileAccess }}>

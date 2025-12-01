@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import HotjarTracking from './HotjarTracking';
 import FacebookPixel from './FacebookPixel';
 
@@ -13,9 +13,18 @@ const AnalyticsTracking: React.FC<AnalyticsTrackingProps> = ({
   facebookPixelId = import.meta.env.VITE_FACEBOOK_PIXEL_ID || "YOUR_PIXEL_ID",
   googleAnalyticsId = import.meta.env.VITE_GA_ID || "YOUR_GA_ID"
 }) => {
+  const hasInitializedGA = useRef(false);
+
   useEffect(() => {
-    // Google Analytics 4
+    // Prevent double initialization of Google Analytics
+    if (hasInitializedGA.current || (window as any).gtag) {
+      return;
+    }
+
+    // Google Analytics 4 - only initialize once
     if (googleAnalyticsId && googleAnalyticsId !== "YOUR_GA_ID") {
+      hasInitializedGA.current = true;
+
       const script = document.createElement('script');
       script.async = true;
       script.src = `https://www.googletagmanager.com/gtag/js?id=${googleAnalyticsId}`;
@@ -28,7 +37,7 @@ const AnalyticsTracking: React.FC<AnalyticsTrackingProps> = ({
       gtag('js', new Date());
       gtag('config', googleAnalyticsId);
     }
-  }, [googleAnalyticsId]);
+  }, []); // Remove googleAnalyticsId from dependencies
 
   return (
     <>

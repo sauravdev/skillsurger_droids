@@ -1,4 +1,3 @@
-import { openai, isOpenAIConfigured } from './openaiConfig';
 import { extractJsonFromMarkdown } from './utils';
 import { searchGoogleJobs, isGoogleJobsConfigured, type GoogleJobsSearchParams, type GoogleJobResult } from './googleJobsApi';
 import axios from 'axios';
@@ -662,13 +661,8 @@ export async function generateCareerOptions(
   // Always provide fallback options first
   const fallbackOptions = generateFallbackCareers(skills, interests, experience, profileData);
 
-  if (!isOpenAIConfigured()) {
-    console.log('OpenAI not configured, returning enhanced fallback options');
-    return fallbackOptions;
-  }
-
   try {
-    console.log('Attempting to use OpenAI for enhanced career generation...');
+    console.log('Attempting to use backend API for enhanced career generation...');
     
     // Create comprehensive context for AI
     const contextData = {
@@ -973,10 +967,6 @@ export async function generateFresherLearningPlan(
   careerInterests: string[],
   skills: string[]
 ): Promise<string> {
-  if (!isOpenAIConfigured()) {
-    return `Learning plan for ${fieldOfStudy} graduate interested in ${careerInterests.join(', ')}. Focus on developing practical skills in ${skills.join(', ')} and gaining hands-on experience through projects and internships.`;
-  }
-
   try {
     const apiBase = import.meta.env.VITE_BACKEND_API || 'http://localhost:5002/api/v1';
     const response = await axios.post(`${apiBase}/openai/skillsurger`, {
@@ -993,7 +983,8 @@ export async function generateFresherLearningPlan(
     return response.data.data;
   } catch (error) {
     console.error('Error generating fresher learning plan:', error);
-    throw error;
+    // Return fallback learning plan
+    return `Learning plan for ${fieldOfStudy} graduate interested in ${careerInterests.join(', ')}. Focus on developing practical skills in ${skills.join(', ')} and gaining hands-on experience through projects and internships.`;
   }
 }
 
@@ -1028,21 +1019,19 @@ export async function generateFresherCV(
   skills: string[],
   interests: string[]
 ): Promise<any> {
-  if (!isOpenAIConfigured()) {
-    return {
-      summary: `Recent ${educationData.degree} graduate in ${educationData.fieldOfStudy} from ${educationData.institution} with strong interest in ${careerInterests.join(', ')}. Eager to apply academic knowledge and develop professional skills in a dynamic work environment.`,
-      experience: [],
-      projects: [],
-      education: [{
-        degree: educationData.degree,
-        institution: educationData.institution,
-        year: educationData.graduationYear
-      }],
-      skills: skills,
-      languages: [],
-      certifications: []
-    };
-  }
+  const fallbackCV = {
+    summary: `Recent ${educationData.degree} graduate in ${educationData.fieldOfStudy} from ${educationData.institution} with strong interest in ${careerInterests.join(', ')}. Eager to apply academic knowledge and develop professional skills in a dynamic work environment.`,
+    experience: [],
+    projects: [],
+    education: [{
+      degree: educationData.degree,
+      institution: educationData.institution,
+      year: educationData.graduationYear
+    }],
+    skills: skills,
+    languages: [],
+    certifications: []
+  };
 
   try {
     const apiBase = import.meta.env.VITE_BACKEND_API || 'http://localhost:5002/api/v1';
@@ -1061,7 +1050,7 @@ export async function generateFresherCV(
     return response.data.data;
   } catch (error) {
     console.error('Error generating fresher CV:', error);
-    throw error;
+    return fallbackCV;
   }
 }
 
@@ -1069,17 +1058,15 @@ export async function generateFresherCVFromProfile(
   profileData: any,
   additionalInterests: string
 ): Promise<any> {
-  if (!isOpenAIConfigured()) {
-    return {
-      summary: `Recent graduate with strong interest in ${additionalInterests}. Eager to apply academic knowledge and develop professional skills in a dynamic work environment.`,
-      experience: [],
-      projects: [],
-      education: profileData.education || [],
-      skills: profileData.skills || [],
-      languages: [],
-      certifications: []
-    };
-  }
+  const fallbackCV = {
+    summary: `Recent graduate with strong interest in ${additionalInterests}. Eager to apply academic knowledge and develop professional skills in a dynamic work environment.`,
+    experience: [],
+    projects: [],
+    education: profileData.education || [],
+    skills: profileData.skills || [],
+    languages: [],
+    certifications: []
+  };
 
   try {
     const apiBase = import.meta.env.VITE_BACKEND_API || 'http://localhost:5002/api/v1';
@@ -1096,7 +1083,7 @@ export async function generateFresherCVFromProfile(
     return response.data.data;
   } catch (error) {
     console.error('Error generating fresher CV from profile:', error);
-    throw error;
+    return fallbackCV;
   }
 }
 
@@ -1136,10 +1123,6 @@ export async function generateCVSuggestions(
     certifications: [],
     projects: []
   };
-
-  if (!isOpenAIConfigured()) {
-    return fallbackSuggestion;
-  }
 
   try {
     const apiBase = import.meta.env.VITE_BACKEND_API || 'http://localhost:5002/api/v1';

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
 
@@ -8,6 +8,14 @@ interface SubscriptionProtectedRouteProps {
 
 export default function SubscriptionProtectedRoute({ children }: SubscriptionProtectedRouteProps) {
   const { loading, checkSubscriptionForAI } = useUser();
+  const hasChecked = useRef(false);
+
+  // Prevent redirect flash on tab switch
+  useEffect(() => {
+    if (!loading) {
+      hasChecked.current = true;
+    }
+  }, [loading]);
 
   if (loading) {
     return (
