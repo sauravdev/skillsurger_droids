@@ -1,6 +1,7 @@
 import { Shield, Clock, Download, BarChart3, Check } from "lucide-react";
 import Button from "../components/Button";
 import { Link } from "react-router-dom";
+import SEO from "../components/SEO";
 
 const pricingPlans = [
   {
@@ -71,6 +72,12 @@ const pricingPlans = [
 const Pricing = () => {
   return (
     <section id="pricing" className="py-20 bg-white">
+      <SEO 
+        title="Pricing Plans | Skillsurger AI Career Coach"
+        description="Choose the best plan for your career growth. Start with a free 7-day trial. Affordable AI-powered career coaching from just $10/month."
+        keywords="AI career coach pricing, resume builder cost, career development pricing, job search tools pricing"
+        canonicalUrl="/pricing"
+      />
       <div className="container mx-auto px-4">
         <div className="text-center mb-16">
           <h2 className="text-4xl font-bold text-gray-900 mb-4">

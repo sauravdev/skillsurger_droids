@@ -1,8 +1,15 @@
-
+import SEO from '../components/SEO';
 
 export default function PrivacyPolicy() {
   return (
     <div className="min-h-screen bg-gray-50 pt-24">
+      <SEO 
+        title="Privacy Policy | Skillsurger"
+        description="Read Skillsurger's privacy policy to understand how we collect, use, and protect your personal information and career data."
+        keywords="privacy policy, data protection, user privacy, information security"
+        canonicalUrl="/privacy"
+        noIndex={true}
+      />
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-lg p-8">
           <h1 className="text-3xl font-bold mb-6">Privacy Policy</h1>

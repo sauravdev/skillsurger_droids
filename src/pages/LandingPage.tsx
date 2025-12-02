@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import Button from "../components/Button";
 import { Link } from "react-router-dom";
+import SEO from "../components/SEO";
 
 import { useState } from "react";
 
@@ -218,6 +219,12 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen">
+      <SEO 
+        title="AI Career Coach for Job Seekers | Skillsurger"
+        description="AI-powered career coach to optimize your resume, land interviews, and upskill for top jobs. Free trial—transform your job search with Skillsurger."
+        keywords="AI career coach, resume builder, job matching, mock interviews, career development, ATS optimization, interview practice, job search"
+        canonicalUrl="/"
+      />
       {/* Demo Video Modal */}
       {showDemoModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70">

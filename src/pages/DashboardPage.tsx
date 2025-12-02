@@ -23,6 +23,7 @@ import Subscription from './Subscription';
 import TrialWarning from '../components/TrialWarning';
 import { UserProvider, useUser } from '../context/UserContext';
 import { hasAIFeatureAccess } from '../lib/subscriptionUtils';
+import SEO from '../components/SEO';
 
 type DashboardSection = 'overview' | 'profile' | 'career' | 'cv-scoring' | 'mentorship' | 'learning' | 'subscription';
 
@@ -263,6 +264,13 @@ export default function DashboardPage() {
   return (
     <OnboardingCheck>
       <UserProvider>
+        <SEO 
+          title="Dashboard | Skillsurger"
+          description="Access your personalized career dashboard. Track progress, optimize your resume, practice interviews, and explore career opportunities."
+          keywords="career dashboard, user dashboard, career progress"
+          canonicalUrl="/dashboard"
+          noIndex={true}
+        />
         <div className="min-h-screen bg-gray-50 flex">
           {/* Mobile Menu Button */}
           <button

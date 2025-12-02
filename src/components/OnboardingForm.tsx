@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { User, ArrowRight, Briefcase, Award } from 'lucide-react';
 import Button from './Button';
 import { supabase } from '../lib/supabase';
+import SEO from './SEO';
 
 interface OnboardingData {
   fullName: string;
@@ -125,6 +126,12 @@ export default function OnboardingForm() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center py-12 px-4">
+      <SEO 
+        title="Complete Your Profile | Skillsurger"
+        description="Complete your profile to get personalized career recommendations and AI-powered guidance."
+        canonicalUrl="/onboarding"
+        noIndex={true}
+      />
       <div className="max-w-2xl w-full">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome to Skillsurger!</h1>

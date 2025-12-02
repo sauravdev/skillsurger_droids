@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { findJobOpportunities } from '../lib/careerServices';
 import type { JobOpportunity } from '../lib/careerServices';
 import { Briefcase, MapPin, Building, Clock, CircleDollarSign, Link as LinkIcon, AlertTriangle, Loader2 } from 'lucide-react';
+import SEO from '../components/SEO';
 
 const JobSearchPage = () => {
   const [jobs, setJobs] = useState<JobOpportunity[]>([]);

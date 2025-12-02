@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { HelmetProvider } from 'react-helmet-async';
 import Header from './components/Header';
 import LandingPage from './pages/LandingPage';
 import SignUpPage from './pages/SignUpPage';
@@ -11,6 +12,7 @@ import TermsAndConditions from './pages/TermsAndConditions';
 import ContactUs from './pages/ContactUs';
 import AboutUs from './pages/AboutUs';
 import Blog from './pages/Blog';
+import NotFound from './pages/NotFound';
 import ProtectedRoute from './components/ProtectedRoute';
 import SubscriptionProtectedRoute from './components/SubscriptionProtectedRoute';
 import ProfileProtectedRoute from './components/ProfileProtectedRoute';
@@ -23,15 +25,19 @@ import BlogPost from "./pages/BlogPost";
 import WhatsAppChat from './components/WhatsAppChat';
 import Footer from './components/Footer';
 import AnalyticsTracking from './components/AnalyticsTracking';
+import PerformanceMonitor from './components/PerformanceMonitor';
 import UserTypeSelection from './components/UserTypeSelection';
 import OnboardingForm from './components/OnboardingForm';
 
 function App() {
   return (
-    <Router>
-      <UserProvider>
-        {/* Analytics Tracking */}
-        <AnalyticsTracking />
+    <HelmetProvider>
+      <Router>
+        <UserProvider>
+          {/* Analytics Tracking */}
+          <AnalyticsTracking />
+          {/* Performance Monitoring */}
+          <PerformanceMonitor />
         
         <div className="min-h-screen bg-gray-50">
           <Header />
@@ -101,6 +107,9 @@ function App() {
               <Route path="/blog/:slug" element={<BlogPost />} />
               <Route path="/user-type-selection" element={<UserTypeSelection />} />
               <Route path="/onboarding" element={<OnboardingForm />} />
+
+              {/* 404 Not Found - Must be last */}
+              <Route path="*" element={<NotFound />} />
             </Routes>
           </main>
           
@@ -115,6 +124,7 @@ function App() {
         </div>
       </UserProvider>
     </Router>
+    </HelmetProvider>
   );
 }
 

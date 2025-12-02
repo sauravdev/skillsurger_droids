@@ -6,6 +6,22 @@
   html {
     font-family: system-ui, sans-serif;
   }
+  
+  /* Font display optimization */
+  @font-face {
+    font-display: swap;
+  }
+  
+  /* Performance: Reduce repaints */
+  * {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  /* Lazy load images by default */
+  img {
+    content-visibility: auto;
+  }
 }
 
 @layer components {

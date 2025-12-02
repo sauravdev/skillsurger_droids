@@ -3,6 +3,7 @@ import { Video, Check, Brain, Target, Zap, ArrowRight, MessageSquare, BarChart3 
 import Button from '../components/Button';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import SEO from '../components/SEO';
 
 const MockInterview = () => {
   const navigate = useNavigate();
@@ -40,6 +41,12 @@ const MockInterview = () => {
 
   return (
     <div className="min-h-screen bg-white">
+      <SEO 
+        title="AI Mock Interview Practice | Instant Feedback | Skillsurger"
+        description="Practice interviews with AI-powered feedback on speech, confidence, and clarity. Get instant feedback and improve your interview skills. Free trial available."
+        keywords="mock interview, AI interview practice, interview preparation, interview feedback, video interview"
+        canonicalUrl="/mock-interview"
+      />
       {/* Hero Section */}
       <section className="pt-32 pb-20 bg-gradient-to-br from-green-50 via-blue-50 to-purple-50">
         <div className="container mx-auto px-4">

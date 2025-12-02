@@ -1,8 +1,15 @@
-
+import SEO from '../components/SEO';
 
 export default function TermsAndConditions() {
   return (
     <div className="min-h-screen bg-gray-50 pt-24">
+      <SEO 
+        title="Terms and Conditions | Skillsurger"
+        description="Read Skillsurger's terms and conditions. Understand the rules and regulations for using our AI-powered career platform."
+        keywords="terms and conditions, terms of service, user agreement, legal"
+        canonicalUrl="/terms"
+        noIndex={true}
+      />
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-lg p-8">
           <h1 className="text-3xl font-bold mb-6">Terms and Conditions</h1>

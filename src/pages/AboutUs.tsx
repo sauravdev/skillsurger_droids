@@ -1,5 +1,5 @@
 import { Brain, Target, Users, Globe, Award } from 'lucide-react';
-
+import SEO from '../components/SEO';
 
 const values = [
   {
@@ -27,6 +27,12 @@ const values = [
 export default function AboutUs() {
   return (
     <div className="min-h-screen bg-gray-50 pt-24">
+      <SEO 
+        title="About Skillsurger | AI-Powered Career Platform"
+        description="Learn about Skillsurger's mission to transform careers through AI innovation. Discover how we help thousands of professionals achieve their career goals."
+        keywords="about Skillsurger, AI career platform, career development mission, AI career technology"
+        canonicalUrl="/about"
+      />
       {/* Hero Section */}
       <section className="relative py-20 bg-blue-600 text-white">
         <div className="container mx-auto px-4">

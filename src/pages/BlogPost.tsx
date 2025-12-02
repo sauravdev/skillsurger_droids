@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { Calendar, Clock, ArrowLeft, User, Share2, BookOpen } from 'lucide-react';
 import Button from '../components/Button';
 import { generatedBlogs } from '../content/blogs.generated';
+import SEO from '../components/SEO';
 
 const BlogPost = () => {
   const { slug } = useParams();
@@ -855,6 +856,13 @@ const BlogPost = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <SEO 
+        title={`${post.title} | Skillsurger Blog`}
+        description={post.excerpt}
+        keywords={`${post.category}, career advice, job search, ${post.title}`}
+        canonicalUrl={`/blog/${slug}`}
+        ogImage={post.image}
+      />
       {/* Hero Section */}
       <section className="pt-32 pb-20 bg-white">
         <div className="container mx-auto px-4">

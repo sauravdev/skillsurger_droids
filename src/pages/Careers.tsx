@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Briefcase, MapPin, Clock, DollarSign, Send } from 'lucide-react';
 import Button from '../components/Button';
-
+import SEO from '../components/SEO';
 
 const departments = [
   'Engineering',
@@ -139,6 +139,12 @@ export default function Careers() {
 
   return (
     <div className="min-h-screen bg-gray-50 pt-24">
+      <SEO 
+        title="Careers at Skillsurger | Join Our Team"
+        description="Join the Skillsurger team! Explore exciting career opportunities in engineering, product, design, marketing, and more. Help us transform careers with AI."
+        keywords="Skillsurger careers, job openings, work at Skillsurger, career opportunities"
+        canonicalUrl="/careers"
+      />
       {/* Hero Section */}
       <section className="relative py-20 bg-blue-600 text-white">
         <div className="container mx-auto px-4">

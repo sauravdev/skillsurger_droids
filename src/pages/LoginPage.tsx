@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import Button from '../components/Button';
 import GoogleSignInButton from '../components/GoogleSignInButton';
 import { AlertCircle, CheckCircle } from 'lucide-react';
+import SEO from '../components/SEO';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -104,6 +105,12 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+      <SEO 
+        title="Login | Access Your Account | Skillsurger"
+        description="Login to your Skillsurger account. Access your AI career coach, resume builder, and interview practice tools."
+        keywords="login, sign in, account access, user login"
+        canonicalUrl="/login"
+      />
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
           Sign in to your account

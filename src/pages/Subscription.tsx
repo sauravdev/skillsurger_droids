@@ -2,6 +2,7 @@ import React from 'react';
 import { useUser } from '../context/UserContext';
 import { CheckCircle, XCircle, Zap, Star } from 'lucide-react';
 import { calculateSubscriptionExpiry, isSubscriptionValid, getTrialDaysRemaining } from '../lib/subscriptionUtils';
+import SEO from '../components/SEO';
 
 function calculateExpiry(subscription: any) {
   if (!subscription) return null;
@@ -76,6 +77,13 @@ const Subscription: React.FC = () => {
 
   return (
     <div className="flex flex-col items-center min-h-[70vh] bg-gradient-to-br from-blue-50 via-white to-purple-50 py-12 px-2">
+      <SEO 
+        title="Subscription | Manage Your Plan | Skillsurger"
+        description="Manage your Skillsurger subscription. View plan details, upgrade options, and subscription status."
+        keywords="subscription management, plan details, upgrade subscription"
+        canonicalUrl="/subscription"
+        noIndex={true}
+      />
       <div className="w-full max-w-3xl md:w-[70vw] bg-white/90 rounded-2xl shadow-xl border border-blue-100 p-10 relative flex flex-col items-center">
         {/* Icon/Illustration */}
         <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-gradient-to-tr from-blue-500 to-purple-500 rounded-full p-4 shadow-lg">

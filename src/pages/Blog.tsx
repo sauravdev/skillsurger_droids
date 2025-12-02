@@ -2,6 +2,7 @@ import React from 'react';
 import { Calendar, Clock, ArrowRight, Search, Filter } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { generatedBlogs } from '../content/blogs.generated';
+import SEO from '../components/SEO';
 
 const Blog = () => {
   const generatedCards = generatedBlogs.map((p, index) => ({
@@ -145,6 +146,12 @@ const Blog = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <SEO 
+        title="Career Development Blog | Skillsurger"
+        description="Expert insights on AI-powered career development, resume building, interview prep, and job search strategies. Get the latest career tips from Skillsurger."
+        keywords="career blog, job search tips, resume tips, interview preparation, AI career advice"
+        canonicalUrl="/blog"
+      />
       {/* Hero Section */}
       <section className="pt-32 pb-20 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
         <div className="container mx-auto px-4">

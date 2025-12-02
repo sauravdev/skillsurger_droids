@@ -5,6 +5,7 @@ import Button from '../components/Button';
 import GoogleSignInButton from '../components/GoogleSignInButton';
 import { AlertCircle } from 'lucide-react';
 import { uploadCV, parseCV } from '../lib/pdf';
+import SEO from '../components/SEO';
 
 export default function SignUpPage() {
   const [email, setEmail] = useState('');
@@ -125,6 +126,12 @@ export default function SignUpPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+      <SEO 
+        title="Sign Up | Start Your Free Trial | Skillsurger"
+        description="Create your free Skillsurger account and start your 7-day trial. Get AI-powered career coaching, resume optimization, and interview practice."
+        keywords="sign up, create account, free trial, career platform registration"
+        canonicalUrl="/signup"
+      />
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
           Create your account

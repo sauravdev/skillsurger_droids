@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Mail, Phone, MapPin, Send } from 'lucide-react';
 import Button from '../components/Button';
-
+import SEO from '../components/SEO';
 
 export default function ContactUs() {
   const [formData, setFormData] = useState({
@@ -34,6 +34,12 @@ export default function ContactUs() {
 
   return (
     <div className="min-h-screen bg-gray-50 pt-24">
+      <SEO 
+        title="Contact Us | Skillsurger Career Support"
+        description="Get in touch with Skillsurger's team. We're here to help with your career development questions. Contact us via email, phone, or our online form."
+        keywords="contact Skillsurger, career support, customer service, help desk"
+        canonicalUrl="/contact"
+      />
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">

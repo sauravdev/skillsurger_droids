@@ -3,6 +3,7 @@ import { FileText, Check, Brain, Target, Zap, ArrowRight, X } from 'lucide-react
 import Button from '../components/Button';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import SEO from '../components/SEO';
 
 const AIResumeBuilder = () => {
   const navigate = useNavigate();
@@ -40,6 +41,12 @@ const AIResumeBuilder = () => {
 
   return (
     <div className="min-h-screen bg-white">
+      <SEO 
+        title="AI Resume Builder | Beat ATS Filters | Skillsurger"
+        description="Create ATS-optimized resumes using AI. Tailor CVs to job roles instantly, get 95% ATS pass rate. Free trial—build your perfect resume in minutes."
+        keywords="AI resume builder, ATS optimization, resume maker, CV builder, keyword optimization, resume templates"
+        canonicalUrl="/ai-resume-builder"
+      />
       {/* Hero Section */}
       <section className="pt-32 pb-20 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
         <div className="container mx-auto px-4">

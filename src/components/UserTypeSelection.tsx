@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Briefcase, GraduationCap, ArrowRight } from 'lucide-react';
 import Button from './Button';
+import SEO from './SEO';
 
 export default function UserTypeSelection() {
   const navigate = useNavigate();
@@ -17,6 +18,12 @@ export default function UserTypeSelection() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center py-12 px-4">
+      <SEO 
+        title="Choose Your Profile Type | Skillsurger"
+        description="Select your professional experience level to personalize your Skillsurger experience."
+        canonicalUrl="/user-type-selection"
+        noIndex={true}
+      />
       <div className="max-w-4xl w-full">
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">Welcome to Skillsurger!</h1>
