@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MessageSquare, Send, Bot, Video, Users, Book, Trash2, Archive, AlertTriangle, X, Loader2, Mic, MicOff } from 'lucide-react';
+import { MessageSquare, Send, Bot, Video, Users, Book, Trash2, Archive, AlertTriangle, X, Loader2, Mic, MicOff, Briefcase, ChevronDown, Calendar } from 'lucide-react';
 import Button from './Button';
 import {
   type MockInterview,
@@ -48,6 +48,7 @@ export default function MentorshipHub() {
   const [error, setError] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [schedulingInterview, setSchedulingInterview] = useState(false);
   
   const [activeInterview, setActiveInterview] = useState<MockInterview | null>(null);
   const [interviewMessages, setInterviewMessages] = useState<InterviewMessage[]>([]);
@@ -448,9 +449,11 @@ export default function MentorshipHub() {
     }
 
     try {
+      setSchedulingInterview(true);
       const selectedJobData = savedJobs.find(job => job.id === selectedJob);
       if (!selectedJobData) {
         setError('Selected job not found');
+        setSchedulingInterview(false);
         return;
       }
 
@@ -461,9 +464,28 @@ export default function MentorshipHub() {
         setMockInterviews([interview, ...mockInterviews]);
         setSelectedJob('');
         setInterviewDate('');
+        
+        // Show success message
+        const successDiv = document.createElement('div');
+        successDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 flex items-center';
+        successDiv.innerHTML = `
+          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+          </svg>
+          Interview scheduled successfully!
+        `;
+        document.body.appendChild(successDiv);
+        
+        setTimeout(() => {
+          if (document.body.contains(successDiv)) {
+            document.body.removeChild(successDiv);
+          }
+        }, 3000);
       }
     } catch (error) {
       setError('Failed to schedule interview. Please try again.');
+    } finally {
+      setSchedulingInterview(false);
     }
   }
 
@@ -819,39 +841,105 @@ export default function MentorshipHub() {
             </div>
           ) : (
             <>
-              <div>
-                <h3 className="text-lg font-semibold mb-4">Schedule Mock Interview</h3>
-                <form onSubmit={handleScheduleInterview} className="space-y-4">
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div className="flex items-center justify-between mb-6">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Select Job</label>
-                    <select
-                      value={selectedJob}
-                      onChange={(e) => setSelectedJob(e.target.value)}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                      required
+                    <h3 className="text-xl font-bold text-gray-900 flex items-center">
+                      <Video className="w-6 h-6 mr-2 text-blue-600" />
+                      Schedule Mock Interview
+                    </h3>
+                    <p className="text-sm text-gray-600 mt-1">Practice with AI-powered interview simulation</p>
+                  </div>
+                </div>
+                {savedJobs.length === 0 ? (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
+                    <AlertTriangle className="w-12 h-12 text-blue-600 mx-auto mb-3" />
+                    <h4 className="text-lg font-semibold text-gray-900 mb-2">No Saved Jobs Found</h4>
+                    <p className="text-gray-600 mb-4">
+                      To schedule a mock interview, you need to save jobs first from Career Explorer.
+                    </p>
+                    <Button
+                      onClick={() => navigate('/dashboard?section=career')}
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
                     >
-                      <option value="">Select a job position</option>
-                      {savedJobs.map(job => (
-                        <option key={job.id} value={job.id}>
-                          {job.title} at {job.company}
-                        </option>
-                      ))}
-                    </select>
+                      <Briefcase className="w-4 h-4 mr-2" />
+                      Explore Careers & Save Jobs
+                    </Button>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Interview Date & Time</label>
-                    <input
-                      type="datetime-local"
-                      value={interviewDate}
-                      onChange={(e) => setInterviewDate(e.target.value)}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                      required
-                    />
-                  </div>
-                  <Button type="submit">
-                    Schedule Interview
-                  </Button>
-                </form>
+                ) : (
+                  <form onSubmit={handleScheduleInterview} className="space-y-6">
+                    {/* Job Selection */}
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-900 mb-2">
+                        <Briefcase className="inline w-4 h-4 mr-2 text-blue-600" />
+                        Select Job Position
+                      </label>
+                      <div className="relative">
+                        <select
+                          value={selectedJob}
+                          onChange={(e) => setSelectedJob(e.target.value)}
+                          className="appearance-none block w-full px-4 py-3.5 pr-10 text-base border-2 border-gray-200 rounded-xl shadow-sm bg-white hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 cursor-pointer"
+                          required
+                        >
+                          <option value="" disabled className="text-gray-400">
+                            Choose a job position...
+                          </option>
+                          {savedJobs.map(job => (
+                            <option key={job.id} value={job.id} className="py-2">
+                              {job.title} at {job.company}
+                            </option>
+                          ))}
+                        </select>
+                        <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                          <ChevronDown className="w-5 h-5 text-gray-400" />
+                        </div>
+                      </div>
+                      <p className="mt-1.5 text-xs text-gray-500">
+                        Select the position you want to practice interviewing for
+                      </p>
+                    </div>
+
+                    {/* Date & Time Selection */}
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-900 mb-2">
+                        <Calendar className="inline w-4 h-4 mr-2 text-blue-600" />
+                        Interview Date & Time
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="datetime-local"
+                          value={interviewDate}
+                          onChange={(e) => setInterviewDate(e.target.value)}
+                          className="block w-full px-4 py-3.5 text-base border-2 border-gray-200 rounded-xl shadow-sm bg-white hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                          required
+                          min={new Date().toISOString().slice(0, 16)}
+                        />
+                      </div>
+                      <p className="mt-1.5 text-xs text-gray-500">
+                        Choose when you'd like to conduct your mock interview
+                      </p>
+                    </div>
+
+                    {/* Submit Button */}
+                    <Button 
+                      type="submit" 
+                      disabled={schedulingInterview}
+                      className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-white py-3.5 text-base font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
+                    >
+                      {schedulingInterview ? (
+                        <>
+                          <Loader2 className="w-5 h-5 mr-2 inline animate-spin" />
+                          Scheduling Interview...
+                        </>
+                      ) : (
+                        <>
+                          <Video className="w-5 h-5 mr-2 inline" />
+                          Schedule Mock Interview
+                        </>
+                      )}
+                    </Button>
+                  </form>
+                )}
               </div>
 
               <div>

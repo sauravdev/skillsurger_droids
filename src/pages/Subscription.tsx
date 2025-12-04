@@ -76,7 +76,7 @@ const Subscription: React.FC = () => {
   const trialDaysRemaining = getTrialDaysRemaining(subscription);
 
   return (
-    <div className="flex flex-col items-center min-h-[70vh] bg-gradient-to-br from-blue-50 via-white to-purple-50 py-12 px-2">
+    <div className="flex flex-col items-center min-h-[70vh] via-white to-purple-50 py-12 px-2 rounded-lg">
       <SEO 
         title="Subscription | Manage Your Plan | Skillsurger"
         description="Manage your Skillsurger subscription. View plan details, upgrade options, and subscription status."

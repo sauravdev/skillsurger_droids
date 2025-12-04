@@ -1,5 +1,7 @@
 // Backend API service for AI Mentor functionality
-const BACKEND_BASE_URL = import.meta.env.VITE_BACKEND_API || 'http://localhost:5002';
+// Note: VITE_BACKEND_API should include /api/v1 path
+// Example: https://api.wisedroids.ai/api/v1 or http://localhost:5002/api/v1
+const BACKEND_BASE_URL = import.meta.env.VITE_BACKEND_API || 'http://localhost:5002/api/v1';
 
 export interface BackendResponse<T> {
   success: boolean;
@@ -65,12 +67,12 @@ export interface CVEnhancement {
 
 class BackendApiService {
   private async makeRequest<T>(
-    _endpoint: string,
+    endpoint: string,
     data: any,
     type: string
   ): Promise<T> {
     try {
-      const response = await fetch(`${BACKEND_BASE_URL}/api/v1/openai/skillsurger`, {
+      const response = await fetch(`${BACKEND_BASE_URL}${endpoint}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -100,7 +102,7 @@ class BackendApiService {
 
   async startAIMentorshipSession(topic: string, userId: string): Promise<AIMentorResponse> {
     return this.makeRequest<AIMentorResponse>(
-      '/api/v1/openai/skillsurger',
+      '/openai/skillsurger',
       { topic, userId },
       'startAIMentorshipSession'
     );
@@ -112,7 +114,7 @@ class BackendApiService {
     conversationHistory: Array<{ role: string; content: string }> = []
   ): Promise<AIMentorResponse> {
     return this.makeRequest<AIMentorResponse>(
-      '/api/v1/openai/skillsurger',
+      '/openai/skillsurger',
       { topic, message, conversationHistory },
       'sendMessageToAIMentor'
     );
@@ -124,7 +126,7 @@ class BackendApiService {
     conversationHistory: Array<{ role: string; content: string }> = []
   ): Promise<InterviewResponse> {
     return this.makeRequest<InterviewResponse>(
-      '/api/v1/openai/skillsurger',
+      '/openai/skillsurger',
       { jobRole, userMessage, conversationHistory },
       'generateInterviewResponse'
     );
@@ -136,7 +138,7 @@ class BackendApiService {
     videoFrames?: string[]
   ): Promise<InterviewFeedback> {
     return this.makeRequest<InterviewFeedback>(
-      '/api/v1/openai/skillsurger',
+      '/openai/skillsurger',
       { jobRole, conversationHistory, videoFrames },
       'endInterview'
     );
@@ -144,7 +146,7 @@ class BackendApiService {
 
   async scoreCVText(cvText: string): Promise<CVScore> {
     return this.makeRequest<CVScore>(
-      '/api/v1/openai/skillsurger',
+      '/openai/skillsurger',
       { text: cvText },
       'scoreCVText'
     );
@@ -152,7 +154,7 @@ class BackendApiService {
 
   async enhanceCVText(cvText: string, targetRole?: string): Promise<CVEnhancement> {
     return this.makeRequest<CVEnhancement>(
-      '/api/v1/openai/skillsurger',
+      '/openai/skillsurger',
       { text: cvText, targetRole },
       'enhanceCVText'
     );

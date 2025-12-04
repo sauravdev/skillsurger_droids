@@ -329,7 +329,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Main Content - Adjusted padding for fixed sidebar */}
-          <div className="flex-1 pt-24 pb-12 px-4 lg:px-8 lg:ml-64">
+          <div className="flex-1 pt-24 pb-12 px-4 lg:px-8 lg">
             <div className="max-w-6xl mx-auto space-y-8">
               {/* Trial Warning */}
               <TrialWarning />
