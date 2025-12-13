@@ -8,7 +8,6 @@ import { useUser } from '../context/UserContext';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { backendApi, type CVScore } from '../lib/backendApi';
-import { useNavigate } from 'react-router-dom';
 
 interface ProfileData {
   id: string;
@@ -66,7 +65,6 @@ const workPreferences = ['hybrid', 'remote', 'office'];
 
 export default function ProfileSection() {
   const { checkSubscriptionForAI } = useUser();
-  const navigate = useNavigate();
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [userSkills, setUserSkills] = useState<UserSkill[]>([]);
   const [loading, setLoading] = useState(true);
@@ -92,6 +90,7 @@ export default function ProfileSection() {
   const [downloading, setDownloading] = useState(false);
   const [cvScore, setCvScore] = useState<CVScore | null>(null);
   const [scoringCV, setScoringCV] = useState(false);
+  const [enhancing, setEnhancing] = useState(false);
 
   useEffect(() => {
     loadProfile();
@@ -783,8 +782,188 @@ export default function ProfileSection() {
     return 'bg-red-100';
   };
 
-  const handleEnhanceCV = () => {
-    navigate('/dashboard?section=cv-scoring');
+  const handleEnhanceCV = async () => {
+    if (!profile?.cv_url) {
+      setError('No CV found. Please upload a CV first.');
+      return;
+    }
+
+    // Check subscription for AI features
+    if (!checkSubscriptionForAI()) {
+      return;
+    }
+
+    try {
+      setEnhancing(true);
+      setError('');
+
+      // Get user id
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No user found');
+
+      // Fetch CV file from storage
+      let cvFile: File;
+      let cvText: string;
+      try {
+        console.log('Fetching CV files from storage for user:', user.id);
+
+        // List all CV files for this user
+        const { data: cvFiles, error: listError } = await supabase.storage
+          .from('cvs')
+          .list(user.id);
+
+        if (listError) {
+          console.error('Error listing CV files:', listError);
+          throw new Error('Failed to access CV storage. Please try again.');
+        }
+
+        if (!cvFiles || cvFiles.length === 0) {
+          throw new Error('No CV file found in storage. Please upload a CV first.');
+        }
+
+        // Get the most recent CV file
+        const latestCvFile = cvFiles[cvFiles.length - 1];
+        const latestCvFileName = latestCvFile.name;
+        console.log('Found CV file:', latestCvFileName);
+
+        // Download the CV file
+        const { data: cvData, error: downloadError } = await supabase.storage
+          .from('cvs')
+          .download(`${user.id}/${latestCvFileName}`);
+
+        if (downloadError) {
+          console.error('Error downloading CV file:', downloadError);
+          throw new Error('Failed to download CV file. Please try again.');
+        }
+
+        // Convert blob to File object
+        cvFile = new File([cvData], latestCvFileName, { type: 'application/pdf' });
+        console.log('Successfully downloaded CV file:', latestCvFileName);
+
+        // Extract text from CV
+        cvText = await extractTextFromPdf(cvFile);
+        if (!cvText || !cvText.trim()) {
+          throw new Error('Could not extract text from CV. Please ensure your CV is a text-based PDF.');
+        }
+
+      } catch (storageError) {
+        console.error('Error fetching CV from storage:', storageError);
+        throw storageError;
+      }
+
+      // Enhance the CV
+      console.log('Enhancing CV...');
+      const enhancedResult = await backendApi.enhanceCVText(cvText);
+      console.log('CV enhanced successfully');
+
+      // Parse the enhanced CV
+      console.log('Parsing enhanced CV...');
+      const parsedData = await backendApi.analyzeCVText(enhancedResult.enhancedCV);
+      console.log('Enhanced CV parsed successfully');
+
+      // Update profile with enhanced data
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({
+          summary: parsedData.summary,
+          experience: parsedData.experience,
+          projects: parsedData.projects,
+          education: parsedData.education,
+          certifications: parsedData.certifications,
+          cv_parsed_data: parsedData,
+          languages: parsedData.languages,
+          ...(parsedData.full_name && { full_name: parsedData.full_name }),
+          ...(parsedData.email && { email: parsedData.email }),
+          ...(parsedData.phone && { phone: parsedData.phone }),
+          ...(parsedData.city && {
+            city: parsedData.city,
+            state: parsedData.state,
+            country: parsedData.country
+          }),
+          ...(parsedData.current_role && { current_role: parsedData.current_role }),
+          ...(parsedData.years_of_experience && { years_of_experience: parsedData.years_of_experience })
+        })
+        .eq('id', user.id);
+
+      if (updateError) throw updateError;
+
+      // Update skills if available
+      if (parsedData.skills && parsedData.skills.length > 0) {
+        // Get existing skills
+        const { data: existingSkills } = await supabase
+          .from('user_skills')
+          .select('skill')
+          .eq('user_id', user.id);
+
+        const currentSkills = existingSkills?.map(s => s.skill) || [];
+        const allSkills = [...new Set([...currentSkills, ...parsedData.skills])];
+
+        // Delete existing skills and insert merged skills
+        await supabase.from('user_skills').delete().eq('user_id', user.id);
+
+        if (allSkills.length > 0) {
+          const { error: skillsError } = await supabase
+            .from('user_skills')
+            .insert(allSkills.map(skill => ({ user_id: user.id, skill })));
+
+          if (skillsError) throw skillsError;
+        }
+      }
+
+      // Score the enhanced CV
+      try {
+        const scoreResult = await backendApi.scoreCVText(enhancedResult.enhancedCV);
+        setCvScore(scoreResult);
+      } catch (scoreError) {
+        console.error('Error scoring enhanced CV:', scoreError);
+        // Don't fail the enhancement if scoring fails
+      }
+
+      // Reload profile
+      await loadProfile();
+
+      // Show success message
+      const successDiv = document.createElement('div');
+      successDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+      successDiv.textContent = 'CV enhanced and applied successfully!';
+      document.body.appendChild(successDiv);
+      setTimeout(() => {
+        if (document.body.contains(successDiv)) {
+          document.body.removeChild(successDiv);
+        }
+      }, 3000);
+
+    } catch (err: any) {
+      console.error('Error enhancing CV:', err);
+
+      let errorMessage = 'Failed to enhance CV. Please try again.';
+
+      if (err.message?.includes('No CV file found') || err.message?.includes('Please upload a CV first')) {
+        errorMessage = err.message;
+      } else if (err.message?.includes('Could not extract text')) {
+        errorMessage = 'Could not extract text from CV. Please ensure your CV is a text-based PDF.';
+      } else if (err.message?.includes('Failed to access CV storage')) {
+        errorMessage = 'Failed to access CV storage. Please try again.';
+      }
+
+      setError(errorMessage);
+
+      // Show error message
+      const errorDiv = document.createElement('div');
+      errorDiv.className = 'fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 max-w-md';
+      errorDiv.innerHTML = `
+        <div class="font-medium">Enhancement Failed</div>
+        <div class="text-sm mt-1">${errorMessage}</div>
+      `;
+      document.body.appendChild(errorDiv);
+      setTimeout(() => {
+        if (document.body.contains(errorDiv)) {
+          document.body.removeChild(errorDiv);
+        }
+      }, 5000);
+    } finally {
+      setEnhancing(false);
+    }
   };
 
   const renderDeleteButton = (dataType: string, label: string, hasData: boolean) => {
@@ -1163,8 +1342,18 @@ export default function ProfileSection() {
                 )}
               </div>
 
+              {/* CV Enhancement Loading */}
+              {enhancing && (
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 mb-6 border-2 border-blue-200">
+                  <div className="flex items-center">
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600 mr-3"></div>
+                    <p className="text-blue-800 font-medium">Enhancing your CV and applying changes...</p>
+                  </div>
+                </div>
+              )}
+
               {/* CV Score Section */}
-              {scoringCV && (
+              {scoringCV && !enhancing && (
                 <div className="bg-blue-50 rounded-lg p-4 mb-6">
                   <div className="flex items-center">
                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600 mr-3"></div>
@@ -1183,10 +1372,20 @@ export default function ProfileSection() {
                     <Button
                       onClick={handleEnhanceCV}
                       size="sm"
-                      className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                      disabled={enhancing}
+                      className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      <Zap className="w-4 h-4 mr-2" />
-                      Enhance CV
+                      {enhancing ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          Enhancing...
+                        </>
+                      ) : (
+                        <>
+                          <Zap className="w-4 h-4 mr-2" />
+                          Enhance CV
+                        </>
+                      )}
                     </Button>
                   </div>
 
