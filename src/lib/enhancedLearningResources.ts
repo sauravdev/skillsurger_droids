@@ -1,5 +1,4 @@
 // Enhanced learning resource generation with verified links
-import { isOpenAIConfigured } from './openaiConfig';
 import { verifyLink, generateFallbackUrl, getPlatformInfo } from './linkVerification';
 import axios from 'axios';
 
@@ -380,17 +379,18 @@ export async function generateVerifiedLearningResources(
   requirements: string[] = []
 ): Promise<VerifiedResource[]> {
   try {
-    if (!isOpenAIConfigured()) {
-      throw new Error('OpenAI API key not configured.');
-    }
-
     console.log('Generating verified learning resources for:', jobTitle);
     const apiBase = import.meta.env.VITE_BACKEND_API || 'http://localhost:5002/api/v1';
     const apiUrl = `${apiBase}/openai/skillsurger`;
-    const response = await axios.post(apiUrl,{type : "generateVerifiedLearningResources",jobTitle,jobDescription,requirements})
+    const response = await axios.post(apiUrl, {
+      type: "generateVerifiedLearningResources",
+      jobTitle,
+      jobDescription,
+      requirements
+    });
 
     console.log('Backend response:', response.data);
-    const content = response.data
+    const content = response.data;
     if (!content.success) {
       console.error('Backend returned unsuccessful response:', content);
       throw new Error('No content received from OpenAI');

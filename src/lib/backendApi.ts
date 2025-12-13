@@ -159,6 +159,14 @@ class BackendApiService {
       'enhanceCVText'
     );
   }
+
+  async analyzeCVText(cvText: string): Promise<any> {
+    return this.makeRequest<any>(
+      '/openai/skillsurger',
+      { text: cvText },
+      'analyzeCVText'
+    );
+  }
 }
 
 export const backendApi = new BackendApiService();

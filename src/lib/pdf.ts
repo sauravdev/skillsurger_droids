@@ -608,44 +608,78 @@ function extractCertifications(text: string): Array<{
   return certifications.slice(0, 10); // Limit to 10 certifications
 }
 
-// Helper: Call OpenAI to analyze extracted CV text
+// Helper: Call Backend API to analyze extracted CV text with AI
 async function analyzeCVTextWithOpenAI(text: string): Promise<ParsedCV> {
-  if (!isOpenAIConfigured()) {
-    throw new Error('OpenAI is not configured.');
-  }
-  const apiBase = import.meta.env.VITE_BACKEND_API || 'http://localhost:5002/api/v1';
-  const apiUrl = `${apiBase}/openai/skillsurger`;
-  const response = await axios.post(apiUrl,{type : "analyzeCVText",text:text})
-
-  // Parse the JSON response
-  const content = response.data.data;
-  if (!content) throw new Error('No response from OpenAI API.');
-  
-  let parsed: ParsedCV;
   try {
-    parsed = content;
-  } catch (e) {
-    throw new Error('Failed to parse OpenAI API response as JSON.');
-  }
+    const apiBase = import.meta.env.VITE_BACKEND_API || 'http://localhost:5002/api/v1';
+    const apiUrl = `${apiBase}/openai/skillsurger`;
 
-  // Ensure all required keys exist with proper defaults
-  return {
-    full_name: parsed.full_name || '',
-    email: parsed.email || '',
-    phone: parsed.phone || '',
-    city: parsed.city || '',
-    state: parsed.state || '',
-    country: parsed.country || '',
-    current_role: parsed.current_role || '',
-    years_of_experience: parsed.years_of_experience || 0,
-    summary: parsed.summary || '',
-    experience: Array.isArray(parsed.experience) ? parsed.experience : [],
-    projects: Array.isArray(parsed.projects) ? parsed.projects : [],
-    skills: Array.isArray(parsed.skills) ? parsed.skills : [],
-    education: Array.isArray(parsed.education) ? parsed.education : [],
-    languages: Array.isArray(parsed.languages) ? parsed.languages : [],
-    certifications: Array.isArray(parsed.certifications) ? parsed.certifications : []
-  };
+    console.log('🔄 Calling backend AI API for CV analysis...');
+    console.log('API URL:', apiUrl);
+    console.log('Text length:', text.length);
+
+    const response = await axios.post(
+      apiUrl,
+      {
+        type: "analyzeCVText",
+        text: text
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        timeout: 60000 // 60 second timeout
+      }
+    );
+
+    console.log('✅ Backend API response received');
+    console.log('Response status:', response.status);
+    console.log('Response data:', response.data);
+
+    // Parse the JSON response
+    const content = response.data.data;
+    if (!content) {
+      console.error('❌ No data in backend API response:', response.data);
+      throw new Error('No response data from backend API.');
+    }
+
+    console.log('✅ CV Analysis completed successfully by AI');
+    console.log('Parsed data:', {
+      full_name: content.full_name,
+      email: content.email,
+      experience_count: content.experience?.length || 0,
+      skills_count: content.skills?.length || 0,
+      education_count: content.education?.length || 0
+    });
+
+    // Ensure all required keys exist with proper defaults
+    return {
+      full_name: content.full_name || '',
+      email: content.email || '',
+      phone: content.phone || '',
+      city: content.city || '',
+      state: content.state || '',
+      country: content.country || '',
+      current_role: content.current_role || '',
+      years_of_experience: content.years_of_experience || 0,
+      summary: content.summary || '',
+      experience: Array.isArray(content.experience) ? content.experience : [],
+      projects: Array.isArray(content.projects) ? content.projects : [],
+      skills: Array.isArray(content.skills) ? content.skills : [],
+      education: Array.isArray(content.education) ? content.education : [],
+      languages: Array.isArray(content.languages) ? content.languages : [],
+      certifications: Array.isArray(content.certifications) ? content.certifications : []
+    };
+  } catch (error: any) {
+    console.error('❌ Backend AI API call failed:', error);
+    console.error('Error details:', {
+      message: error.message,
+      response: error.response?.data,
+      status: error.response?.status
+    });
+
+    throw new Error(`Failed to analyze CV with AI: ${error.message}`);
+  }
 }
 
 export async function parseCV(file: File): Promise<ParsedCV> {
@@ -697,65 +731,19 @@ export async function parseCV(file: File): Promise<ParsedCV> {
     }
     
     if (pdfText && pdfText.trim() && !pdfText.includes('This appears to be an image-based PDF')) {
-      // Use OpenAI to analyze the extracted text
-      try {
-        const result = await analyzeCVTextWithOpenAI(pdfText);
-        console.log('OpenAI CV analysis result:', {
-          name: result.full_name,
-          email: result.email,
-          phone: result.phone,
-          skills_count: result.skills.length,
-          experience_count: result.experience.length,
-          education_count: result.education.length,
-          years_experience: result.years_of_experience
-        });
-        return result;
-      } catch (error) {
-        console.warn('OpenAI analysis failed, falling back to manual parsing:', error);
-        
-        // Fallback: Parse the text using our enhanced parsing functions
-        const full_name = extractName(pdfText);
-        const email = extractEmail(pdfText);
-        const phone = extractPhone(pdfText);
-        const location = extractLocation(pdfText);
-        const skills = extractSkills(pdfText);
-        const experience = extractExperience(pdfText);
-        const education = extractEducation(pdfText);
-        const certifications = extractCertifications(pdfText);
-        const years_of_experience = calculateYearsOfExperience(experience);
-        const summary = extractSummary(pdfText);
-        const current_role = extractCurrentRole(experience);
-
-        const parsedData: ParsedCV = {
-          full_name,
-          email,
-          phone,
-          city: location.city,
-          state: location.state,
-          country: location.country,
-          current_role,
-          years_of_experience,
-          summary,
-          experience,
-          projects: [], // Projects parsing can be added later if needed
-          skills,
-          education,
-          languages: [], // Languages parsing can be added later if needed
-          certifications
-        };
-
-        console.log('Fallback CV parsing completed successfully:', {
-          name: parsedData.full_name,
-          email: parsedData.email,
-          phone: parsedData.phone,
-          skills_count: parsedData.skills.length,
-          experience_count: parsedData.experience.length,
-          education_count: parsedData.education.length,
-          years_experience: parsedData.years_of_experience
-        });
-
-        return parsedData;
-      }
+      // Use Backend AI to analyze the extracted text
+      console.log('📄 PDF text extracted successfully, sending to AI for analysis...');
+      const result = await analyzeCVTextWithOpenAI(pdfText);
+      console.log('✅ AI CV analysis completed:', {
+        name: result.full_name,
+        email: result.email,
+        phone: result.phone,
+        skills_count: result.skills.length,
+        experience_count: result.experience.length,
+        education_count: result.education.length,
+        years_experience: result.years_of_experience
+      });
+      return result;
     } else if (pdfText && pdfText.includes('This appears to be an image-based PDF')) {
       // Handle image-based PDF case
       console.log('Processing image-based PDF with fallback structure');

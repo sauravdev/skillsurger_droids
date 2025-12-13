@@ -3,7 +3,6 @@ import { BookOpen, CheckCircle, ExternalLink, RefreshCw, Trash2, Archive, Chevro
 import Button from './Button';
 import { supabase } from '../lib/supabase';
 import { generateLearningPlan } from '../lib/openai';
-import { generatePersonalizedLearningResources } from '../lib/careerServices';
 
 interface LearningPath {
   id: string;
@@ -575,14 +574,49 @@ export default function LearningPaths({ job }: LearningPathsProps) {
         return;
       }
 
-      // Check if a personalized learning path already exists
+      // Create a job-like object from profile data to use the same API flow
+      const jobTitle = profile.current_role || 'General Professional';
+      const jobDescription = profile.summary || profile.cv_parsed_data?.summary || 
+        `Professional with ${profile.years_of_experience || 0} years of experience in ${jobTitle}.`;
+      
+      // Extract requirements from profile skills and experience
+      const requirements: string[] = [];
+      if (profile.skills && Array.isArray(profile.skills)) {
+        requirements.push(...profile.skills.slice(0, 5));
+      }
+      if (profile.cv_parsed_data?.skills && Array.isArray(profile.cv_parsed_data.skills)) {
+        requirements.push(...profile.cv_parsed_data.skills.slice(0, 5));
+      }
+      // Get skills from user_skills table
+      const { data: userSkills } = await supabase
+        .from('user_skills')
+        .select('skill')
+        .eq('user_id', user.id);
+      
+      if (userSkills && userSkills.length > 0) {
+        requirements.push(...userSkills.map(s => s.skill).slice(0, 5));
+      }
+
+      // Create a job opportunity object similar to what's used in Option 2
+      const profileJob: JobOpportunity = {
+        id: 'personalized',
+        title: jobTitle,
+        company: 'Personalized Learning Path',
+        location: profile.preferred_locations?.[0] || 'Remote',
+        description: jobDescription,
+        requirements: [...new Set(requirements)].slice(0, 10), // Remove duplicates and limit
+        type: 'Full-time',
+        salary: undefined
+      };
+
+      // Check if a personalized learning path already exists (use maybeSingle to avoid PGRST116 error)
       const { data: existingPath } = await supabase
         .from('learning_paths')
         .select('*')
         .eq('user_id', user.id)
         .eq('career_path', 'Personalized')
-        .eq('job_title', profile.current_role || 'General')
-        .single();
+        .eq('job_title', jobTitle)
+        .maybeSingle();
 
       if (existingPath) {
         setError('A personalized learning path already exists for your current role.');
@@ -590,29 +624,36 @@ export default function LearningPaths({ job }: LearningPathsProps) {
         return;
       }
 
-      // Generate learning resources based on user's profile using backend API
-      const learningResources = await generatePersonalizedLearningResources(profile);
+      // Use the same API flow as handleGenerateLearningPath
+      const plan = await generateLearningPlan(
+        profileJob.title, 
+        profileJob.description, 
+        profileJob.requirements
+      );
 
-      // Create the learning path object
-      const newLearningPath = {
-        user_id: user.id,
-        career_path: 'Personalized',
-        job_title: profile.current_role || 'General',
-        company: '', // Empty for personalized learning paths
-        skills_to_learn: learningResources.map((resource: any) => resource.skill || resource.title).slice(0, 10),
-        resources: learningResources,
-        progress: 0,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
+      // Remove duplicates from the generated plan
+      const uniquePlan = plan.filter((resource, index, arr) => {
+        return arr.findIndex(r => 
+          r.url === resource.url || 
+          r.title.toLowerCase() === resource.title.toLowerCase()
+        ) === index;
+      });
 
-      // Save to database
+      // Save the new path to the database
       const { data: savedPath, error: saveError } = await supabase
         .from('learning_paths')
-        .insert([newLearningPath])
+        .insert({
+          user_id: user.id,
+          career_path: 'Personalized',
+          job_title: profileJob.title,
+          company: profileJob.company,
+          skills_to_learn: profileJob.requirements,
+          resources: uniquePlan,
+          progress: 0,
+        })
         .select()
         .single();
-
+        
       if (saveError) throw saveError;
 
       // Add new path to the top of the list

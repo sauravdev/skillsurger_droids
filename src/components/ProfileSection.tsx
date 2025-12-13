@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
-import { FileText, Download, Award, Upload, Edit2, Save, X, Trash2, AlertTriangle } from 'lucide-react';
+import { FileText, Download, Award, Upload, Edit2, Save, X, Trash2, AlertTriangle, TrendingUp, CheckCircle, Zap } from 'lucide-react';
 import Button from './Button';
 import { supabase } from '../lib/supabase';
 import CVEditor from './CVEditor';
-import { uploadCV, parseCV } from '../lib/pdf';
+import { uploadCV, parseCV, extractTextFromPdf } from '../lib/pdf';
 import { useUser } from '../context/UserContext';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
+import { backendApi, type CVScore } from '../lib/backendApi';
+import { useNavigate } from 'react-router-dom';
 
 interface ProfileData {
   id: string;
@@ -64,6 +66,7 @@ const workPreferences = ['hybrid', 'remote', 'office'];
 
 export default function ProfileSection() {
   const { checkSubscriptionForAI } = useUser();
+  const navigate = useNavigate();
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [userSkills, setUserSkills] = useState<UserSkill[]>([]);
   const [loading, setLoading] = useState(true);
@@ -87,6 +90,8 @@ export default function ProfileSection() {
 
   const [reanalyzingAndSaving, setReanalyzingAndSaving] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [cvScore, setCvScore] = useState<CVScore | null>(null);
+  const [scoringCV, setScoringCV] = useState(false);
 
   useEffect(() => {
     loadProfile();
@@ -213,7 +218,16 @@ export default function ProfileSection() {
               .remove(filePaths);
           }
 
+          // Delete all skills from user_skills table
+          await supabase
+            .from('user_skills')
+            .delete()
+            .eq('user_id', user.id);
+
           // Clear CV-related fields in profile
+          // Keep profile fields: full_name, phone, current_role, years_of_experience,
+          // remote_preference, preferred_locations, linkedin_url (user entered these in profile form)
+          // Clear CV-only fields: email, city, state, country, summary, experience, etc.
           await supabase
             .from('profiles')
             .update({
@@ -222,9 +236,20 @@ export default function ProfileSection() {
               summary: null,
               experience: null,
               projects: null,
-              education: null
+              education: null,
+              certifications: null,
+              custom_sections: null,
+              languages: null,
+              skills: null,
+              email: null,
+              city: null,
+              state: null,
+              country: null
             })
             .eq('id', user.id);
+
+          // Clear CV score from state
+          setCvScore(null);
           break;
 
         case 'skills':
@@ -393,10 +418,10 @@ export default function ProfileSection() {
       if (!user) throw new Error('No user found');
 
       const file = e.target.files[0];
-      
+
       // First parse the CV to ensure it's valid
       const parsedData = await parseCV(file);
-      
+
       // Then upload it and get the URL
       const cvUrl = await uploadCV(file, user.id);
 
@@ -411,7 +436,7 @@ export default function ProfileSection() {
           certifications: parsedData.certifications,
           cv_parsed_data: parsedData,
           // Update email and location from CV if parsed
-          ...(parsedData.city && { 
+          ...(parsedData.city && {
             city: parsedData.city,
             state: parsedData.state,
             country: parsedData.country
@@ -430,21 +455,36 @@ export default function ProfileSection() {
 
         const currentSkills = existingSkills?.map(s => s.skill) || [];
         const allSkills = [...new Set([...currentSkills, ...parsedData.skills])];
-        
+
         // Delete existing skills and insert merged skills
         await supabase.from('user_skills').delete().eq('user_id', user.id);
-        
+
         if (allSkills.length > 0) {
           const { error: skillsError } = await supabase
             .from('user_skills')
             .insert(allSkills.map(skill => ({ user_id: user.id, skill })));
-          
+
           if (skillsError) throw skillsError;
         }
       }
-      
+
       await loadProfile();
-      
+
+      // Score the CV
+      try {
+        setScoringCV(true);
+        const cvText = await extractTextFromPdf(file);
+        if (cvText && cvText.trim()) {
+          const scoreResult = await backendApi.scoreCVText(cvText);
+          setCvScore(scoreResult);
+        }
+      } catch (scoreError) {
+        console.error('Error scoring CV:', scoreError);
+        // Don't fail the upload if scoring fails
+      } finally {
+        setScoringCV(false);
+      }
+
       // Show success message
       const successDiv = document.createElement('div');
       successDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
@@ -458,11 +498,11 @@ export default function ProfileSection() {
     } catch (error: any) {
       console.error('Error reuploading CV:', error);
       setError(error.message || 'Failed to reupload CV');
-      
+
       // Show error message with more specific guidance
       const errorDiv = document.createElement('div');
       errorDiv.className = 'fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 max-w-md';
-      
+
       let errorMessage = 'Failed to upload CV. Please try again.';
       if (error.message?.includes('image-based') || error.message?.includes('No text could be extracted')) {
         errorMessage = 'Your PDF appears to be image-based. Please use a PDF with selectable text for better results.';
@@ -471,7 +511,7 @@ export default function ProfileSection() {
       } else if (error.message?.includes('too large')) {
         errorMessage = 'PDF file is too large. Please upload a file smaller than 10MB.';
       }
-      
+
       errorDiv.innerHTML = `
         <div class="font-medium">Upload Failed</div>
         <div class="text-sm mt-1">${errorMessage}</div>
@@ -729,6 +769,22 @@ export default function ProfileSection() {
     } finally {
       setReanalyzingAndSaving(false);
     }
+  };
+
+  const getScoreColor = (score: number) => {
+    if (score >= 80) return 'text-green-600';
+    if (score >= 60) return 'text-yellow-600';
+    return 'text-red-600';
+  };
+
+  const getScoreBgColor = (score: number) => {
+    if (score >= 80) return 'bg-green-100';
+    if (score >= 60) return 'bg-yellow-100';
+    return 'bg-red-100';
+  };
+
+  const handleEnhanceCV = () => {
+    navigate('/dashboard?section=cv-scoring');
   };
 
   const renderDeleteButton = (dataType: string, label: string, hasData: boolean) => {
@@ -1106,6 +1162,111 @@ export default function ProfileSection() {
                   </div>
                 )}
               </div>
+
+              {/* CV Score Section */}
+              {scoringCV && (
+                <div className="bg-blue-50 rounded-lg p-4 mb-6">
+                  <div className="flex items-center">
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600 mr-3"></div>
+                    <p className="text-blue-800 font-medium">Analyzing your CV...</p>
+                  </div>
+                </div>
+              )}
+
+              {cvScore && !scoringCV && (
+                <div className="bg-white rounded-lg border-2 border-blue-200 p-6 mb-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center">
+                      <TrendingUp className="w-6 h-6 text-blue-600 mr-3" />
+                      <h3 className="text-xl font-bold">Your CV Score</h3>
+                    </div>
+                    <Button
+                      onClick={handleEnhanceCV}
+                      size="sm"
+                      className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                    >
+                      <Zap className="w-4 h-4 mr-2" />
+                      Enhance CV
+                    </Button>
+                  </div>
+
+                  <div className="grid md:grid-cols-6 gap-6">
+                    {/* Overall Score */}
+                    <div className="md:col-span-2 flex flex-col items-center justify-center">
+                      <div className={`inline-flex items-center justify-center w-24 h-24 rounded-full ${getScoreBgColor(cvScore.overallScore)} border-4 ${cvScore.overallScore >= 80 ? 'border-green-600' : cvScore.overallScore >= 60 ? 'border-yellow-600' : 'border-red-600'}`}>
+                        <span className={`text-4xl font-bold ${getScoreColor(cvScore.overallScore)}`}>
+                          {cvScore.overallScore}
+                        </span>
+                      </div>
+                      <p className="text-sm font-semibold text-gray-700 mt-2">Overall Score</p>
+                      <p className="text-xs text-gray-500">
+                        {cvScore.overallScore >= 80 ? 'Excellent' : cvScore.overallScore >= 60 ? 'Good' : 'Needs Improvement'}
+                      </p>
+                    </div>
+
+                    {/* Detailed Scores */}
+                    <div className="md:col-span-4 space-y-3">
+                      {Object.entries(cvScore.scores).map(([key, value]) => (
+                        <div key={key}>
+                          <div className="flex justify-between text-xs mb-1">
+                            <span className="text-gray-900 font-medium capitalize">
+                              {key.replace(/([A-Z])/g, ' $1').trim()}
+                            </span>
+                            <span className={`font-bold ${getScoreColor(value)}`}>
+                              {value}/100
+                            </span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div
+                              className={`h-2 rounded-full transition-all duration-500 ${
+                                value >= 80 ? 'bg-green-600' : value >= 60 ? 'bg-yellow-600' : 'bg-red-600'
+                              }`}
+                              style={{ width: `${value}%` }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Strengths and Recommendations */}
+                  <div className="grid md:grid-cols-2 gap-4 mt-6">
+                    {cvScore.strengths.length > 0 && (
+                      <div className="bg-green-50 rounded-lg p-4">
+                        <h4 className="text-sm font-bold text-green-900 mb-2 flex items-center">
+                          <CheckCircle className="w-4 h-4 text-green-600 mr-2" />
+                          Strengths
+                        </h4>
+                        <ul className="space-y-1">
+                          {cvScore.strengths.slice(0, 3).map((strength, idx) => (
+                            <li key={idx} className="text-xs text-green-800 flex items-start">
+                              <span className="text-green-600 mr-1 font-bold">✓</span>
+                              {strength}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {cvScore.recommendations.length > 0 && (
+                      <div className="bg-blue-50 rounded-lg p-4">
+                        <h4 className="text-sm font-bold text-blue-900 mb-2 flex items-center">
+                          <Zap className="w-4 h-4 text-blue-600 mr-2" />
+                          Top Recommendations
+                        </h4>
+                        <ul className="space-y-1">
+                          {cvScore.recommendations.slice(0, 3).map((rec, idx) => (
+                            <li key={idx} className="text-xs text-blue-800 flex items-start">
+                              <span className="text-blue-600 mr-1 font-bold">→</span>
+                              {rec}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
               
               {/* Parsed CV Information */}
               {profile.cv_parsed_data?.email && (

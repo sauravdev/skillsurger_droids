@@ -1,9 +1,10 @@
-import { useState } from 'react';
-import { Upload, FileText, Zap, CheckCircle, AlertCircle, Loader2, TrendingUp, Download } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Upload, FileText, Zap, CheckCircle, AlertCircle, Loader2, TrendingUp, Download, User, Save } from 'lucide-react';
 import Button from './Button';
 import { backendApi, type CVScore, type CVEnhancement } from '../lib/backendApi';
 import { extractTextFromPdf } from '../lib/pdf';
 import { useUser } from '../context/UserContext';
+import { supabase } from '../lib/supabase';
 
 export default function CVScoring() {
   const { checkSubscriptionForAI } = useUser();
@@ -16,6 +17,82 @@ export default function CVScoring() {
   const [enhancedCV, setEnhancedCV] = useState<CVEnhancement | null>(null);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState<'upload' | 'score' | 'enhanced'>('upload');
+  const [useProfileCV, setUseProfileCV] = useState(false);
+  const [profileCVUrl, setProfileCVUrl] = useState<string | null>(null);
+  const [loadingProfileCV, setLoadingProfileCV] = useState(false);
+  const [applyingToProfile, setApplyingToProfile] = useState(false);
+
+  useEffect(() => {
+    loadProfileCV();
+  }, []);
+
+  const loadProfileCV = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('cv_url')
+        .eq('id', user.id)
+        .single();
+
+      if (profile?.cv_url) {
+        setProfileCVUrl(profile.cv_url);
+      }
+    } catch (error) {
+      console.error('Error loading profile CV:', error);
+    }
+  };
+
+  const handleLoadProfileCV = async () => {
+    if (!profileCVUrl) {
+      setError('No CV found in your profile. Please upload a CV first.');
+      return;
+    }
+
+    try {
+      setLoadingProfileCV(true);
+      setError('');
+
+      // Fetch the CV file from the URL
+      const response = await fetch(profileCVUrl);
+      if (!response.ok) {
+        throw new Error('Failed to fetch CV from profile');
+      }
+
+      const blob = await response.blob();
+      const fileName = profileCVUrl.split('/').pop() || 'profile-cv.pdf';
+      const file = new File([blob], fileName, { type: 'application/pdf' });
+
+      // Extract text from PDF
+      const text = await extractTextFromPdf(file);
+      if (!text || text.trim().length === 0) {
+        setError('Could not extract text from your profile CV.');
+        return;
+      }
+
+      setFile(file);
+      setCvText(text);
+      setUseProfileCV(true);
+
+      // Show success message
+      const successDiv = document.createElement('div');
+      successDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+      successDiv.textContent = 'Profile CV loaded successfully!';
+      document.body.appendChild(successDiv);
+      setTimeout(() => {
+        if (document.body.contains(successDiv)) {
+          document.body.removeChild(successDiv);
+        }
+      }, 3000);
+    } catch (err: any) {
+      console.error('Error loading profile CV:', err);
+      setError(err.message || 'Failed to load profile CV');
+    } finally {
+      setLoadingProfileCV(false);
+    }
+  };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -24,7 +101,7 @@ export default function CVScoring() {
     const validTypes = ['text/plain', 'application/pdf'];
     const validExtensions = ['.txt', '.pdf'];
     const fileExtension = selectedFile.name.toLowerCase().slice(selectedFile.name.lastIndexOf('.'));
-    
+
     if (!validTypes.includes(selectedFile.type) && !validExtensions.includes(fileExtension)) {
       setError('Please upload a .txt or .pdf file');
       return;
@@ -33,10 +110,11 @@ export default function CVScoring() {
     setFile(selectedFile);
     setError('');
     setLoading(true);
+    setUseProfileCV(false);
 
     try {
       let text: string;
-      
+
       if (selectedFile.type === 'application/pdf' || fileExtension === '.pdf') {
         // Extract text from PDF
         text = await extractTextFromPdf(selectedFile);
@@ -49,7 +127,7 @@ export default function CVScoring() {
         // Read text file
         text = await selectedFile.text();
       }
-      
+
       setCvText(text);
     } catch (err: any) {
       console.error('File reading error:', err);
@@ -125,6 +203,104 @@ export default function CVScoring() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  };
+
+  const handleApplyToProfile = async () => {
+    if (!enhancedCV) return;
+
+    // Check subscription for AI features
+    if (!checkSubscriptionForAI()) {
+      return;
+    }
+
+    try {
+      setApplyingToProfile(true);
+      setError('');
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No user found');
+
+      // Parse the enhanced CV text using backend API
+      console.log('Parsing enhanced CV text with AI...');
+      const parsedData = await backendApi.analyzeCVText(enhancedCV.enhancedCV);
+
+      // Update profile with parsed data
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({
+          summary: parsedData.summary,
+          experience: parsedData.experience,
+          projects: parsedData.projects,
+          education: parsedData.education,
+          certifications: parsedData.certifications,
+          cv_parsed_data: parsedData,
+          languages: parsedData.languages,
+          ...(parsedData.full_name && { full_name: parsedData.full_name }),
+          ...(parsedData.email && { email: parsedData.email }),
+          ...(parsedData.phone && { phone: parsedData.phone }),
+          ...(parsedData.city && {
+            city: parsedData.city,
+            state: parsedData.state,
+            country: parsedData.country
+          }),
+          ...(parsedData.current_role && { current_role: parsedData.current_role }),
+          ...(parsedData.years_of_experience && { years_of_experience: parsedData.years_of_experience })
+        })
+        .eq('id', user.id);
+
+      if (updateError) throw updateError;
+
+      // Update skills if available
+      if (parsedData.skills && parsedData.skills.length > 0) {
+        // Get existing skills
+        const { data: existingSkills } = await supabase
+          .from('user_skills')
+          .select('skill')
+          .eq('user_id', user.id);
+
+        const currentSkills = existingSkills?.map(s => s.skill) || [];
+        const allSkills = [...new Set([...currentSkills, ...parsedData.skills])];
+
+        // Delete existing skills and insert merged skills
+        await supabase.from('user_skills').delete().eq('user_id', user.id);
+
+        if (allSkills.length > 0) {
+          const { error: skillsError } = await supabase
+            .from('user_skills')
+            .insert(allSkills.map(skill => ({ user_id: user.id, skill })));
+
+          if (skillsError) throw skillsError;
+        }
+      }
+
+      // Show success message
+      const successDiv = document.createElement('div');
+      successDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+      successDiv.textContent = 'Enhanced CV applied to your profile successfully!';
+      document.body.appendChild(successDiv);
+      setTimeout(() => {
+        if (document.body.contains(successDiv)) {
+          document.body.removeChild(successDiv);
+        }
+      }, 3000);
+
+    } catch (err: any) {
+      console.error('Error applying enhanced CV to profile:', err);
+      setError(err.message || 'Failed to apply enhanced CV to profile');
+
+      // Show error message
+      const errorDiv = document.createElement('div');
+      errorDiv.className = 'fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+      errorDiv.textContent = 'Failed to apply enhanced CV. Please try again.';
+      document.body.appendChild(errorDiv);
+      setTimeout(() => {
+        if (document.body.contains(errorDiv)) {
+          document.body.removeChild(errorDiv);
+        }
+      }, 5000);
+    } finally {
+      setApplyingToProfile(false);
+    }
   };
 
   const getScoreColor = (score: number) => {
@@ -281,6 +457,40 @@ export default function CVScoring() {
             <div className="grid md:grid-cols-3 gap-6">
               {/* Upload Column */}
               <div className="md:col-span-1 space-y-4">
+                {/* Use Profile CV Button */}
+                {profileCVUrl && (
+                  <div>
+                    <Button
+                      onClick={handleLoadProfileCV}
+                      disabled={loadingProfileCV || loading}
+                      variant="outline"
+                      className="w-full"
+                    >
+                      {loadingProfileCV ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Loading...
+                        </>
+                      ) : (
+                        <>
+                          <User className="w-4 h-4 mr-2" />
+                          Use Profile CV
+                        </>
+                      )}
+                    </Button>
+                    {useProfileCV && (
+                      <p className="text-sm text-green-600 mt-2 flex items-center">
+                        <CheckCircle className="w-4 h-4 mr-1" />
+                        Using CV from profile
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                <div className="text-center text-gray-500 text-sm py-2">
+                  {profileCVUrl ? 'OR Upload New CV' : 'Upload CV'}
+                </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Upload CV File (.txt or .pdf)
@@ -292,7 +502,7 @@ export default function CVScoring() {
                     disabled={loading}
                     className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 disabled:opacity-50"
                   />
-                  {file && (
+                  {file && !useProfileCV && (
                     <p className="text-sm text-gray-500 mt-2 flex items-center">
                       <FileText className="w-4 h-4 mr-1" />
                       {file.name}
@@ -306,7 +516,7 @@ export default function CVScoring() {
                   )}
                 </div>
 
-                <div className="text-center text-gray-500 text-sm py-2">OR</div>
+                <div className="text-center text-gray-500 text-sm py-2">Options</div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -388,14 +598,34 @@ export default function CVScoring() {
                 <Zap className="w-6 h-6 text-green-600 mr-3" />
                 <h2 className="text-xl font-bold">Enhanced CV</h2>
               </div>
-              <Button
-                onClick={downloadEnhancedCV}
-                size="sm"
-                variant="outline"
-              >
-                <Download className="w-4 h-4 mr-2" />
-                Download
-              </Button>
+              <div className="flex gap-3">
+                <Button
+                  onClick={handleApplyToProfile}
+                  disabled={applyingToProfile}
+                  size="sm"
+                  className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+                >
+                  {applyingToProfile ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Applying...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4 mr-2" />
+                      Apply to Profile
+                    </>
+                  )}
+                </Button>
+                <Button
+                  onClick={downloadEnhancedCV}
+                  size="sm"
+                  variant="outline"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Download
+                </Button>
+              </div>
             </div>
 
             {/* Changes Summary */}
