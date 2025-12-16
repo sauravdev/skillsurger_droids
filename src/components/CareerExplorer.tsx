@@ -1269,7 +1269,7 @@ export default function CareerExplorer({ onGenerateLearningPath, jobs, setJobs, 
           <div className="mt-6">
             <Button onClick={() => setShowCustomForm(true)} className="mr-4">
               <Target className="w-4 h-4 mr-2" />
-              Generate by Interests
+              Generate career path by Interests
             </Button>
             <p className="text-sm text-gray-500 mt-2">
               Or use the custom form to generate careers based on your interests and a reference job description
@@ -1544,24 +1544,24 @@ export default function CareerExplorer({ onGenerateLearningPath, jobs, setJobs, 
         {/* <h2 className="text-2xl font-bold">Career Explorer</h2> */}
         <div className="flex flex-col space-y-3 sm:flex-row sm:space-y-0 sm:space-x-4">
           <Button 
-            onClick={() => setShowCustomForm(true)} 
-            variant="outline"
-            className="bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200 text-purple-700 hover:bg-purple-100"
-          >
-            <Target className="w-4 h-4 mr-2" />
-            Generate by Interests
-          </Button>
-          <Button onClick={handleGenerateCareerOptions} disabled={loading}>
-            <Briefcase className="w-4 h-4 mr-2" />
-            {loading ? 'Generating...' : 'Generate from Profile'}
-          </Button>
-          <Button 
             onClick={handleFindJobsBasedOnProfile} 
             disabled={jobSearchLoading}
             className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200 text-green-700 hover:bg-green-100"
           >
             <Search className="w-4 h-4 mr-2" />
             {jobSearchLoading ? 'Finding Jobs...' : 'Find Jobs Based on Profile'}
+          </Button>
+          <Button 
+            onClick={() => setShowCustomForm(true)} 
+            variant="outline"
+            className="bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200 text-purple-700 hover:bg-purple-100"
+          >
+            <Target className="w-4 h-4 mr-2" />
+            Generate career path by Interests
+          </Button>
+          <Button onClick={handleGenerateCareerOptions} disabled={loading}>
+            <Briefcase className="w-4 h-4 mr-2" />
+            {loading ? 'Generating...' : 'Generate Career path from profile'}
           </Button>
           {jobs.length > 0 && (
             <Button 

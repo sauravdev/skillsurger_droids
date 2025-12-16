@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { BookOpen, CheckCircle, ExternalLink, RefreshCw, Trash2, Archive, ChevronDown, ChevronUp, Star, Clock, Award, Shield } from 'lucide-react';
+import { BookOpen, CheckCircle, ExternalLink, RefreshCw, Trash2, Archive, ChevronDown, ChevronUp, Star, Clock, Award, Shield, MessageSquare, Send } from 'lucide-react';
 import Button from './Button';
 import { supabase } from '../lib/supabase';
 import { generateLearningPlan } from '../lib/openai';
+import axios from 'axios';
 
 interface LearningPath {
   id: string;
@@ -80,6 +81,9 @@ export default function LearningPaths({ job }: LearningPathsProps) {
   const [deleting, setDeleting] = useState<string | null>(null);
   const [showHistorical, setShowHistorical] = useState(false);
   const [generatingPlan, setGeneratingPlan] = useState(false);
+  const [feedbackTexts, setFeedbackTexts] = useState<{[key: string]: string}>({});
+  const [updatingPath, setUpdatingPath] = useState<string | null>(null);
+  const [showFeedbackForm, setShowFeedbackForm] = useState<{[key: string]: boolean}>({});
 
   useEffect(() => {
     loadData();
@@ -700,6 +704,89 @@ export default function LearningPaths({ job }: LearningPathsProps) {
     }
   }
 
+  async function handleSubmitFeedback(pathId: string) {
+    const feedback = feedbackTexts[pathId]?.trim();
+    if (!feedback) {
+      setError('Please provide feedback before submitting');
+      return;
+    }
+
+    try {
+      setUpdatingPath(pathId);
+      setError('');
+
+      const path = learningPaths.find(p => p.id === pathId);
+      if (!path) {
+        setError('Learning path not found');
+        return;
+      }
+
+      // Send feedback to backend
+      const apiBase = import.meta.env.VITE_BACKEND_API || 'http://localhost:5002/api/v1';
+      const response = await axios.post(`${apiBase}/openai/skillsurger`, {
+        type: 'updateLearningPathFromFeedback',
+        learningPathId: pathId,
+        currentPath: {
+          jobTitle: path.job_title,
+          careerPath: path.career_path,
+          company: path.company,
+          skillsToLearn: path.skills_to_learn,
+          resources: path.resources,
+          progress: path.progress
+        },
+        userFeedback: feedback
+      });
+
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'Failed to update learning path');
+      }
+
+      const updatedResources = response.data.data.resources;
+      
+      // Update the learning path in the database
+      const { error: updateError } = await supabase
+        .from('learning_paths')
+        .update({
+          resources: updatedResources,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', pathId);
+
+      if (updateError) throw updateError;
+
+      // Update local state
+      setLearningPaths(prev =>
+        prev.map(p =>
+          p.id === pathId 
+            ? { ...p, resources: updatedResources }
+            : p
+        )
+      );
+
+      // Clear feedback and close form
+      setFeedbackTexts(prev => ({ ...prev, [pathId]: '' }));
+      setShowFeedbackForm(prev => ({ ...prev, [pathId]: false }));
+
+      // Show success message
+      const successDiv = document.createElement('div');
+      successDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+      successDiv.textContent = 'Learning path updated based on your feedback!';
+      document.body.appendChild(successDiv);
+      
+      setTimeout(() => {
+        if (document.body.contains(successDiv)) {
+          document.body.removeChild(successDiv);
+        }
+      }, 3000);
+
+    } catch (error: any) {
+      console.error('Error updating learning path from feedback:', error);
+      setError(error.response?.data?.message || error.message || 'Failed to update learning path from feedback');
+    } finally {
+      setUpdatingPath(null);
+    }
+  }
+
   const getPriceColor = (price: string) => {
     switch (price?.toLowerCase()) {
       case 'free': return 'text-green-600 bg-green-100';
@@ -1130,6 +1217,57 @@ export default function LearningPaths({ job }: LearningPathsProps) {
                       </div>
                     </div>
                   ))}
+                </div>
+
+                {/* Feedback Section */}
+                <div className="mt-6 pt-6 border-t border-gray-200">
+                  <div className="flex items-center justify-between mb-3">
+                    <h5 className="text-sm font-medium text-gray-700 flex items-center">
+                      <MessageSquare className="w-4 h-4 mr-2 text-blue-600" />
+                      Provide Feedback to Improve This Learning Path
+                    </h5>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowFeedbackForm(prev => ({ ...prev, [path.id]: !prev[path.id] }))}
+                    >
+                      {showFeedbackForm[path.id] ? 'Hide Feedback' : 'Give Feedback'}
+                    </Button>
+                  </div>
+                  {showFeedbackForm[path.id] && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <p className="text-sm text-gray-700 mb-3">
+                        Share your thoughts about this learning path. We'll use your feedback to update and improve the resources and structure.
+                      </p>
+                      <textarea
+                        value={feedbackTexts[path.id] || ''}
+                        onChange={(e) => setFeedbackTexts(prev => ({ ...prev, [path.id]: e.target.value }))}
+                        placeholder="E.g., 'I'd like more advanced topics', 'Add more hands-on projects', 'Include resources on specific technology X', etc."
+                        className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 mb-3 p-3"
+                        rows={4}
+                      />
+                      <div className="flex justify-end">
+                        <Button
+                          onClick={() => handleSubmitFeedback(path.id)}
+                          disabled={!feedbackTexts[path.id]?.trim() || updatingPath === path.id}
+                          className="bg-blue-600 hover:bg-blue-700 text-white"
+                          size="sm"
+                        >
+                          {updatingPath === path.id ? (
+                            <>
+                              <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                              Updating...
+                            </>
+                          ) : (
+                            <>
+                              <Send className="w-4 h-4 mr-2" />
+                              Update Learning Path
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {path.progress === 100 && (
