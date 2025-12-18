@@ -856,10 +856,10 @@ export default function ProfileSection() {
       const enhancedResult = await backendApi.enhanceCVText(cvText);
       console.log('CV enhanced successfully');
 
-      // Parse the enhanced CV
-      console.log('Parsing enhanced CV...');
-      const parsedData = await backendApi.analyzeCVText(enhancedResult.enhancedCV);
-      console.log('Enhanced CV parsed successfully');
+      // Use the parsed data from the enhancement result (no need to re-parse)
+      console.log('Using enhanced parsed data...');
+      const parsedData = enhancedResult.parsedData;
+      console.log('Enhanced CV data ready');
 
       // Update profile with enhanced data
       const { error: updateError } = await supabase

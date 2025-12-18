@@ -220,11 +220,11 @@ export default function CVScoring() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No user found');
 
-      // Parse the enhanced CV text using backend API
-      console.log('Parsing enhanced CV text with AI...');
-      const parsedData = await backendApi.analyzeCVText(enhancedCV.enhancedCV);
+      // Use the enhanced parsed data directly (no need to re-parse)
+      console.log('Applying enhanced CV data to profile...');
+      const parsedData = enhancedCV.parsedData;
 
-      // Update profile with parsed data
+      // Update profile with enhanced data
       const { error: updateError } = await supabase
         .from('profiles')
         .update({

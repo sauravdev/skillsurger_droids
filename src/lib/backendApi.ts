@@ -57,6 +57,40 @@ export interface CVScore {
 
 export interface CVEnhancement {
   enhancedCV: string;
+  parsedData: {
+    full_name?: string;
+    email?: string;
+    phone?: string;
+    city?: string;
+    state?: string;
+    country?: string;
+    current_role?: string;
+    years_of_experience?: number;
+    summary?: string;
+    experience?: Array<{
+      title: string;
+      company: string;
+      duration: string;
+      description: string;
+    }>;
+    projects?: Array<{
+      name: string;
+      description: string;
+      technologies: string[];
+    }>;
+    skills?: string[];
+    education?: Array<{
+      degree: string;
+      institution: string;
+      year: string;
+    }>;
+    languages?: string[];
+    certifications?: Array<{
+      name: string;
+      issuer: string;
+      date: string;
+    }>;
+  };
   changesSummary: string[];
   keyImprovements: {
     atsOptimization: string;
@@ -84,19 +118,36 @@ class BackendApiService {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        // Try to parse error response for more details
+        let errorMessage = `HTTP error! status: ${response.status}`;
+        try {
+          const errorData = await response.json();
+          if (errorData.message) {
+            errorMessage = errorData.message;
+          }
+        } catch {
+          // If parsing fails, use the default error message
+        }
+        throw new Error(errorMessage);
       }
 
       const result: BackendResponse<T> = await response.json();
-      
+
       if (!result.success) {
         throw new Error(result.message || 'Request failed');
       }
 
       return result.data;
     } catch (error) {
-      console.error('Backend API error:', error);
-      throw error;
+      // Better error message extraction
+      const errorMessage = error instanceof Error
+        ? error.message
+        : typeof error === 'string'
+          ? error
+          : 'An unknown error occurred';
+
+      console.error('Backend API error:', errorMessage, error);
+      throw new Error(errorMessage);
     }
   }
 
