@@ -735,6 +735,8 @@ export default function LearningPaths({ job }: LearningPathsProps) {
           progress: path.progress
         },
         userFeedback: feedback
+      }, {
+        timeout: 300000 // 5 minutes - GPT-5 with web_search can take 2+ minutes
       });
 
       if (!response.data.success) {
