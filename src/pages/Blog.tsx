@@ -18,6 +18,16 @@ const Blog = () => {
 
   const staticPosts = [
     {
+      id: 0,
+      title: "Why Most Job Applications Fail in India (And the Exact Fixes No One Teaches)",
+      excerpt: "Every day, thousands of qualified candidates apply for jobs and hear nothing back. Not because they are bad—but because the process is broken. Recruiters don't read applications the way candidates think they do.",
+      category: "Career Advice",
+      readTime: "8 min read",
+      date: "January 20, 2025",
+      image: "https://images.unsplash.com/photo-1586281380349-632531db7ed4?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+      slug: "why-job-applications-fail-india"
+    },
+    {
       id: 1,
       title: "Best AI Résumé Builder Tools to Beat ATS Filters in Minutes",
       excerpt: "Getting past Applicant Tracking Systems (ATS) has become the single biggest hurdle between talented job-seekers and human recruiters. An estimated 75% of applications are rejected by bots before a person ever reads them.",
@@ -205,11 +215,14 @@ const Blog = () => {
                 key={post.id}
                 className="bg-white rounded-xl shadow-sm hover:shadow-lg transition-shadow duration-300 overflow-hidden"
               >
-                <div className="relative">
+                <div className="relative aspect-video">
                   <img
                     src={post.image}
                     alt={post.title}
-                    className="w-full h-48 object-cover"
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                    width="800"
+                    height="450"
                   />
                   <div className="absolute top-4 left-4">
                     <span className="bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-medium">

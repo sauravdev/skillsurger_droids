@@ -6,21 +6,28 @@
   html {
     font-family: system-ui, sans-serif;
   }
-  
+
   /* Font display optimization */
   @font-face {
     font-display: swap;
   }
-  
+
   /* Performance: Reduce repaints */
   * {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
-  
+
   /* Lazy load images by default */
   img {
     content-visibility: auto;
+  }
+
+  /* Instagram and mobile browser optimization - use small viewport height */
+  @supports (height: 100svh) {
+    .min-h-screen {
+      min-height: 100svh;
+    }
   }
 }
 
@@ -161,5 +168,21 @@
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
+  }
+
+  /* Animations */
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease-out;
   }
 }

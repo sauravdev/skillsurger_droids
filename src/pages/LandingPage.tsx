@@ -1,37 +1,36 @@
 import {
+  Check,
+  Shield,
+  Clock,
+  Search,
+  Target,
+  TrendingUp,
+  FileText,
+  Video,
+  GraduationCap,
+  BookOpen,
+  BarChart3,
+  Download,
+  Star,
+  MessageSquare,
+  Rocket,
   ArrowRight,
   Brain,
   Briefcase,
-  GraduationCap,
   LineChart,
   Users,
-  CheckCircle,
-  Star,
   Zap,
-  Target,
-  MessageSquare,
-  FileText,
   Award,
-  TrendingUp,
-  Shield,
-  Clock,
-  Globe,
-  Sparkles,
-  Download,
-  Bot,
-  Video,
-  Search,
-  BarChart3,
-  Rocket,
-  Check,
-  X,
-  BookOpen,
 } from "lucide-react";
 import Button from "../components/Button";
 import { Link } from "react-router-dom";
 import SEO from "../components/SEO";
-
 import { useState } from "react";
+import HeroSection from "../components/landing/HeroSection";
+import PainValidationCards from "../components/landing/PainValidationCards";
+import HowItWorks from "../components/landing/HowItWorks";
+import TrustSignals from "../components/landing/TrustSignals";
+import FAQSection from "../components/landing/FAQSection";
 
 const features = [
   {
@@ -92,33 +91,6 @@ const features = [
   },
 ];
 
-const testimonials = [
-  {
-    name: "Mahesh Kumar",
-    role: "Software Engineer",
-    company: "Infosys",
-    quote:
-      "Skillsurger's AI agent helped me transition from junior to senior engineer in just 6 months. The personalized guidance was incredible!",
-    rating: 5,
-  },
-  {
-    name: "Ruchi Sharma",
-    role: "Data Scientist",
-    company: "Tredence",
-    quote:
-      "The AI-powered learning paths were exactly what I needed. I landed my dream job at Tredence thanks to the structured guidance.",
-    rating: 5,
-  },
-  {
-    name: "Rohan Patel",
-    role: "Product Manager",
-    company: "GE",
-    quote:
-      "The mock interviews and CV optimization features gave me the confidence to apply for senior roles. Now I'm at GE!",
-    rating: 5,
-  },
-];
-
 const stats = [
   { number: "5,000+", label: "Careers Transformed" },
   { number: "98%", label: "Success Rate" },
@@ -145,7 +117,7 @@ const pricingPlans = [
     cta: "Start Free Trial",
     popular: false,
     color: "gray",
-    url: "/dashboard", // Redirect to dashboard after trial
+    url: "/dashboard",
   },
   {
     name: "Monthly Pro",
@@ -201,13 +173,11 @@ export default function LandingPage() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
-  const [showDemoModal, setShowDemoModal] = useState(false);
 
   const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // Simulate form submission
     await new Promise((resolve) => setTimeout(resolve, 1000));
 
     setSubmitSuccess(true);
@@ -219,108 +189,15 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen">
-      <SEO 
+      <SEO
         title="AI Career Coach for Job Seekers | Skillsurger"
-        description="AI-powered career coach to optimize your resume, land interviews, and upskill for top jobs. Free trial—transform your job search with Skillsurger."
-        keywords="AI career coach, resume builder, job matching, mock interviews, career development, ATS optimization, interview practice, job search"
+        description="Get job-ready with AI: scan your CV, match to real jobs, and ace interviews. Free 7-day trial."
+        keywords="AI career coach, resume scanner, job matching, mock interviews, career development, ATS optimization"
         canonicalUrl="/"
       />
-      {/* Demo Video Modal */}
-      {showDemoModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70">
-          <div className="relative bg-white rounded-lg shadow-lg max-w-2xl w-full mx-4">
-            <button
-              className="absolute top-2 right-2 text-gray-700 hover:text-red-500 text-2xl font-bold focus:outline-none"
-              onClick={() => setShowDemoModal(false)}
-              aria-label="Close"
-            >
-              ×
-            </button>
-            <div className="p-4">
-              <video
-                src="https://firebasestorage.googleapis.com/v0/b/wisedroids-c9988.appspot.com/o/videos%2Fskillsurger%20demo.mov?alt=media&token=08472c85-7e45-4ec4-a813-902458105df2"
-                controls
-                autoPlay
-                muted
-                className="w-full h-auto rounded-lg"
-                style={{ maxHeight: "70vh" }}
-              />
-            </div>
-          </div>
-        </div>
-      )}
+
       {/* Hero Section */}
-      <section className="relative pt-32 pb-20 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 overflow-hidden">
-        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?ixlib=rb-1.2.1&auto=format&fit=crop&w=1920&q=80')] bg-cover bg-center opacity-5"></div>
-
-        {/* Animated background elements */}
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-400 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"></div>
-          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-400 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse delay-1000"></div>
-        </div>
-
-        <div className="container relative mx-auto px-4">
-          <div className="max-w-4xl mx-auto text-center">
-            <div className="inline-flex items-center px-4 py-2 bg-blue-100 text-blue-800 rounded-full text-sm font-medium mb-6">
-              <Sparkles className="w-4 h-4 mr-2" />
-              Powered by Advanced AI Technology
-            </div>
-
-            <h1 className="text-6xl font-bold text-gray-900 mb-6 leading-tight">
-              AI Career Agent for Job Seekers & Professionals
-            </h1>
-
-            <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto leading-relaxed">
-              Transform your career with our intelligent AI agent that provides
-              personalized guidance, job matching, skill development, and
-              interview preparation - all powered by cutting-edge artificial
-              intelligence.
-            </p>
-
-            <div className="flex flex-col sm:flex-row items-center sm:items-baseline justify-center space-y-4 sm:space-y-0 sm:space-x-4 mb-12">
-              <div className="flex flex-col items-center w-full sm:w-auto">
-                <Link to="/signup" className="w-full">
-                  <Button
-                    size="lg"
-                    className="group bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-4 text-lg w-full sm:w-auto"
-                  >
-                    Start Free 7-Day Trial
-                    <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                  </Button>
-                </Link>
-                <div className="flex items-center text-sm text-gray-600 mt-2 font-medium">
-                  <Shield className="w-4 h-4 mr-1.5 text-green-500" />
-                  No credit card required
-                </div>
-              </div>
-              <Button
-                variant="outline"
-                size="lg"
-                className="px-8 py-4 text-lg border-2 w-full sm:w-auto"
-                onClick={() => setShowDemoModal(true)}
-              >
-                Watch Demo
-              </Button>
-            </div>
-
-            {/* Trust indicators */}
-            <div className="flex items-center justify-center space-x-8 text-sm text-gray-500">
-              <div className="flex items-center">
-                <Shield className="w-4 h-4 mr-1" />
-                Enterprise Security
-              </div>
-              <div className="flex items-center">
-                <Clock className="w-4 h-4 mr-1" />
-                24/7 AI Support
-              </div>
-              <div className="flex items-center">
-                <Globe className="w-4 h-4 mr-1" />
-                Global Job Market
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      <HeroSection />
 
       {/* Stats Section */}
       <section className="py-16 bg-white border-b">
@@ -338,16 +215,24 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Pain Validation Section */}
+      <PainValidationCards />
+
+      {/* How It Works Section */}
+      <HowItWorks />
+
+      {/* Trust Signals / Testimonials Section */}
+      <TrustSignals />
+
       {/* Features Section */}
-      <section className="py-20 bg-gray-50">
+      <section className="py-20 bg-white">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              Complete AI-Powered Career Platform
+              Everything You Need to Land Your Dream Job
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Our AI agent provides comprehensive career support with advanced
-              features designed to accelerate your professional growth.
+              Powered by AI that understands your career goals and guides you every step of the way
             </p>
           </div>
 
@@ -355,7 +240,7 @@ export default function LandingPage() {
             {features.map((feature, index) => (
               <div
                 key={index}
-                className="group p-6 bg-white rounded-xl shadow-sm border hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
+                className="group p-6 bg-gray-50 rounded-xl shadow-sm border hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
               >
                 <div
                   className={`inline-flex p-3 rounded-lg bg-${feature.color}-100 text-${feature.color}-600 mb-4 group-hover:scale-110 transition-transform duration-300`}
@@ -375,19 +260,19 @@ export default function LandingPage() {
       </section>
 
       {/* AI Resume Builder Section */}
-      <section className="py-20 bg-white">
+      <section className="py-20 bg-gray-50">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              AI Resume Builder: Beat ATS Filters Instantly
+              Beat ATS Filters & Get More Interview Calls
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Create ATS-optimized resumes that pass through applicant tracking systems and land you interviews.
+              Our AI ensures your resume passes through 95% of ATS systems and lands on recruiter's desks
             </p>
           </div>
-          <div className="grid md:grid-cols-2 gap-12 items-center">
+          <div className="grid md:grid-cols-2 gap-12 items-center max-w-6xl mx-auto">
             <div>
-              <h3 className="text-2xl font-bold mb-4">How Our AI Resume Builder Works</h3>
+              <h3 className="text-2xl font-bold mb-6">How It Works</h3>
               <ul className="space-y-4 text-lg">
                 <li className="flex items-start">
                   <Check className="w-6 h-6 text-green-500 mr-3 mt-1 flex-shrink-0" />
@@ -411,7 +296,7 @@ export default function LandingPage() {
               <div className="text-center">
                 <FileText className="w-16 h-16 text-blue-600 mx-auto mb-4" />
                 <h4 className="text-xl font-semibold mb-2">ATS Optimization & Keyword Injection</h4>
-                <p className="text-gray-600">Our AI ensures your resume passes through 95% of ATS systems with targeted keyword optimization.</p>
+                <p className="text-gray-600">Our AI ensures your resume passes through applicant tracking systems with targeted keyword optimization.</p>
               </div>
             </div>
           </div>
@@ -419,14 +304,14 @@ export default function LandingPage() {
       </section>
 
       {/* Job Matching Section */}
-      <section className="py-20 bg-gray-50">
+      <section className="py-20 bg-white">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              Job Matching: Find Roles Tailored to You
+              Find Jobs That Actually Match Your Skills
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              AI-powered job discovery with real-time matching to opportunities that fit your skills and goals.
+              Stop wasting time on irrelevant job listings. Let AI find perfect matches for you.
             </p>
           </div>
           <div className="grid md:grid-cols-3 gap-8">
@@ -450,17 +335,17 @@ export default function LandingPage() {
       </section>
 
       {/* Mock Interviews Section */}
-      <section className="py-20 bg-white">
+      <section className="py-20 bg-gray-50">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              Mock Interviews With Instant AI Feedback
+              Practice Interviews & Never Feel Nervous Again
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Practice with AI-powered mock interviews and receive detailed feedback to improve your performance.
+              Get AI feedback on your answers, body language, and confidence—just like a real interview coach
             </p>
           </div>
-          <div className="grid md:grid-cols-2 gap-12 items-center">
+          <div className="grid md:grid-cols-2 gap-12 items-center max-w-6xl mx-auto">
             <div className="bg-gradient-to-br from-green-50 to-blue-50 p-8 rounded-2xl">
               <div className="text-center">
                 <Video className="w-16 h-16 text-green-600 mx-auto mb-4" />
@@ -469,7 +354,7 @@ export default function LandingPage() {
               </div>
             </div>
             <div>
-              <h3 className="text-2xl font-bold mb-4">AI Feedback on Speech, Confidence & Clarity</h3>
+              <h3 className="text-2xl font-bold mb-6">AI Feedback on Speech, Confidence & Clarity</h3>
               <ul className="space-y-4 text-lg">
                 <li className="flex items-start">
                   <Check className="w-6 h-6 text-green-500 mr-3 mt-1 flex-shrink-0" />
@@ -494,14 +379,14 @@ export default function LandingPage() {
       </section>
 
       {/* Learning Paths Section */}
-      <section className="py-20 bg-gray-50">
+      <section className="py-20 bg-white">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              Upskill Faster With Personalized Learning Paths
+              Upskill Smarter, Not Harder
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Custom learning roadmaps with verified courses and resources tailored to your career objectives.
+              AI creates personalized learning paths that get you job-ready faster
             </p>
           </div>
           <div className="grid md:grid-cols-3 gap-8">
@@ -524,198 +409,18 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* How Skillsurger Works Section */}
-      <section className="py-20 bg-white">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              How Skillsurger Works
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Our intelligent system analyzes your profile and provides
-              personalized career guidance in four simple steps.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-4 gap-8">
-            {[
-              {
-                step: "01",
-                title: "Profile Analysis",
-                description:
-                  "Upload your CV and complete your profile. Our AI analyzes your skills, experience, and career goals.",
-                icon: FileText,
-              },
-              {
-                step: "02",
-                title: "AI Recommendations",
-                description:
-                  "Receive personalized career paths, job matches, and skill development recommendations.",
-                icon: Brain,
-              },
-              {
-                step: "03",
-                title: "Skill Development",
-                description:
-                  "Follow AI-curated learning paths and practice with mock interviews to enhance your abilities.",
-                icon: TrendingUp,
-              },
-              {
-                step: "04",
-                title: "Career Success",
-                description:
-                  "Apply to matched opportunities with optimized CVs and confidence from AI-powered preparation.",
-                icon: Rocket,
-              },
-            ].map((item, index) => (
-              <div key={index} className="text-center group">
-                <div className="relative mb-6">
-                  <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
-                    <item.icon className="w-8 h-8 text-white" />
-                  </div>
-                  <div className="absolute -top-2 -right-2 w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-bold">
-                    {item.step}
-                  </div>
-                </div>
-                <h3 className="text-xl font-semibold mb-3 text-gray-900">
-                  {item.title}
-                </h3>
-                <p className="text-gray-600">{item.description}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonials Section */}
-      <section className="py-20 bg-gradient-to-r from-blue-50 to-purple-50">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              Testimonials From Our Users
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Join thousands of professionals who have transformed their careers
-              with our AI career agent.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            {testimonials.map((testimonial, index) => (
-              <div
-                key={index}
-                className="bg-white rounded-xl p-8 shadow-sm border hover:shadow-lg transition-shadow duration-300"
-              >
-                <div className="flex items-center mb-4">
-                  {[...Array(testimonial.rating)].map((_, i) => (
-                    <Star
-                      key={i}
-                      className="w-5 h-5 text-yellow-400 fill-current"
-                    />
-                  ))}
-                </div>
-                <p className="text-gray-700 mb-6 italic leading-relaxed">
-                  "{testimonial.quote}"
-                </p>
-                <div className="flex items-center">
-                  <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold mr-4">
-                    {testimonial.name.charAt(0)}
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-gray-900">
-                      {testimonial.name}
-                    </h4>
-                    <p className="text-sm text-gray-600">
-                      {testimonial.role} at {testimonial.company}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* FAQ Section */}
-      <section className="py-20 bg-white">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              FAQs About AI Career Coaching
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Get answers to the most common questions about our AI-powered career platform.
-            </p>
-          </div>
-
-          <div className="max-w-4xl mx-auto space-y-8">
-            <div className="bg-gray-50 rounded-lg p-8">
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">
-                What is Skillsurger?
-              </h3>
-              <p className="text-gray-700 leading-relaxed">
-                Skillsurger is an AI-powered personal career coach that helps you match to the right jobs, build optimized resumes, practice mock interviews, and upskill smartly.
-              </p>
-            </div>
-
-            <div className="bg-gray-50 rounded-lg p-8">
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">
-                How is it different from other job sites?
-              </h3>
-              <p className="text-gray-700 leading-relaxed">
-                Unlike job boards, Skillsurger personalizes every step using AI—from resume tailoring to mock interview feedback—saving hours and increasing success rates.
-              </p>
-            </div>
-
-            <div className="bg-gray-50 rounded-lg p-8">
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">
-                Is there a free trial?
-              </h3>
-              <p className="text-gray-700 leading-relaxed">
-                Yes! You can try Skillsurger free for 7 days. No credit card required.
-              </p>
-            </div>
-
-            <div className="bg-gray-50 rounded-lg p-8">
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">
-                How does the AI resume builder work?
-              </h3>
-              <p className="text-gray-700 leading-relaxed">
-                Our AI analyzes job descriptions, injects relevant keywords, and ensures your resume passes through 95% of ATS systems. You can upload existing CVs or start from scratch.
-              </p>
-            </div>
-
-            <div className="bg-gray-50 rounded-lg p-8">
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">
-                What kind of interview feedback do I get?
-              </h3>
-              <p className="text-gray-700 leading-relaxed">
-                Our AI provides instant feedback on your communication style, confidence, content quality, and STAR method structure. You can practice unlimited mock interviews with role-specific questions.
-              </p>
-            </div>
-
-            <div className="bg-gray-50 rounded-lg p-8">
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">
-                How accurate is the job matching?
-              </h3>
-              <p className="text-gray-700 leading-relaxed">
-                Our AI analyzes your skills, experience, and career goals to find jobs that match your profile. We rank suggestions by fit, salary potential, and growth opportunities.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
+      <FAQSection />
 
       {/* Pricing Section */}
       <section id="pricing" className="py-20 bg-white">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              Choose Your Career Growth Plan
+              Start Free, Upgrade When You're Ready
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Start with our free trial and experience the full power of
-              AI-driven career development.
+              Try everything free for 7 days. No credit card required.
             </p>
           </div>
 
@@ -806,11 +511,10 @@ export default function LandingPage() {
           <div className="max-w-4xl mx-auto">
             <div className="text-center mb-16">
               <h2 className="text-4xl font-bold text-gray-900 mb-4">
-                Ready to Transform Your Career?
+                Questions? We're Here to Help
               </h2>
               <p className="text-xl text-gray-600">
-                Get in touch with our team to learn how our AI career agent can
-                accelerate your professional growth.
+                Get in touch with our team—real humans who care about your success
               </p>
             </div>
 
@@ -996,37 +700,28 @@ export default function LandingPage() {
       <section className="py-20 bg-gradient-to-r from-blue-600 to-purple-600 text-white">
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-4xl font-bold mb-6">
-            Your AI Career Agent is Waiting
+            Ready to Land Your Dream Job?
           </h2>
           <p className="text-xl text-blue-100 mb-8 max-w-3xl mx-auto">
-            Join thousands of professionals who have already discovered their
-            true potential with our AI-powered career platform.
+            Join thousands of job seekers who've transformed their careers with AI-powered guidance
           </p>
-          <div className="flex items-center justify-center space-x-4">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link to="/signup">
               <Button
                 size="lg"
                 className="bg-white text-blue-600 hover:bg-gray-100 px-8 py-4 text-lg font-semibold"
               >
-                Start Free 7-Day Trial
+                Start Free Trial
                 <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
             </Link>
-            <Button
-              variant="outline"
-              size="lg"
-              className="border-white text-white hover:bg-white hover:text-blue-600 px-8 py-4 text-lg"
-            >
-              Schedule Demo
-            </Button>
           </div>
 
           <div className="mt-8 text-blue-100 text-sm">
-            No credit card required • Full access during trial • Cancel anytime
+            No credit card required • 7-day free trial • Cancel anytime
           </div>
         </div>
       </section>
-
     </div>
   );
 }

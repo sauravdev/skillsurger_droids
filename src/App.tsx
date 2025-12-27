@@ -28,6 +28,8 @@ import AnalyticsTracking from './components/AnalyticsTracking';
 import PerformanceMonitor from './components/PerformanceMonitor';
 import UserTypeSelection from './components/UserTypeSelection';
 import OnboardingForm from './components/OnboardingForm';
+import Onboarding from './pages/Onboarding';
+import OnboardingModal from './components/OnboardingModal';
 
 function App() {
   return (
@@ -41,11 +43,13 @@ function App() {
         
         <div className="min-h-screen bg-gray-50">
           <Header />
+          <OnboardingModal />
           <main>
             <Routes>
               <Route path="/" element={<LandingPage />} />
               <Route path="/signup" element={<SignUpPage />} />
               <Route path="/login" element={<LoginPage />} />
+              <Route path="/get-started" element={<Onboarding />} />
               <Route path="/pricing" element={<Pricing />} />
               <Route 
                 path="/subscription" 
