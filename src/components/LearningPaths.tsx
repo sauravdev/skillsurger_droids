@@ -83,6 +83,7 @@ export default function LearningPaths({ job }: LearningPathsProps) {
   const [generatingPlan, setGeneratingPlan] = useState(false);
   const [feedbackTexts, setFeedbackTexts] = useState<{[key: string]: string}>({});
   const [updatingPath, setUpdatingPath] = useState<string | null>(null);
+  const [updateProgress, setUpdateProgress] = useState<string>('');
   const [showFeedbackForm, setShowFeedbackForm] = useState<{[key: string]: boolean}>({});
 
   useEffect(() => {
@@ -713,6 +714,7 @@ export default function LearningPaths({ job }: LearningPathsProps) {
 
     try {
       setUpdatingPath(pathId);
+      setUpdateProgress('Initiating learning path update...');
       setError('');
 
       const path = learningPaths.find(p => p.id === pathId);
@@ -721,11 +723,12 @@ export default function LearningPaths({ job }: LearningPathsProps) {
         return;
       }
 
-      // Send feedback to backend
       const apiBase = import.meta.env.VITE_BACKEND_API || 'http://localhost:5002/api/v1';
-      const response = await axios.post(`${apiBase}/openai/skillsurger`, {
-        type: 'updateLearningPathFromFeedback',
-        learningPathId: pathId,
+
+      // Step 1: Initiate the update (returns immediately with task ID)
+      setUpdateProgress('Submitting your feedback...');
+      const initiateResponse = await axios.post(`${apiBase}/openai/skillsurger`, {
+        type: 'initiateLearningPathUpdate',
         currentPath: {
           jobTitle: path.job_title,
           careerPath: path.career_path,
@@ -736,56 +739,112 @@ export default function LearningPaths({ job }: LearningPathsProps) {
         },
         userFeedback: feedback
       }, {
-        timeout: 300000 // 5 minutes - GPT-5 with web_search can take 2+ minutes
+        timeout: 10000 // 10 seconds - just for initiating
       });
 
-      if (!response.data.success) {
-        throw new Error(response.data.message || 'Failed to update learning path');
+      if (!initiateResponse.data.success) {
+        throw new Error(initiateResponse.data.message || 'Failed to initiate learning path update');
       }
 
-      const updatedResources = response.data.data.resources;
-      
-      // Update the learning path in the database
-      const { error: updateError } = await supabase
-        .from('learning_paths')
-        .update({
-          resources: updatedResources,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', pathId);
+      const taskId = initiateResponse.data.data.taskId;
 
-      if (updateError) throw updateError;
+      // Step 2: Poll for status updates
+      setUpdateProgress('Processing your request...');
+      let completed = false;
+      let attempts = 0;
+      const maxAttempts = 60; // 5 minutes max (60 * 5 seconds)
+      let lastProgress = '';
 
-      // Update local state
-      setLearningPaths(prev =>
-        prev.map(p =>
-          p.id === pathId 
-            ? { ...p, resources: updatedResources }
-            : p
-        )
-      );
+      while (!completed && attempts < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds between polls
 
-      // Clear feedback and close form
-      setFeedbackTexts(prev => ({ ...prev, [pathId]: '' }));
-      setShowFeedbackForm(prev => ({ ...prev, [pathId]: false }));
+        try {
+          const statusResponse = await axios.post(`${apiBase}/openai/skillsurger`, {
+            type: 'getLearningPathUpdateStatus',
+            taskId
+          }, {
+            timeout: 10000
+          });
 
-      // Show success message
-      const successDiv = document.createElement('div');
-      successDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
-      successDiv.textContent = 'Learning path updated based on your feedback!';
-      document.body.appendChild(successDiv);
-      
-      setTimeout(() => {
-        if (document.body.contains(successDiv)) {
-          document.body.removeChild(successDiv);
+          if (statusResponse.data.success) {
+            const status = statusResponse.data.data;
+
+            // Update loading message with progress
+            if (status.progress !== lastProgress) {
+              lastProgress = status.progress;
+              setUpdateProgress(status.progress);
+              console.log(`[Learning Path Update] ${status.progress}`);
+            }
+
+            if (status.status === 'completed') {
+              completed = true;
+              const updatedResources = status.resources;
+
+              if (updatedResources && updatedResources.length > 0) {
+                // Update the learning path in the database
+                const { error: updateError } = await supabase
+                  .from('learning_paths')
+                  .update({
+                    resources: updatedResources,
+                    updated_at: new Date().toISOString()
+                  })
+                  .eq('id', pathId);
+
+                if (updateError) throw updateError;
+
+                // Update local state
+                setLearningPaths(prev =>
+                  prev.map(p =>
+                    p.id === pathId
+                      ? { ...p, resources: updatedResources }
+                      : p
+                  )
+                );
+
+                // Clear feedback and close form
+                setFeedbackTexts(prev => ({ ...prev, [pathId]: '' }));
+                setShowFeedbackForm(prev => ({ ...prev, [pathId]: false }));
+
+                // Show success message
+                const successDiv = document.createElement('div');
+                successDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+                successDiv.textContent = 'Learning path updated based on your feedback!';
+                document.body.appendChild(successDiv);
+
+                setTimeout(() => {
+                  if (document.body.contains(successDiv)) {
+                    document.body.removeChild(successDiv);
+                  }
+                }, 3000);
+              } else {
+                throw new Error('No updated resources received');
+              }
+            } else if (status.status === 'failed') {
+              throw new Error(status.error || 'Learning path update failed');
+            }
+            // If status is 'processing', continue polling
+          }
+        } catch (pollError: any) {
+          console.error('Error polling status:', pollError);
+          // Continue polling unless it's a critical error
+          if (pollError.message?.includes('Task not found')) {
+            throw new Error('Update task not found. Please try again.');
+          }
         }
-      }, 3000);
+
+        attempts++;
+      }
+
+      if (!completed) {
+        throw new Error('Learning path update timed out. Please try again.');
+      }
 
     } catch (error: any) {
       console.error('Error updating learning path from feedback:', error);
       setError(error.response?.data?.message || error.message || 'Failed to update learning path from feedback');
     } finally {
       setUpdatingPath(null);
+      setUpdateProgress('');
     }
   }
 
@@ -1248,6 +1307,14 @@ export default function LearningPaths({ job }: LearningPathsProps) {
                         className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 mb-3 p-3"
                         rows={4}
                       />
+                      {updatingPath === path.id && updateProgress && (
+                        <div className="mb-3 p-3 bg-blue-100 border border-blue-300 rounded-md">
+                          <div className="flex items-center">
+                            <RefreshCw className="w-4 h-4 mr-2 text-blue-600 animate-spin" />
+                            <span className="text-sm text-blue-800 font-medium">{updateProgress}</span>
+                          </div>
+                        </div>
+                      )}
                       <div className="flex justify-end">
                         <Button
                           onClick={() => handleSubmitFeedback(path.id)}
@@ -1258,7 +1325,7 @@ export default function LearningPaths({ job }: LearningPathsProps) {
                           {updatingPath === path.id ? (
                             <>
                               <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                              Updating...
+                              {updateProgress || 'Updating...'}
                             </>
                           ) : (
                             <>
