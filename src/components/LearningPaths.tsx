@@ -972,9 +972,9 @@ export default function LearningPaths({ job }: LearningPathsProps) {
       )}
 
       {/* Generate New Learning Path */}
-      <div className="bg-white rounded-lg shadow-lg p-6">
-        <h3 className="text-lg font-semibold mb-4 flex items-center cursor-default">
-          <BookOpen className="w-5 h-5 mr-2 text-blue-600 pointer-events-none" />
+      <div className="bg-white rounded-lg shadow-lg p-6 cursor-default">
+        <h3 className="text-lg font-semibold mb-4 flex items-center">
+          <BookOpen className="w-5 h-5 mr-2 text-blue-600" />
           Generate Verified Learning Path
         </h3>
         

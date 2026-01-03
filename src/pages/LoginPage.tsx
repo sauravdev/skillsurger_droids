@@ -140,7 +140,7 @@ export default function LoginPage() {
           )}
 
           {/* Google Sign-In Button */}
-          <div className="mb-6">
+          <div className="mb-6 flex justify-center">
             <GoogleSignInButton
               text="Sign in with Google"
               onError={handleGoogleSignInError}

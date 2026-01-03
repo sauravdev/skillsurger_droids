@@ -33,11 +33,13 @@ export default function FAQItem({
 
       <div
         className={cn(
-          'overflow-hidden transition-all duration-300',
-          isOpen ? 'max-h-96' : 'max-h-0'
+          'grid transition-[grid-template-rows] duration-300 ease-in-out',
+          isOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'
         )}
       >
-        <div className="px-6 py-4 bg-gray-50 text-gray-700">{answer}</div>
+        <div className="overflow-hidden">
+          <div className="px-6 py-4 bg-gray-50 text-gray-700">{answer}</div>
+        </div>
       </div>
     </div>
   );

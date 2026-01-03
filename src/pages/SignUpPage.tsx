@@ -154,7 +154,7 @@ export default function SignUpPage() {
           )}
 
           {/* Google Sign-In Button */}
-          <div className="mb-6">
+          <div className="mb-6 flex justify-center">
             <GoogleSignInButton
               text="Sign up with Google"
               onError={handleGoogleSignInError}

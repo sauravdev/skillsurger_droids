@@ -55,7 +55,7 @@ export default function GoogleSignInButton({
       onClick={handleGoogleSignIn}
       disabled={disabled || loading}
       variant="outline"
-      className="w-full flex items-center justify-center space-x-2 border-gray-300 hover:bg-gray-50"
+      className="flex items-center justify-center space-x-2 border-gray-300 hover:bg-gray-50"
     >
       <Chrome className="w-5 h-5 text-blue-500" />
       <span>{loading ? 'Connecting...' : text}</span>

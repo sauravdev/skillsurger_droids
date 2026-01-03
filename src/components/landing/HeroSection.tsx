@@ -1,20 +1,43 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Shield, Clock, Globe, Sparkles, Star, Upload } from 'lucide-react';
 import Button from '../Button';
 import { Link } from 'react-router-dom';
+import { supabase } from '../../lib/supabase';
 
 export default function HeroSection() {
   const navigate = useNavigate();
   const [showDemoModal, setShowDemoModal] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    const checkLoginStatus = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
+        setIsLoggedIn(true);
+      } else {
+        setIsLoggedIn(false);
+      }
+    };
+    checkLoginStatus();
+  }, []);
+
+      const handleCVScoringClick = () => {    if (isLoggedIn) {
+      navigate('/dashboard?section=cv-scoring');
+    } else {
+      navigate('/signup');
+    }
+  };
 
   return (
     <>
       <section className="relative pt-32 pb-20 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 overflow-hidden">
         <img
-          src="https://images.unsplash.com/photo-1451187580459-43490279c0fa?ixlib=rb-1.2.1&auto=format&fit=crop&w=1920&q=80&fm=webp"
+          src="https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1920&h=1080&fit=crop&fm=webp&q=50&auto=format"
           alt="Career growth background"
           className="absolute inset-0 w-full h-full object-cover opacity-5"
+          width="1920"
+          height="1080"
           fetchPriority="high"
           loading="eager"
         />
@@ -45,7 +68,7 @@ export default function HeroSection() {
 
             <div className="flex flex-col sm:flex-row items-center sm:items-baseline justify-center space-y-4 sm:space-y-0 sm:space-x-4 mb-12">
               <div className="flex flex-col items-center w-full sm:w-auto">
-                <Link to="/signup" className="w-full">
+                <Link to={isLoggedIn ? "/dashboard" : "/signup"} className="w-full">
                   <Button
                     size="lg"
                     className="group bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-4 text-lg w-full sm:w-auto"
@@ -102,7 +125,7 @@ export default function HeroSection() {
             <p className="text-lg text-gray-700 mb-6 max-w-2xl mx-auto">
               Upload your resume and get instant ATS compatibility score, keyword analysis, and expert suggestions to beat applicant tracking systems.
             </p>
-            <Link to="/signup" className="inline-block">
+            <button onClick={handleCVScoringClick} className="inline-block">
               <Button
                 size="lg"
                 className="bg-green-600 hover:bg-green-700 text-white px-10 py-5 text-lg shadow-lg"
@@ -110,7 +133,7 @@ export default function HeroSection() {
                 <Upload className="w-5 h-5 mr-2" />
                 Score My CV Now - It's Free
               </Button>
-            </Link>
+            </button>
             <p className="text-sm text-gray-600 mt-4">
               ✓ No credit card required  ✓ Instant results  ✓ Used by 5,000+ job seekers
             </p>
@@ -135,6 +158,7 @@ export default function HeroSection() {
                 controls
                 autoPlay
                 muted
+                loading="lazy"
                 className="w-full h-auto rounded-lg"
                 style={{ maxHeight: "70svh" }}
               >

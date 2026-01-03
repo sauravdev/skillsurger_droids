@@ -5,13 +5,19 @@ interface LazyImageProps {
   alt: string;
   className?: string;
   placeholder?: string;
+  width?: number;
+  height?: number;
+  aspectRatio?: string;
 }
 
-const LazyImage: React.FC<LazyImageProps> = ({ 
-  src, 
-  alt, 
-  className = '', 
-  placeholder = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300"%3E%3Crect width="400" height="300" fill="%23e5e7eb"/%3E%3C/svg%3E'
+const LazyImage: React.FC<LazyImageProps> = ({
+  src,
+  alt,
+  className = '',
+  placeholder = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300"%3E%3Crect width="400" height="300" fill="%23e5e7eb"/%3E%3C/svg%3E',
+  width,
+  height,
+  aspectRatio
 }) => {
   const [imageSrc, setImageSrc] = useState(placeholder);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -52,6 +58,9 @@ const LazyImage: React.FC<LazyImageProps> = ({
       onLoad={() => setIsLoaded(true)}
       loading="lazy"
       decoding="async"
+      width={width}
+      height={height}
+      style={aspectRatio ? { aspectRatio } : undefined}
     />
   );
 };

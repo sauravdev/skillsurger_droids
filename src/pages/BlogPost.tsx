@@ -982,11 +982,14 @@ const BlogPost = () => {
             </div>
 
             {/* Featured Image */}
-            <div className="mb-12">
+            <div className="mb-12 aspect-video">
               <img
                 src={post.image}
                 alt={post.title}
-                className="w-full h-100 w-70 object-cover rounded-xl"
+                className="w-full h-full object-cover rounded-xl"
+                width="1200"
+                height="675"
+                loading="eager"
               />
             </div>
 

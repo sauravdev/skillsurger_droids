@@ -24,6 +24,7 @@ import TrialWarning from '../components/TrialWarning';
 import { UserProvider, useUser } from '../context/UserContext';
 import { hasAIFeatureAccess } from '../lib/subscriptionUtils';
 import SEO from '../components/SEO';
+import DashboardSkeleton from '../components/DashboardSkeleton';
 
 type DashboardSection = 'overview' | 'profile' | 'career' | 'cv-scoring' | 'mentorship' | 'learning' | 'subscription';
 
@@ -247,19 +248,9 @@ export default function DashboardPage() {
   ];
 
   if (loading || contextLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 pt-24">
-        <div className="max-w-7xl mx-auto p-6">
-          <div className="bg-white rounded-lg shadow-lg p-8">
-            <div className="flex items-center justify-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-              <span className="ml-2">Loading...</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
+
 
   return (
     <OnboardingCheck>
